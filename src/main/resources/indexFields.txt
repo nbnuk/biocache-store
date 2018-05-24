@@ -206,7 +206,7 @@ distance_outside_expert_range	double	distanceOutsideExpertRange_p	F	F		F
 	string	georeferenceSources	F	F	F	F
 	string	georeferenceSources_p	F	F	F	F
 	string	georeferenceVerificationStatus	F	F	F	F
-	string	georeferenceVerificationStatus_p	F	F	F	F
+georeference_verification_status	string	georeferenceVerificationStatus_p	F	F	F	F
 	string	geospatialIssue	F	F	F	F
 geospatial_kosher	string	geospatiallyKosher	F	F	F	F
 	string	group	F	F	F	F
@@ -222,6 +222,7 @@ geospatial_kosher	string	geospatiallyKosher	F	F	F	F
 	string	identificationReferences_p	F	F	F	F
 	string	identificationRemarks	F	F	F	F
 	string	identificationVerificationStatus	F	F	F	F
+	identification_verification_status	string	identificationVerificationStatus_p	F	F	F	F
 	string	identifiedBy_p	F	F	F	F
 	string	identifierBy	F	F	F	F
 	string	identifierRole	F	F	F	F

@@ -172,7 +172,10 @@ trait IndexDAO {
     "duplicate_type", "sensitive_coordinate_uncertainty", "distance_outside_expert_range", "elevation_d", "min_elevation_d", "max_elevation_d",
     "depth_d", "min_depth_d", "max_depth_d", "name_parse_type","occurrence_status", "occurrence_details", "photographer", "rights",
     "raw_geo_validation_status", "raw_occurrence_status", "raw_locality","raw_latitude","raw_longitude","raw_datum","raw_sex",
-    "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") ::: Config.additionalFieldsToIndex
+    "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") :::
+    List( /* RR added verification fields below */
+      "identification_verification_status","georeference_verification_status"
+    ) ::: Config.additionalFieldsToIndex /* additionalFieldHeaders */
 
   /**
    * sensitive csv header columns
@@ -597,7 +600,9 @@ trait IndexDAO {
           getValue("reproductiveCondition", map),
           getParsedValue("license", map),
           getValue("individualCount", map),
-          getParsedValueIfAvailable("datePrecision", map, "")
+          getParsedValueIfAvailable("datePrecision", map, ""),
+          getParsedValueIfAvailable("identificationVerificationStatus", map, "").trim, /* verification fields added here */
+          getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
