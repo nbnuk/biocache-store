@@ -42,7 +42,7 @@ object SpeciesGroups {
    createSpeciesGroup("Protozoa", "kingdom", Array("Protozoa"), Array(), null),
    createSpeciesGroup("Bacteria", "kingdom", Array("Bacteria"), Array(), null),
    createSpeciesGroup("Algae","phylum", Array("Bacillariophyta","Chlorophyta","Cyanidiophyta","Prasinophyta","Rhodophyta",
-                                               "Cryptophyta","Ochrophyta","Sagenista","Cercozoa","Euglenozoa","Cyanobacteria"),Array(),null)
+                                               "Cryptophyta","Ochrophyta","Sagenista","Cercozoa","Euglenozoa","Cyanobacteria"),Array(), "Plants")
   )
 
   def getSubgroupsConfig = if(Config.speciesSubgroupsUrl.startsWith("http")){
