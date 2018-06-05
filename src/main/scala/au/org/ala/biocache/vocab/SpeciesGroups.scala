@@ -24,25 +24,30 @@ object SpeciesGroups {
    createSpeciesGroup("Birds", "classs", Array("Aves"), Array(), "Animals"),
    createSpeciesGroup("Reptiles", "classs", Array("Reptilia"), Array(), "Animals"),
    createSpeciesGroup("Amphibians", "classs", Array("Amphibia"), Array(),"Animals"),
-   createSpeciesGroup("Fishes", "classs", Array("Chondrichthyes", "Actinopterygii", "Cephalaspidomorphi", "Elasmobranchii", "Holocephali", "Myxini"), Array(), "Animals"),
+   createSpeciesGroup("Fishes", "classs", Array("Actinopterygii", "Cephalaspidomorphi", "Elasmobranchii", "Holocephali", "Myxini"), Array(), "Animals"),
    createSpeciesGroup("Molluscs", "phylum", Array("Mollusca"), Array(), "Animals"),
+   
    createSpeciesGroup("Arthropods", "phylum", Array("Arthropoda"), Array(), "Animals"),
    createSpeciesGroup("Crustaceans", "subphylum" , Array("Crustacea"), Array(), "Arthropods"),
-   createSpeciesGroup("Insects",  "classs", Array("Insecta"), Array(), "Arthropods"),
+   createSpeciesGroup("Insects",  "classs", Array("Hexapoda"), Array(), "Arthropods"),
+   createSpeciesGroup("SpidersAndAllies", "subphylum" , Array("Chelicerata"), Array(), "Arthropods"),
+   createSpeciesGroup("Myriapods",  "classs", Array("Myriapoda"), Array(), "Arthropods"),
+   
+   createSpeciesGroup("Worms", "phylum", Array("Annelida", "Chaetognatha", "Echiura", "Nematoda", "Nematomorpha", "Nemertea", "Platyhelminthes", "Priapulida", "Sipuncula"), Array(), "Animals"),
+   
    createSpeciesGroup("Plants", "kingdom", Array("Plantae"), Array(), null),
-   createSpeciesGroup("Bryophytes","phylum",Array("Bryophyta","Marchantiophyta","Anthocerotophyta"),Array(),"Plants"), //new group for AVH
-   createSpeciesGroup("Gymnosperms","classs", Array("Ginkgoopsida", "Pinopsida"), Array(), "Plants"), //new group for AVH
-   createSpeciesGroup("FernsAndAllies","subclass", Array("Equisetidae", "Lycopodiidae", "Marattiidae", "Ophioglossidae", "Polypodiidae","Psilotidae"), Array(), "Plants"),
-   //new groups for AVH
-   createSpeciesGroup("Angiosperms", "classs",Array("Magnoliopsida"), Array(), "Plants"),//new group for AVH
-   //createSpeciesGroup("Monocots", "superorder", Array("Lilianae"), Array(), "Angiosperms"), //new group for AVH
-   //createSpeciesGroup("Dicots", "subclass", Array("Magnoliidae"),  Array("Lilianae"), "Angiosperms"), //new group for AVH
+   createSpeciesGroup("Algae","phylum", Array("Glaucophyta", "Rhodophyta", "Charophyta", "Chlorophyta"),Array(), "Plants"),
+   createSpeciesGroup("Bryophytes","phylum", Array("Bryophyta","Marchantiophyta"), Array(),"Plants"),
+   createSpeciesGroup("Hornworts","division", Array("Anthocerotophyta"), Array(),"Plants"),
+   createSpeciesGroup("Gymnosperms","classs", Array("Ginkgoopsida", "Pinopsida"), Array(), "Plants"),
+   createSpeciesGroup("FernsAndAllies","phylum", Array("Pteridophyta"), Array(), "Plants"),
+   createSpeciesGroup("Clubmosses","classs", Array("Lycopodiopsida"), Array(), "Plants"),
+   createSpeciesGroup("Angiosperms", "classs", Array("Magnoliopsida"), Array(), "Plants"),
+
    createSpeciesGroup("Fungi", "kingdom", Array("Fungi"), Array(), null),
    createSpeciesGroup("Chromista","kingdom", Array("Chromista"), Array(), null),
    createSpeciesGroup("Protozoa", "kingdom", Array("Protozoa"), Array(), null),
-   createSpeciesGroup("Bacteria", "kingdom", Array("Bacteria"), Array(), null),
-   createSpeciesGroup("Algae","phylum", Array("Bacillariophyta","Chlorophyta","Cyanidiophyta","Prasinophyta","Rhodophyta",
-                                               "Cryptophyta","Ochrophyta","Sagenista","Cercozoa","Euglenozoa","Cyanobacteria"),Array(), "Plants")
+   createSpeciesGroup("Bacteria", "kingdom", Array("Bacteria"), Array(), null)
   )
 
   def getSubgroupsConfig = if(Config.speciesSubgroupsUrl.startsWith("http")){
