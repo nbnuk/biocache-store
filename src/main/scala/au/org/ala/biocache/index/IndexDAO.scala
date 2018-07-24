@@ -557,7 +557,7 @@ trait IndexDAO {
           getValue("recordNumber", map, ""),
           if (firstLoadDate.isEmpty) "" else DateFormatUtils.format(firstLoadDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           getParsedValue("nameMatchMetric", map),
-          getValue("phenology", map, ""),
+          getValue("phenology", map, ""), /* RR change to lifeStage? *** */
           outlierForLayers.mkString("|"),
           outlierForLayers.length.toString,
           taxonIssueArray.mkString("|"),

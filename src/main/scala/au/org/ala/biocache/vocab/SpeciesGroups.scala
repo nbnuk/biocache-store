@@ -27,7 +27,7 @@ object SpeciesGroups {
    createSpeciesGroup("Fishes", "classs", Array("Actinopterygii", "Cephalaspidomorphi", "Elasmobranchii", "Holocephali", "Myxini"), Array(), "Animals"),
    createSpeciesGroup("Molluscs", "phylum", Array("Mollusca"), Array(), "Animals"),
    
-   createSpeciesGroup("Arthropods", "phylum", Array("Arthropoda"), Array(), "Animals"),
+   createSpeciesGroup("Arthropods", "phylum", Array("Arthropoda"), Array(), "Animals"), /* not in subGroups */
    createSpeciesGroup("Crustaceans", "subphylum" , Array("Crustacea"), Array(), "Arthropods"),
    createSpeciesGroup("Insects",  "classs", Array("Hexapoda"), Array(), "Arthropods"),
    createSpeciesGroup("SpidersAndAllies", "subphylum" , Array("Chelicerata"), Array(), "Arthropods"),
@@ -39,7 +39,7 @@ object SpeciesGroups {
    createSpeciesGroup("Algae","phylum", Array("Glaucophyta", "Rhodophyta", "Charophyta", "Chlorophyta"),Array(), "Plants"),
    createSpeciesGroup("Bryophytes","phylum", Array("Bryophyta","Marchantiophyta"), Array(),"Plants"),
    createSpeciesGroup("Hornworts","division", Array("Anthocerotophyta"), Array(),"Plants"),
-   createSpeciesGroup("Gymnosperms","classs", Array("Ginkgoopsida", "Pinopsida"), Array(), "Plants"),
+   createSpeciesGroup("Gymnosperms and Ginkgo","classs", Array("Ginkgoopsida", "Pinopsida"), Array(), "Plants"),
    createSpeciesGroup("FernsAndAllies","phylum", Array("Pteridophyta"), Array(), "Plants"),
    createSpeciesGroup("Clubmosses","classs", Array("Lycopodiopsida"), Array(), "Plants"),
    createSpeciesGroup("Angiosperms", "classs", Array("Magnoliopsida"), Array(), "Plants"),

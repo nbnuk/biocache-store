@@ -12,7 +12,7 @@
                 "common": "Carnivores"
             },
             {
-                "name": "Cetartiodactyla",
+                "name": "CETARTIODACTYLA",
                 "common": "Whales and dolphins"
             },
             {
@@ -20,7 +20,7 @@
                 "common": "Bats"
             },
             {
-                "name": "Diprotodontia",
+                "name": "DIPROTODONTIA",
                 "common": "Herbivorous marsupials"
             },
             {
@@ -58,7 +58,7 @@
                 "common": "Swifts"
             },
             {
-                "name": "Bucerotiformes",
+                "name": "BUCEROTIFORMES",
                 "common": "Hornbills"
             },
             {
@@ -90,7 +90,7 @@
                 "common": "Partridges, quails and pheasants"
             },
             {
-                "name": "Gaviiformes",
+                "name": "GAVIIFORMES",
                 "common": "Divers"
             },
             {
@@ -110,7 +110,7 @@
                 "common": "Flamingos"
             },
             {
-                "name": "Piciformes",
+                "name": "PICIFORMES",
                 "common": "Woodpeckers"
             },
             {
@@ -122,7 +122,7 @@
                 "common": "Petrels and fulmars"
             },
             {
-                "name": "Rheiformes",
+                "name": "RHEIFORMES",
                 "common": "Rheas"
             },
             {
@@ -134,7 +134,7 @@
                 "common": "Ostriches"
             },
             {
-                "name": "Upupiformes",
+                "name": "UPUPIFORMES",
                 "common": "Hoopoes"
             }
         ]
@@ -156,7 +156,7 @@
                 "common": "Earwigs"
             },
             {
-                "name": "Dictyoptera",
+                "name": "DICTYOPTERA",
                 "common": "Cockroaches"
             },
             {
@@ -220,7 +220,7 @@
                 "common": "Booklice"
             },
             {
-                "name": "Raphidioptera",
+                "name": "RAPHIDIOPTERA",
                 "common": "Snakefiles"
             },
             {
@@ -250,11 +250,11 @@
         "taxonRank": "order",
         "taxa": [
             {
-                "name": "Anura",
+                "name": "ANURA",
                 "common": "Frogs and toads"
             },
             {
-                "name": "Caudata",
+                "name": "CAUDATA",
                 "common": "Salamanders, sirens and newts"
             }
         ]
@@ -278,23 +278,23 @@
         "taxonRank": "class",
         "taxa": [
             {
-                "name": "Actinopterygii",
+                "name": "ACTINOPTERYGII",
                 "common": "Ray-finned fishes"
             },
             {
-                "name": "Cephalaspidomorphi",
+                "name": "CEPHALASPIDOMORPHI",
                 "common": "Lampreys"
             },
             {
-                "name": "Elasmobranchii",
+                "name": "ELASMOBRANCHII",
                 "common": "Sharks, rays, skates and sawfish"
             },
             {
-                "name": "Holocephali",
+                "name": "HOLOCEPHALI",
                 "common": "Ratfish"
             },
             {
-                "name": "Myxini",
+                "name": "MYXINI",
                 "common": "Hagfish"
             }
         ]
@@ -308,7 +308,7 @@
                 "common": "Clams, mussels and oysters"
             },
             {
-                "name": "Caudofoveata",
+                "name": "CAUDOFOVEATA",
                 "common": "Chaetoderma"
             },
             {
@@ -328,7 +328,7 @@
                 "common": "Tusk shells"
             },
             {
-                "name": "Solenogastres",
+                "name": "SOLENOGASTRES",
                 "common": "Solenogasters"
             }
         ]
@@ -360,19 +360,19 @@
         "taxonRank": "class",
         "taxa": [
             {
-                "name": "Chilopoda",
+                "name": "CHILOPODA",
                 "common": "Centipedes"
             },
             {
-                "name": "Diplopoda",
+                "name": "DIPLOPODA",
                 "common": "Millipedes"
             },
             {
-                "name": "Pauropoda",
+                "name": "PAUROPODA",
                 "common": "Pauropoda"
             },
             {
-                "name": "Symphyla",
+                "name": "SYMPHYLA",
                 "common": "Symphylid"
             }
         ]
@@ -420,74 +420,40 @@
         "taxonRank": "phylum",
         "taxa": [
             {
-                "name": "Annelida",
+                "name": "ANNELIDA",
                 "common": "Ragworms, earthworms and leeches"
             },
             {
-                "name": "Chaetognatha",
+                "name": "CHAETOGNATHA",
                 "common": "Arrow worms"
             },
             {
-                "name": "Echiura",
+                "name": "ECHIURA",
                 "common": "Spoon worms"
             },
             {
-                "name": "Nematoda",
+                "name": "NEMATODA",
                 "common": "Roundworms"
             },
             {
-                "name": "Nematomorpha",
+                "name": "NEMATOMORPHA",
                 "common": "Hairworms"
             },
             {
-                "name": "Nemertea",
+                "name": "NEMERTEA",
                 "common": "Ribbon worms"
             },
             {
-                "name": "Platyhelminthes",
+                "name": "PLATYHELMINTHES",
                 "common": "Flatworms"
             },
             {
-                "name": "Priapulida",
+                "name": "PRIAPULIDA",
                 "common": "Priapulid worms"
             },
             {
-                "name": "Sipuncula",
+                "name": "SIPUNCULA",
                 "common": "Peanut worms"
-            }
-        ]
-    },
-    {
-        "speciesGroup": "Plants",
-        "facetName": "species_group",
-        "taxa": [
-            {
-                "name": "Algae",
-                "common": "Algae"
-            },
-            {
-                "name": "Bryophytes",
-                "common": "Bryophytes"
-            },
-            {
-                "name": "Hornworts",
-                "common": "Hornworts"
-            },
-            {
-                "name": "Gymnosperms",
-                "common": "Conifers and Ginkgo"
-            },
-            {
-                "name": "FernsAndAllies",
-                "common": "Ferns and allies"
-            },
-            {
-                "name": "Clubmosses",
-                "common": "Clubmosses and firmosses"
-            },
-            {
-                "name": "Angiosperms",
-                "common": "Flowering plants"
             }
         ]
     },
@@ -514,6 +480,180 @@
             {
                 "name": "Glomeromycota",
                 "common": "Glomeromycota"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "division",
+        "taxa": [
+            {
+                "name": "Algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Charophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Chlorophycota",
+                "common": "Algae"
+            },
+            {
+                "name": "Chlorophycota",
+                "common": "Algae"
+            },
+            {
+                "name": "Encrusting green algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Filamentous green algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Filamentous red algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Foliose green algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Foliose red algae",
+                "common": "Algae"
+            },
+            {
+                "name": "Rhodophycota indet. (non-calc. crusts)",
+                "common": "Algae"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "phylum",
+        "taxa": [
+            {
+                "name": "Rhodophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Conjugatophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Glaucophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Charophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Magnoliophyta",
+                "common": "Algae"
+            },
+            {
+                "name": "Chlorophyta",
+                "common": "Algae"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "phylum",
+        "taxa": [
+            {
+                "name": "Bryophyta",
+                "common": "Bryophytes"
+            },
+            {
+                "name": "Marchantiophyta",
+                "common": "Bryophytes"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "division",
+        "taxa": [
+            {
+                "name": "Anthocerophyta",
+                "common": "Hornworts"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "phylum",
+        "taxa": [
+            {
+                "name": "Coniferophyta",
+                "common": "Gymnosperms and Ginkgo"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "class",
+        "taxa": [
+            {
+                "name": "Ginkgoopsida",
+                "common": "Gymnosperms and Ginkgo"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "phylum",
+        "taxa": [
+            {
+                "name": "Pteridophyta",
+                "common": "Ferns and allies"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "order",
+        "taxa": [
+            {
+                "name": "Isoetales",
+                "common": "Ferns and allies"
+            },
+            {
+                "name": "Equisetales",
+                "common": "Ferns and allies"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "order",
+        "taxa": [
+            {
+
+                "name": "Selaginellales",
+                "common": "Clubmosses and firmosses"
+            },
+            {
+                "name": "Lycopodiales",
+                "common": "Clubmosses and firmosses"
+            },
+            {
+                "name": "Lycopodiopsida",
+                "common": "Clubmosses and firmosses"
+            }
+        ]
+    },
+    {
+        "speciesGroup": "Plants",
+        "taxonRank": "division",
+        "taxa": [
+            {
+
+                "name": "Anthophyta",
+                "common": "Flowering plants"
             }
         ]
     }
