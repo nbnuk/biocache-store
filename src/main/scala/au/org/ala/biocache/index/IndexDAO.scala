@@ -170,11 +170,12 @@ trait IndexDAO {
     "life_stage", "outlier_layer", "outlier_layer_count", "taxonomic_issue", "raw_identification_qualifier", "identification_qualifier", "species_habitats",
     "identified_by", "identified_date", "sensitive_longitude", "sensitive_latitude", "pest_flag", "collectors", "duplicate_status", "duplicate_record",
     "duplicate_type", "sensitive_coordinate_uncertainty", "distance_outside_expert_range", "elevation_d", "min_elevation_d", "max_elevation_d",
-    "depth_d", "min_depth_d", "max_depth_d", "name_parse_type","occurrence_status", "occurrence_details", "photographer", "rights",
+    "raw_depth", /* was "depth_d", */ "min_depth_d", "max_depth_d", "name_parse_type","occurrence_status", "occurrence_details", "photographer", "rights",
     "raw_geo_validation_status", "raw_occurrence_status", "raw_locality","raw_latitude","raw_longitude","raw_datum","raw_sex",
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") :::
-    List( /* RR added verification fields below */
-      "identification_verification_status","georeference_verification_status"
+    List( /* RR added fields below */
+      "identification_verification_status","georeference_verification_status", "rights_holder", "organism_quantity", "organism_quantity_type",
+      "organism_scope", "organism_remarks"
     ) ::: Config.additionalFieldsToIndex /* additionalFieldHeaders */
 
   /**
@@ -557,14 +558,14 @@ trait IndexDAO {
           getValue("recordNumber", map, ""),
           if (firstLoadDate.isEmpty) "" else DateFormatUtils.format(firstLoadDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           getParsedValue("nameMatchMetric", map),
-          getValue("phenology", map, ""), /* RR change to lifeStage? *** */
+          getValue("lifeStage", map, ""), /* RR getValue("phenology", map, ""), */
           outlierForLayers.mkString("|"),
           outlierForLayers.length.toString,
           taxonIssueArray.mkString("|"),
           getValue("identificationQualifier", map),
           getParsedValue("identificationQualifier", map),
           habitats.mkString("|"),
-          getValue("identifiedBy", map),
+          getParsedValueIfAvailable("identifiedBy", map, ""), /* was getValue */
           if (dateIdentified.isEmpty) "" else DateFormatUtils.format(dateIdentified.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           sensitiveMap.getOrElse("decimalLongitude", ""),
           sensitiveMap.getOrElse("decimalLatitude", ""),
@@ -578,7 +579,7 @@ trait IndexDAO {
           getParsedValue("verbatimElevation", map),
           getParsedValue("minimumElevationInMeters", map),
           getParsedValue("maximumElevationInMeters", map),
-          getParsedValue("verbatimDepth", map),
+          getParsedValueIfAvailable("verbatimDepth", map, "").trim, /* was getParsedValue but this is empty */
           getParsedValue("minimumDepthInMeters", map),
           getParsedValue("maximumDepthInMeters", map),
           getParsedValue("nameParseType", map),
@@ -602,7 +603,12 @@ trait IndexDAO {
           getValue("individualCount", map),
           getParsedValueIfAvailable("datePrecision", map, ""),
           getParsedValueIfAvailable("identificationVerificationStatus", map, "").trim, /* verification fields added here */
-          getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim
+          getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim,
+          getValue("rightsHolder", map),
+          getValue("organismQuantity", map),
+          getValue("organismQuantityType", map),
+          getValue("organismScope", map),
+          getValue("organismRemarks", map)
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
