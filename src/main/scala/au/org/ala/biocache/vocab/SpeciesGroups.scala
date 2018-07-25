@@ -30,7 +30,7 @@ object SpeciesGroups {
    createSpeciesGroup("Arthropods", "phylum", Array("Arthropoda"), Array(), "Animals"), /* not in subGroups */
    createSpeciesGroup("Crustaceans", "subphylum" , Array("Crustacea"), Array(), "Arthropods"),
    createSpeciesGroup("Insects",  "classs", Array("Hexapoda"), Array(), "Arthropods"),
-   createSpeciesGroup("SpidersAndAllies", "subphylum" , Array("Chelicerata"), Array(), "Arthropods"),
+   createSpeciesGroup("Spiders and allies", "subphylum" , Array("Chelicerata"), Array(), "Arthropods"),
    createSpeciesGroup("Myriapods",  "classs", Array("Myriapoda"), Array(), "Arthropods"),
    
    createSpeciesGroup("Worms", "phylum", Array("Annelida", "Chaetognatha", "Echiura", "Nematoda", "Nematomorpha", "Nemertea", "Platyhelminthes", "Priapulida", "Sipuncula"), Array(), "Animals"),
@@ -40,7 +40,7 @@ object SpeciesGroups {
    createSpeciesGroup("Bryophytes","phylum", Array("Bryophyta","Marchantiophyta"), Array(),"Plants"),
    createSpeciesGroup("Hornworts","division", Array("Anthocerotophyta"), Array(),"Plants"),
    createSpeciesGroup("Gymnosperms and Ginkgo","classs", Array("Ginkgoopsida", "Pinopsida"), Array(), "Plants"),
-   createSpeciesGroup("FernsAndAllies","phylum", Array("Pteridophyta"), Array(), "Plants"),
+   createSpeciesGroup("Ferns and allies","phylum", Array("Pteridophyta"), Array(), "Plants"),
    createSpeciesGroup("Clubmosses","classs", Array("Lycopodiopsida"), Array(), "Plants"),
    createSpeciesGroup("Angiosperms", "classs", Array("Magnoliopsida"), Array(), "Plants"),
 
