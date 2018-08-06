@@ -4,9 +4,9 @@ import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.SpatialLayerDAO
 import au.org.ala.biocache.caches.LocationDAO
 import au.org.ala.biocache.load.FullRecordMapper
-import au.org.ala.biocache.model.{Versions, QualityAssertion, FullRecord}
-import au.org.ala.biocache.util.{GISPoint, GridUtil, StringHelper, Json}
-import au.org.ala.biocache.vocab.{AssertionStatus, AssertionCodes, StateProvinces}
+import au.org.ala.biocache.model.{FullRecord, QualityAssertion, Versions}
+import au.org.ala.biocache.util.{GISPoint, GridUtil, Json, StringHelper}
+import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, StateProvinces}
 import au.org.ala.sds.SensitiveDataService
 import com.google.common.cache.CacheBuilder
 import org.apache.commons.lang.StringUtils
@@ -127,9 +127,12 @@ class SensitivityProcessor extends Processor {
     }
 
     //SDS check - now get the ValidationOutcome from the Sensitive Data Service
+    //error: outcome.report is always empty
     val outcome = sds.testMapDetails(Config.sdsFinder, rawMap, exact, processed.classification.taxonConceptID)
 
-    logger.debug("SDS outcome: " + outcome)
+    if (raw.rowKey == "8464ad67-fc2e-47b4-a7ed-e0f8268966e7") {
+      logger.info("SDS outcome: " + outcome)
+    }
 
     /************** SDS check end ************/
 
@@ -216,21 +219,31 @@ class SensitivityProcessor extends Processor {
         stringMap -= "dataGeneralizations"
 
         //remove the day from the values if present
-        raw.event.day = ""
-        raw.event.eventDate = ""
-        raw.event.eventDateEnd = ""
+        //*** only if sensitiveDateDay. And also record this in informationWithheld
+        if (Config.sensitiveDateDay) {
+          if (!Option(raw.event.day).getOrElse("").isEmpty || !Option(raw.event.eventDate).getOrElse("").isEmpty || !Option(raw.event.eventDateEnd).getOrElse("").isEmpty ||
+            !Option(processed.event.day).getOrElse("").isEmpty || !Option(processed.event.eventDate).getOrElse("").isEmpty || !Option(processed.event.eventDateEnd).getOrElse("").isEmpty) {
+            processed.occurrence.informationWithheld = (processed.occurrence.informationWithheld + " Date day redacted").trim();
+            logger.info("info withheld: " + processed.occurrence.informationWithheld)
+          }
+          raw.event.day = ""
+          raw.event.eventDate = ""
+          raw.event.eventDateEnd = ""
 
-        processed.event.day = ""
-        processed.event.eventDate = ""
-        if (processed.event.eventDateEnd != null) {
-          processed.event.eventDateEnd = ""
+          processed.event.day = ""
+          processed.event.eventDate = ""
+          if (processed.event.eventDateEnd != null) {
+            processed.event.eventDateEnd = ""
+          }
         }
 
         //remove this field values
         stringMap.put("easting", "")
         stringMap.put("northing", "")
-        stringMap.put("eventDate", "")
-        stringMap.put("eventDateEnd", "")
+        if (Config.sensitiveDateDay) {
+          stringMap.put("eventDate", "")
+          stringMap.put("eventDateEnd", "")
+        }
 
         //update the raw record with whatever is left in the stringMap - change to use DAO method...
         if(StringUtils.isNotBlank(raw.rowKey)){
@@ -247,7 +260,10 @@ class SensitivityProcessor extends Processor {
         outcome.getReport().getMessages().foreach(message => {
           infoMessage += message.getCategory() + "\t" + message.getMessageText() + "\n"
         })
-        processed.occurrence.informationWithheld = infoMessage
+        if (infoMessage != "") {
+          processed.occurrence.informationWithheld = infoMessage
+          logger.info("getReport info withheld: " + processed.occurrence.informationWithheld)
+        }
       }
     } else {
       //Species is NOT sensitive

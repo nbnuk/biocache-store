@@ -285,6 +285,8 @@ object Config {
 
   val exportIndexAsCsvPath = configModule.properties.getProperty("export.index.as.csv.path", "")
   val exportIndexAsCsvPathSensitive = configModule.properties.getProperty("export.index.as.csv.path.sensitive", "")
+
+  val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
 }
 
 /**

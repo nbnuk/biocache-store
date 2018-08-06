@@ -89,60 +89,66 @@ object DwCACreator extends Tool {
           synchronized {
             val dr = map.getOrElse("dataresourceuid", "")
             if (dr != "") {
-              val (zop, csv) = dataResource2OutputStreams.get(dr).get.get
-              synchronized {
+              if (dataResource2OutputStreams.get(dr) != None) {
+                if (dataResource2OutputStreams.get(dr).get != None) {
+                  val (zop, csv) = dataResource2OutputStreams.get(dr).get.get
+                  synchronized {
 
-                val eventDate = {
-                  val eventDate = map.getOrElse("eventdate_p", "")
-                  val eventDateEnd = map.getOrElse("eventdateend_p", "")
-                  if(eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd){
-                    eventDate + "/" + eventDateEnd
-                  } else {
-                    eventDate
+                    val eventDate = {
+                      val eventDate = map.getOrElse("eventdate_p", "")
+                      val eventDateEnd = map.getOrElse("eventdateend_p", "")
+                      if (eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd) {
+                        eventDate + "/" + eventDateEnd
+                      } else {
+                        eventDate
+                      }
+                    }
+                    csv.writeNext(Array(
+                      cleanValue(map.getOrElse("rowkey", "")),
+                      cleanValue(map.getOrElse("catalognumber", "")),
+                      cleanValue(map.getOrElse("collectioncode", "")),
+                      cleanValue(map.getOrElse("institutioncode", "")),
+                      cleanValue(map.getOrElse("recordnumber", "")),
+                      cleanValue(map.getOrElse("basisofrecord_p", "")),
+                      cleanValue(map.getOrElse("recordedby", "")),
+                      cleanValue(map.getOrElse("occurrencestatus_p", "")),
+                      cleanValue(map.getOrElse("individualcount", "")),
+                      cleanValue(map.getOrElse("scientificname_p", "")),
+                      cleanValue(map.getOrElse("taxonconceptid_p", "")),
+                      cleanValue(map.getOrElse("taxonrank_p", "")),
+                      cleanValue(map.getOrElse("kingdom_p", "")),
+                      cleanValue(map.getOrElse("phylum_p", "")),
+                      cleanValue(map.getOrElse("classs_p", "")),
+                      cleanValue(map.getOrElse("order_p", "")),
+                      cleanValue(map.getOrElse("family_p", "")),
+                      cleanValue(map.getOrElse("genus_p", "")),
+                      cleanValue(map.getOrElse("vernacularname_p", "")),
+                      cleanValue(map.getOrElse("decimallatitude_p", "")),
+                      cleanValue(map.getOrElse("decimallongitude_p", "")),
+                      cleanValue(map.getOrElse("geodeticdatum_p", "")),
+                      cleanValue(map.getOrElse("coordinateuncertaintyinmeters_p", "")),
+                      cleanValue(map.getOrElse("maximumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("minimumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("minimumdepthinmeters", "")),
+                      cleanValue(map.getOrElse("maximumdepthinmeters", "")),
+                      cleanValue(map.getOrElse("country_p", "")),
+                      cleanValue(map.getOrElse("stateprovince_p", "")),
+                      cleanValue(map.getOrElse("locality", "")),
+                      cleanValue(map.getOrElse("locationRemarks", "")),
+                      cleanValue(map.getOrElse("year_p", "")),
+                      cleanValue(map.getOrElse("month_p", "")),
+                      cleanValue(map.getOrElse("day_p", "")),
+                      cleanValue(eventDate),
+                      cleanValue(map.getOrElse("eventid", "")),
+                      cleanValue(map.getOrElse("identifiedby", "")),
+                      cleanValue(map.getOrElse("occurrenceremarks", "")),
+                      cleanValue(map.getOrElse("datageneralizations_p", ""))
+                    ))
+                    //logger.info("writing: " + map.getOrElse("rowkey", ""))
+
+                    csv.flush()
                   }
                 }
-                csv.writeNext(Array(
-                  cleanValue(map.getOrElse("rowkey", "")),
-                  cleanValue(map.getOrElse("catalognumber",  "")),
-                  cleanValue(map.getOrElse("collectioncode", "")),
-                  cleanValue(map.getOrElse("institutioncode", "")),
-                  cleanValue(map.getOrElse("recordnumber", "")),
-                  cleanValue(map.getOrElse("basisofrecord_p", "")),
-                  cleanValue(map.getOrElse("recordedby", "")),
-                  cleanValue(map.getOrElse("occurrencestatus_p", "")),
-                  cleanValue(map.getOrElse("individualcount", "")),
-                  cleanValue(map.getOrElse("scientificname_p", "")),
-                  cleanValue(map.getOrElse("taxonconceptid_p", "")),
-                  cleanValue(map.getOrElse("taxonrank_p", "")),
-                  cleanValue(map.getOrElse("kingdom_p", "")),
-                  cleanValue(map.getOrElse("phylum_p", "")),
-                  cleanValue(map.getOrElse("classs_p", "")),
-                  cleanValue(map.getOrElse("order_p", "")),
-                  cleanValue(map.getOrElse("family_p", "")),
-                  cleanValue(map.getOrElse("genus_p", "")),
-                  cleanValue(map.getOrElse("vernacularname_p", "")),
-                  cleanValue(map.getOrElse("decimallatitude_p", "")),
-                  cleanValue(map.getOrElse("decimallongitude_p", "")),
-                  cleanValue(map.getOrElse("geodeticdatum_p", "")),
-                  cleanValue(map.getOrElse("coordinateuncertaintyinmeters_p", "")),
-                  cleanValue(map.getOrElse("maximumelevationinmeters", "")),
-                  cleanValue(map.getOrElse("minimumelevationinmeters", "")),
-                  cleanValue(map.getOrElse("minimumdepthinmeters", "")),
-                  cleanValue(map.getOrElse("maximumdepthinmeters", "")),
-                  cleanValue(map.getOrElse("country_p", "")),
-                  cleanValue(map.getOrElse("stateprovince_p", "")),
-                  cleanValue(map.getOrElse("locality", "")),
-                  cleanValue(map.getOrElse("locationRemarks", "")),
-                  cleanValue(map.getOrElse("year_p", "")),
-                  cleanValue(map.getOrElse("month_p", "")),
-                  cleanValue(map.getOrElse("day_p", "")),
-                  cleanValue(eventDate),
-                  cleanValue(map.getOrElse("eventid", "")),
-                  cleanValue(map.getOrElse("identifiedby", "")),
-                  cleanValue(map.getOrElse("occurrenceremarks", "")),
-                  cleanValue(map.getOrElse("datageneralizations_p", ""))
-                ))
-                csv.flush()
               }
             }
           }
@@ -150,9 +156,12 @@ object DwCACreator extends Tool {
         }, 4, 1000, defaultFields:_*)
 
         dataResource2OutputStreams.values.foreach { zopAndCsv =>
-          zopAndCsv.get._1.flush()
-          zopAndCsv.get._1.closeEntry()
-          zopAndCsv.get._1.close()
+          //logger.info("closing:")
+          if (zopAndCsv != None) {
+            zopAndCsv.get._1.flush()
+            zopAndCsv.get._1.closeEntry()
+            zopAndCsv.get._1.close()
+          }
         }
       } catch {
         case e:Exception => logger.error(e.getMessage(), e)

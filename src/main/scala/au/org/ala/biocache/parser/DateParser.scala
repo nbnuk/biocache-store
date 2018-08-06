@@ -85,7 +85,7 @@ object DateParser {
       case ISOWithMonthNameDate(date) => Some(date)
       case ISODateRange(date) => Some(date)
       case ISODayDateRange(date) => Some(date)
-      case ISODayMonthRange(date)=>Some(date)
+      case ISODayMonthRange(date) => Some(date)
       case ISODateTimeRange(date) => Some(date)
       case ISOMonthDate(date) => Some(date)
       case ISOMonthDateRange(date) => Some(date)
@@ -234,7 +234,20 @@ class SingleDate {
     try {
       //  2001-03-14T00:00:00+11:00
       //bug in commons lang - http://stackoverflow.com/questions/424522/how-can-i-recognize-the-zulu-time-zone-in-java-dateutils-parsedate
-      val strWithoutTime = str.replaceFirst("[+|-][0-2][0-9]:[0-5][0-9]","")
+      var strWithoutTime = str.replaceFirst("[+|-][0-2][0-9]:[0-5][0-9]","")
+      if (strWithoutTime == str) {
+        //date[+|-]hh or date[+|-]hhmm are also valid time modifiers, but get confused with basic dates like '2008-01-05' or '23-01-2008'
+        strWithoutTime = str.replaceFirst("[+][0-2][0-9][0-5][0-9]","") //first get rid of the easy '+' ones
+        strWithoutTime = str.replaceFirst("[+][0-2][0-9]","")
+        if (strWithoutTime == str) {
+          if (str.split("-").length > 3) {
+            val strRev = str.reverse
+            var strWithoutTimeRev = strRev.replaceFirst("[0-9][0-5][0-9][0-2][-]","") //note pattern reversed
+            strWithoutTimeRev = strRev.replaceFirst("[0-9][0-2][-]","")
+            strWithoutTime = strWithoutTimeRev.reverse
+          }
+        }
+      }
       val eventDateParsed = DateUtils.parseDateStrictly(strWithoutTime,formats)
       val startYear, endYear = DateFormatUtils.format(eventDateParsed, "yyyy")
       val startDate, endDate = DateFormatUtils.format(eventDateParsed, "yyyy-MM-dd")
@@ -461,8 +474,8 @@ object ISODayMonthRange {
       if (parts.length != 2) return None
       val startDateParsed = DateUtils.parseDateStrictly(parts(0),
         Array("yyyy-MM-dd"))
-      val endDateParsed = DateUtils.parseDateStrictly(parts(1),
-        Array("MM-dd"))
+      val endDateParsed = DateUtils.parseDateStrictly(DateFormatUtils.format(startDateParsed, "yyyy") + "-" + parts(1),
+        Array("yyyy-MM-dd")) //endDates of 02-29 must be allowed if leap year: the check without year always fails
 
       val startDate = DateFormatUtils.format(startDateParsed, "yyyy-MM-dd")
       val startDay = DateFormatUtils.format(startDateParsed, "dd")
@@ -491,6 +504,8 @@ object ISODayDateRange {
         Array("yyyy-MM-dd"))
       val endDateParsed = DateUtils.parseDateStrictly(parts(1),
         Array("dd"))
+      //val endDateParsed = DateUtils.parseDateStrictly(DateFormatUtils.format(startDateParsed, "yyyy-MM") + "-" + parts(1),
+      //Array("yyyy-MM-dd")) //not needed: eventdateend_p is set correctly without this
 
       val startDate = DateFormatUtils.format(startDateParsed, "yyyy-MM-dd")
       val startDay = DateFormatUtils.format(startDateParsed, "dd")
