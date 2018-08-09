@@ -175,7 +175,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") :::
     List( /* RR added fields below */
       "identification_verification_status","georeference_verification_status", "rights_holder", "organism_quantity", "organism_quantity_type",
-      "organism_scope", "organism_remarks"
+      "organism_scope", "organism_remarks", "row_key"
     ) ::: Config.additionalFieldsToIndex /* additionalFieldHeaders */
 
   /**
@@ -608,7 +608,8 @@ trait IndexDAO {
           getValue("organismQuantity", map),
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
-          getValue("organismRemarks", map)
+          getValue("organismRemarks", map),
+          getValue("rowKey", map)
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()

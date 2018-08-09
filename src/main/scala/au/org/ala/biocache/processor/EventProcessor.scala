@@ -450,10 +450,10 @@ class EventProcessor extends Processor {
     * @param assertions
     */
   def checkPrecision(raw:FullRecord, processed:FullRecord, assertions:ArrayBuffer[QualityAssertion]){
-    logger.info("checking precision")
+    //logger.info("checking precision")
     if(StringUtils.isNotBlank(raw.event.datePrecision) && StringUtils.isNotBlank(processed.event.eventDate)) {
       val matchedTerm = DatePrecision.matchTerm(raw.event.datePrecision)
-      logger.info("raw precision = " + raw.event.datePrecision + " matched to " + matchedTerm)
+      //logger.info("raw precision = " + raw.event.datePrecision + " matched to " + matchedTerm)
       if (!matchedTerm.isEmpty) {
         val term = matchedTerm.get
         processed.event.datePrecision = term.canonical
@@ -480,7 +480,7 @@ class EventProcessor extends Processor {
         }
         else if (term.canonical.equalsIgnoreCase(YEAR_RANGE_PRECISION)){
           //is the processed date in yyyy format
-          reformatToPrecision(processed, "yyyy", true, true, true)
+          reformatToPrecision(processed, "yyyy", true, true, false) // dont blank year since end year will be populated
         }
         else {
           reformatToPrecision(processed, "yyyy-MM-dd", false, false, false)
@@ -530,12 +530,15 @@ class EventProcessor extends Processor {
     //single date
     if (forceNullifyDay) {
       processed.event.day = ""
+      processed.event.endDay = ""
     }
     if (forceNullifyMonth) {
       processed.event.month = ""
+      processed.event.endMonth = ""
     }
     if (forceNullifyYear) {
       processed.event.year = ""
+      processed.event.endYear = ""
     }
 
     var determinedDatePrecision = ""
@@ -568,6 +571,7 @@ class EventProcessor extends Processor {
     if (StringUtils.isEmpty(processed.event.datePrecision)){
 
       /* DURATION DAYS METHOD */
+      /*
       if ((processed.event.endDay != null && !processed.event.endDay.isEmpty) ||
         (processed.event.endMonth != null && !processed.event.endMonth.isEmpty) ||
         (processed.event.endYear != null && !processed.event.endYear.isEmpty)) {
@@ -604,9 +608,9 @@ class EventProcessor extends Processor {
           determinedDatePrecision = YEAR_RANGE_PRECISION
         }
       }
+      */
 
-
-      /* PRECISION METHOD
+      /* PRECISION METHOD */
       //do we have a range
       if(!startDate.isEmpty && !endDate.isEmpty) {
         determinedDatePrecision = DAY_RANGE_PRECISION
@@ -631,7 +635,7 @@ class EventProcessor extends Processor {
           determinedDatePrecision = NOT_SUPPLIED //mismatched precisions because day/month/year specified for start or end date but not the other, e.g. startdate = 2000-02-03 and enddate = 2000-04
         }
       }
-      */
+
 
       /* ALA: DURATION CALENDAR
       if(!startDate.isEmpty && !endDate.isEmpty) {
