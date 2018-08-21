@@ -311,7 +311,7 @@ class DuplicationDetection {
   val collectorNameLevenshteinDistanceThreshold = 3
 
   val fieldsToExport = Array(
-    "row_key",
+    "id", /* was row_key */
     "species_guid",
     "year",
     "month",
@@ -404,8 +404,8 @@ class DuplicationDetection {
           collector,
           oldStatus,
           oldDuplicateOf,
-          currentLine(24),
-          currentLine(25))
+          currentLine(15), /* 24 */
+          currentLine(16)) /* 25 */
       } else {
         logger.warn("lsid " + currentLine(0) + " line " + counter + " has incorrect number of columns: "
           + currentLine.size + ", vs " + fieldsToExport.length)
@@ -660,7 +660,7 @@ class DuplicationDetection {
       fieldsToExport,
       field,
       if (field == "species_guid") speciesFilters else subspeciesFilters,
-      Array("row_key"),
+      Array("id"), /* was row-key */
       fileWriter,
       None,
       Some(Array("duplicate_record")))
@@ -690,12 +690,18 @@ class DuplicationDetection {
 
     //open the tmp file that contains the information about the lsid
     val reader = new CSVReader(new FileReader(sourceFileName), '\t', '`', '~')
-    var currentLine = reader.readNext //first line is header
+    var currentLine = reader.readNext //first line is not header
     val buff = new ArrayBuffer[DuplicateRecordDetails]
     var counter = 0
 
     while (currentLine != null) {
       if (currentLine.size >= 16) {
+        /* logger.info("$$$ current line: " + currentLine.size)
+        for (i <- 0 to 16)
+        {
+          logger.info("i " + i + " " + currentLine(i))
+        }
+        logger.info(currentLine.toString) */
         counter += 1
         if (counter % 10000 == 0) {
           logger.debug("Loaded into memory : " + counter + " + records")
@@ -717,7 +723,7 @@ class DuplicationDetection {
         val oldDuplicateOf = StringUtils.trimToNull(currentLine(14).replaceAll("\\[", "").replaceAll("\\]", ""))
         buff += new DuplicateRecordDetails(rowKey, rowKey, taxon_lsid, year, month, day, currentLine(5), currentLine(6),
           currentLine(7), currentLine(8), currentLine(9), currentLine(10), rawName, collector, oldStatus, oldDuplicateOf,
-          currentLine(24), currentLine(25))
+          currentLine(15), currentLine(16)) /* 24 25 */
       } else {
         logger.warn("lsid " + lsid + " line " + counter + " has incorrect column number: " + currentLine.size)
       }

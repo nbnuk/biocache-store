@@ -1,7 +1,7 @@
 package au.org.ala.biocache.processor
 
 import java.util.{GregorianCalendar, Date}
-import au.org.ala.biocache.parser.DateParser
+import au.org.ala.biocache.parser.{DateParser, EventDate}
 import au.org.ala.biocache.model.{QualityAssertion, FullRecord}
 import au.org.ala.biocache.util.{DateUtil, StringHelper}
 import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, DatePrecision}
@@ -194,6 +194,22 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed)
+      } else if (raw.event.eventDate != null && !raw.event.eventDate.isEmpty) {
+        //look for an end date
+        val parsedDate = DateParser.parseDate(raw.event.eventDate)
+        //logger.info("2. date = " + raw.event.eventDate + " parsed = " + parsedDate)
+        if (!parsedDate.isEmpty) {
+          //what happens if d m y make the eventDate and eventDateEnd is parsed?
+          if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
+            processed.event.eventDateEnd = parsedDate.get.endDate
+          }
+          setProcessedEventEndDMYvalues(parsedDate, processed)
+
+          processed.event.day = parsedDate.get.startDay
+          processed.event.month = parsedDate.get.startMonth
+          processed.event.year = parsedDate.get.startYear
+        }
       }
     }
 
@@ -201,9 +217,12 @@ class EventProcessor extends Processor {
     if (StringUtils.isNotEmpty(raw.event.eventDateEnd)) {
       //look for an end date
       val parsedDate = DateParser.parseDate(raw.event.eventDateEnd)
-      if (!parsedDate.isEmpty) {
+      if (!parsedDate.isEmpty&& parsedDate.get.singleDate) { //if not single date then there is definitely a problem with the parsing, e.g. for "09/2012" being interpreted as year range
         //what happens if d m y make the eventDate and eventDateEnd is parsed?
         processed.event.eventDateEnd = parsedDate.get.startDate
+        processed.event.endYear = parsedDate.get.startYear
+        processed.event.endMonth = parsedDate.get.startMonth
+        processed.event.endDay = parsedDate.get.startDay
       }
     }
 
@@ -216,6 +235,8 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed)
+
         processed.event.day = parsedDate.get.startDay
         processed.event.month = parsedDate.get.startMonth
         processed.event.year = parsedDate.get.startYear
@@ -256,6 +277,7 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed)
       }
     }
 
@@ -296,6 +318,18 @@ class EventProcessor extends Processor {
 
     assertions.toArray
   }
+
+  //set event end day+month+year values if not equal to starting day+month+year
+  def setProcessedEventEndDMYvalues(parsedDate: Option[EventDate], processed: FullRecord) = {
+    if (!parsedDate.get.endYear.equals(parsedDate.get.startYear) ||
+      !parsedDate.get.endMonth.equals(parsedDate.get.startMonth) ||
+      !parsedDate.get.endDay.equals(parsedDate.get.startDay)) {
+      processed.event.endYear = parsedDate.get.endYear
+      processed.event.endMonth = parsedDate.get.endMonth
+      processed.event.endDay = parsedDate.get.endDay
+    }
+  }
+
 
   /**
     * Validate the supplied year.
@@ -485,7 +519,7 @@ class EventProcessor extends Processor {
         }
         else if (term.canonical.equalsIgnoreCase(DAY_RANGE_PRECISION)){
           //is the processed date in yyyy-MM format
-          reformatToPrecision(processed, "yyyy-MM", false, false, false)
+          reformatToPrecision(processed, "yyyy-MM-dd", false, false, false)
         }
         else if (term.canonical.equalsIgnoreCase(MONTH_RANGE_PRECISION)){
           //is the processed date in yyyy-MM format
@@ -493,7 +527,7 @@ class EventProcessor extends Processor {
         }
         else if (term.canonical.equalsIgnoreCase(YEAR_RANGE_PRECISION)){
           //is the processed date in yyyy format
-          reformatToPrecision(processed, "yyyy", true, true, true)
+          reformatToPrecision(processed, "yyyy", true, true, false) //don't blank year, since end year will be populated
         }
         else {
           reformatToPrecision(processed, "yyyy-MM-dd", false, false, false)
@@ -515,6 +549,13 @@ class EventProcessor extends Processor {
     * @param forceNullifyYear nullify single year value for any value
     */
   def reformatToPrecision(processed:FullRecord, format:String, forceNullifyDay:Boolean, forceNullifyMonth:Boolean, forceNullifyYear:Boolean): Unit = {
+
+    if (processed.event.day == null || processed.event.day.isEmpty) processed.event.day = null
+    if (processed.event.month == null || processed.event.month.isEmpty) processed.event.month = null
+    if (processed.event.year == null || processed.event.year.isEmpty) processed.event.year = null
+    if (processed.event.endDay == null || processed.event.endDay.isEmpty) processed.event.endDay = null
+    if (processed.event.endMonth == null || processed.event.endMonth.isEmpty) processed.event.endMonth = null
+    if (processed.event.endYear == null || processed.event.endYear.isEmpty) processed.event.endYear = null
 
     val startDate = DateParser.parseDate(processed.event.eventDate)
     val endDate = DateParser.parseDate(processed.event.eventDateEnd)
@@ -544,16 +585,21 @@ class EventProcessor extends Processor {
     //single date
     if (forceNullifyDay) {
       processed.event.day = null
+      processed.event.endDay = null
     }
     if (forceNullifyMonth) {
       processed.event.month = null
+      processed.event.endMonth = null
     }
     if (forceNullifyYear) {
       processed.event.year = null
+      processed.event.endYear = null
     }
 
     var determinedDatePrecision = ""
 
+    /* Surely this should depend on precision? */
+    /*
     if(!startDate.isEmpty && !endDate.isEmpty) {
 
       //ranges - nullify if not equal
@@ -570,54 +616,40 @@ class EventProcessor extends Processor {
         processed.event.day = null
       }
     }
+    */
 
     // attempt to calculate a date precision based on the values
     if (StringUtils.isEmpty(processed.event.datePrecision)){
       //do we have a range
       if(!startDate.isEmpty && !endDate.isEmpty) {
+        determinedDatePrecision = DAY_RANGE_PRECISION
+        //can only be day range precision because dates only populated if complete (though a defined date precision might reduce them, but then this would not be called)
+      } else if (processed.event.endDay != null ||
+        processed.event.endMonth != null ||
+        processed.event.endYear != null) {
+        //ignore raw enddate if it was unparseable into a processed end date or end year/month/day
         determinedDatePrecision = DAY_RANGE_PRECISION //assume day range precision, then downgrade as required
-
-        if(startDate.get.startDay == endDate.get.startDay && StringUtils.isNotEmpty(startDate.get.startDay)
-          &&  startDate.get.startMonth == endDate.get.startMonth && StringUtils.isNotEmpty(startDate.get.startMonth)
-          &&  startDate.get.startYear == endDate.get.startYear && StringUtils.isNotEmpty(startDate.get.startYear)
-        ){
-          determinedDatePrecision = DAY_PRECISION
-        }
-
-        if(
-          (startDate.get.startDay != endDate.get.startDay || (StringUtils.isEmpty(startDate.get.startDay) && StringUtils.isEmpty(endDate.get.startDay)))
-            &&  startDate.get.startMonth == endDate.get.startMonth && StringUtils.isNotEmpty(startDate.get.startMonth)
-            &&  startDate.get.startYear == endDate.get.startYear && StringUtils.isNotEmpty(startDate.get.startYear)
-        ){
-          determinedDatePrecision = MONTH_PRECISION
-        } else if(
-          StringUtils.isEmpty(startDate.get.startDay) && StringUtils.isEmpty(endDate.get.startDay)
-        ){
+        if (processed.event.endDay == null) {
           determinedDatePrecision = MONTH_RANGE_PRECISION
         }
-
-        if(
-          (startDate.get.startDay != endDate.get.startDay || (StringUtils.isEmpty(startDate.get.startDay) && StringUtils.isEmpty(endDate.get.startDay)))
-            &&
-            (startDate.get.startMonth != endDate.get.startMonth || (StringUtils.isEmpty(startDate.get.startMonth) && StringUtils.isEmpty(endDate.get.startMonth)))
-            &&
-            startDate.get.startYear == endDate.get.startYear && StringUtils.isNotEmpty(startDate.get.startYear)
-        ) {
-          determinedDatePrecision = YEAR_PRECISION
-        }
-        else if(StringUtils.isEmpty(startDate.get.startMonth) && StringUtils.isEmpty(endDate.get.startMonth)){
+        if (processed.event.endMonth == null) {
           determinedDatePrecision = YEAR_RANGE_PRECISION
         }
-
-      } else if (!startDate.isEmpty){
+        if (processed.event.endYear == null) {
+          determinedDatePrecision = NOT_SUPPLIED
+        }
+        if (((processed.event.day == null) != (processed.event.endDay == null)) ||
+          ((processed.event.month == null) != (processed.event.endMonth == null)) ||
+          ((processed.event.year == null) != (processed.event.endYear == null))){
+          determinedDatePrecision = NOT_SUPPLIED //mismatched precisions because day/month/year specified for start or end date but not the other, e.g. startdate = 2000-02-03 and enddate = 2000-04
+        }
+      } else if (!startDate.isEmpty) {
         determinedDatePrecision = DAY_PRECISION
         //single date
-        if (processed.event.day == null && processed.event.month != null && processed.event.year != null) {
-          determinedDatePrecision = MONTH_PRECISION
-        }
-        if (processed.event.day == null && processed.event.month == null && processed.event.year != null) {
-          determinedDatePrecision = YEAR_PRECISION
-        }
+      } else if (processed.event.day == null && processed.event.month != null && processed.event.year != null) {
+        determinedDatePrecision = MONTH_PRECISION
+      } else if (processed.event.day == null && processed.event.month == null && processed.event.year != null) {
+        determinedDatePrecision = YEAR_PRECISION
       } else {
         determinedDatePrecision = NOT_SUPPLIED
       }

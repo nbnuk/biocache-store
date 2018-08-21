@@ -8,6 +8,7 @@ import au.org.ala.biocache.dao.OccurrenceDAO
 import au.org.ala.biocache.index.lucene.DocBuilder
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.persistence.DataRow
 import au.org.ala.biocache.util.Json
 import au.org.ala.biocache.vocab.AssertionStatus
@@ -384,11 +385,12 @@ trait IndexDAO {
     "life_stage", "outlier_layer", "outlier_layer_count", "taxonomic_issue", "raw_identification_qualifier", "identification_qualifier", "species_habitats",
     "identified_by", "identified_date", "sensitive_longitude", "sensitive_latitude", "pest_flag", "collectors", "duplicate_status", "duplicate_record",
     "duplicate_type", "sensitive_coordinate_uncertainty", "distance_outside_expert_range", "elevation_d", "min_elevation_d", "max_elevation_d",
-    "depth_d", "min_depth_d", "max_depth_d", "name_parse_type", "occurrence_status", "occurrence_details", "photographer", "rights",
+    "raw_depth", /* was "depth_d", */ "min_depth_d", "max_depth_d", "name_parse_type", "occurrence_status", "occurrence_details", "photographer", "rights",
     "raw_geo_validation_status", "raw_occurrence_status", "raw_locality", "raw_latitude", "raw_longitude", "raw_datum", "raw_sex",
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
-
+    , "rights_holder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
+    , "geohash_grid" // *** test
   ) ::: Config.additionalFieldsToIndex
 
   /**
@@ -457,6 +459,7 @@ trait IndexDAO {
         var slat = getParsedValue("decimalLatitude", map)
         var slon = getParsedValue("decimalLongitude", map)
         var latlon = ""
+        var latlon_grid = ""
         val sciName = getParsedValue("scientificName", map)
         val taxonConceptId = getParsedValue("taxonConceptID", map)
         val vernacularName = getParsedValue("vernacularName", map).trim
@@ -545,6 +548,36 @@ trait IndexDAO {
             case e: Exception => slat = ""; slon = ""
           }
         }
+
+
+        //for grid-polygon overlap searching: test
+        var lat_grid_min = java.lang.Double.NaN
+        var lat_grid_max = java.lang.Double.NaN
+        var lon_grid_min = java.lang.Double.NaN
+        var lon_grid_max = java.lang.Double.NaN
+        var gridReference = getValue("gridReference", map)
+        if (gridReference != "") { //TODO: ID if really grid-scale, and if not populate with point as per geohash so that can use single query from SOLR for point and grid-scale records
+          val result = GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+            case Some(gr) => {
+              val bbox = Array(
+                GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+                GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+              )
+              val minLatitude = bbox(0).get._1
+              val minLongitude = bbox(0).get._2
+              val maxLatitude = bbox(1).get._1
+              val maxLongitude = bbox(1).get._2
+
+              latlon_grid = "POLYGON((" + minLatitude + " " + minLongitude + "," +
+                minLatitude + " " + maxLongitude + "," +
+                maxLatitude + " " + maxLongitude + "," +
+                maxLatitude + " " + minLongitude + "," +
+                minLatitude + " " + minLongitude + "))";
+              //logger.info("geohash_grid: " + latlon_grid)
+            }
+          }
+        }
+
         //get sensitive values map
         val sensitiveMap = {
           if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains("originalSensitiveValues")) {
@@ -774,7 +807,7 @@ trait IndexDAO {
           getValue("recordNumber", map, ""),
           if (firstLoadDate.isEmpty) "" else DateFormatUtils.format(firstLoadDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           getParsedValue("nameMatchMetric", map),
-          getValue("phenology", map, ""),
+          getValue("lifeStage", map, ""), /* NBN was getValue("phenology", map, ""), */
           outlierForLayers.mkString("|"),
           outlierForLayers.length.toString,
           taxonIssueArray.mkString("|"),
@@ -795,7 +828,7 @@ trait IndexDAO {
           getParsedValue("verbatimElevation", map),
           getParsedValue("minimumElevationInMeters", map),
           getParsedValue("maximumElevationInMeters", map),
-          getParsedValue("verbatimDepth", map),
+          getParsedValueIfAvailable("verbatimDepth", map, "").trim, /* was getParsedValue but this is empty */
           getParsedValue("minimumDepthInMeters", map),
           getParsedValue("maximumDepthInMeters", map),
           getParsedValue("nameParseType", map),
@@ -818,8 +851,14 @@ trait IndexDAO {
           getParsedValue("license", map),
           getValue("individualCount", map),
           getParsedValueIfAvailable("datePrecision", map, ""),
-          getParsedValue("identificationVerificationStatus", map),
-          getParsedValue("georeferenceVerificationStatus", map)
+          getParsedValueIfAvailable("identificationVerificationStatus", map, "").trim, /* verification fields added here */
+          getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim,
+          getValue("rightsHolder", map),
+          getValue("organismQuantity", map),
+          getValue("organismQuantityType", map),
+          getValue("organismScope", map),
+          getValue("organismRemarks", map),
+          latlon_grid
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
