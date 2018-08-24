@@ -11,7 +11,7 @@ import au.org.ala.biocache.index.lucene.{DocBuilder, LuceneIndexing}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.persistence.DataRow
-import au.org.ala.biocache.util.{GridUtil, Json}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.vocab.{AssertionCodes, ErrorCode, ErrorCodeCategory, SpeciesGroups}
 import com.datastax.driver.core.{ColumnDefinitions, GettableData, Row}
 import com.google.inject.Inject

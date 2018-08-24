@@ -264,7 +264,7 @@ trait IndexDAO {
     ("occurrenceRemarks", "occurrence_remarks", -1, RAW),
     ("occurrenceStatus", "raw_occurrence_status", -1, RAW),
     ("originalNameUsage", "original_name_usage", -1, RAW),
-    ("phenology", "life_stage", -1, RAW),
+    ("lifeStage", "life_stage", -1, RAW), /* was phenology */
     ("photographer", "photographer", -1, RAW),
     ("recordedBy", "collector", -1, RAW),
     ("recordNumber", "record_number", -1, RAW),
@@ -324,10 +324,19 @@ trait IndexDAO {
     ("taxonRank", "rank", -1, PARSED),
     ("taxonRankID", "rank_id", -1, PARSED),
     ("typeStatus", "type_status", -1, PARSED),
-    ("verbatimDepth", "depth", -1, PARSED),
+    /* ("verbatimDepth", "depth", -1, PARSED), RR replaced with below */
+    ("verbatimDepth", "raw_depth", -1, RAW),
     ("verbatimElevation", "elevation", -1, PARSED),
     ("vernacularName", "common_name", -1, PARSED),
-    ("year", "year", -1, PARSED)
+    ("year", "year", -1, PARSED),
+    ("day", "day", -1, PARSED),
+    ("endday", "end_day", -1, PARSED),
+    ("endmonth", "end_month", -1, PARSED),
+    ("endyear", "end_year", -1, PARSED),
+    ("organismquantity", "organism_quantity", -1, RAW),
+    ("organismquantitytype", "organism_quantity_type", -1, RAW),
+    ("organismscope", "organism_scope", -1, RAW),
+    ("organismremarks", "organism_remarks", -1, RAW)
   )
 
   /**
@@ -389,8 +398,9 @@ trait IndexDAO {
     "raw_geo_validation_status", "raw_occurrence_status", "raw_locality", "raw_latitude", "raw_longitude", "raw_datum", "raw_sex",
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
-    , "rights_holder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
+    , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
     , "geohash_grid" // *** test
+    , "day", "end_day", "end_month", "end_year"
   ) ::: Config.additionalFieldsToIndex
 
   /**
@@ -551,31 +561,11 @@ trait IndexDAO {
 
 
         //for grid-polygon overlap searching: test
-        var lat_grid_min = java.lang.Double.NaN
-        var lat_grid_max = java.lang.Double.NaN
-        var lon_grid_min = java.lang.Double.NaN
-        var lon_grid_max = java.lang.Double.NaN
         var gridReference = getValue("gridReference", map)
-        if (gridReference != "") { //TODO: ID if really grid-scale, and if not populate with point as per geohash so that can use single query from SOLR for point and grid-scale records
-          val result = GridUtil.gridReferenceToEastingNorthing(gridReference) match {
-            case Some(gr) => {
-              val bbox = Array(
-                GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
-                GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
-              )
-              val minLatitude = bbox(0).get._1
-              val minLongitude = bbox(0).get._2
-              val maxLatitude = bbox(1).get._1
-              val maxLongitude = bbox(1).get._2
-
-              latlon_grid = "POLYGON((" + minLatitude + " " + minLongitude + "," +
-                minLatitude + " " + maxLongitude + "," +
-                maxLatitude + " " + maxLongitude + "," +
-                maxLatitude + " " + minLongitude + "," +
-                minLatitude + " " + minLongitude + "))";
-              //logger.info("geohash_grid: " + latlon_grid)
-            }
-          }
+        if (gridReference != "") {
+          latlon_grid = getGridWKT(gridReference)
+        } else {
+          latlon_grid = latlon //use point if no grid reference
         }
 
         //get sensitive values map
@@ -858,7 +848,11 @@ trait IndexDAO {
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
           getValue("organismRemarks", map),
-          latlon_grid
+          latlon_grid,
+          getParsedValue("day", map),
+          getParsedValue("endDay", map),
+          getParsedValue("endMonth", map),
+          getParsedValue("endYear", map)
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -866,6 +860,35 @@ trait IndexDAO {
     } catch {
       case e: Exception => logger.error(e.getMessage, e); throw e
     }
+  }
+
+  def getGridWKT(gridReference: String = "") = {
+    var latlon_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+
+          latlon_grid = "POLYGON((" + minLatitude + " " + minLongitude + "," +
+            minLatitude + " " + maxLongitude + "," +
+            maxLatitude + " " + maxLongitude + "," +
+            maxLatitude + " " + minLongitude + "," +
+            minLatitude + " " + minLongitude + "))";
+          //logger.info("geohash_grid: " + latlon_grid)
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    latlon_grid
   }
 
   def getCsvWriter(sensitive: Boolean = false) = {
@@ -1408,6 +1431,29 @@ trait IndexDAO {
         addField(doc, header(i), getValue("datePrecision", map))
         i = i + 1
 
+        addField(doc, header(i), getParsedValueIfAvailable("identificationVerificationStatus", map, "").trim)
+        i = i + 1
+        addField(doc, header(i), getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim)
+        i = i + 1
+        addField(doc, header(i), getValue("rightsHolder", map))
+        i = i + 1
+        addField(doc, header(i), getValue("organismQuantity", map))
+        i = i + 1
+        addField(doc, header(i), getValue("organismQuantityType", map))
+        i = i + 1
+        addField(doc, header(i), getValue("organismScope", map))
+        i = i + 1
+        addField(doc, header(i), getValue("organismRemarks", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValue("day", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValue("endDay", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValue("endMonth", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValue("endYear", map))
+        i = i + 1
+
         Config.additionalFieldsToIndex.foreach(field => {
           addField(doc, header(i), getValue(field, map))
           i = i + 1
@@ -1526,8 +1572,8 @@ trait IndexDAO {
     //latitude,longitude related fields
     var slat = getArrayValue(columnOrder.decimalLatitudeP, array)
     var slon = getArrayValue(columnOrder.decimalLongitudeP, array)
+    var latlon = ""
     if (StringUtils.isNotEmpty(slat) && StringUtils.isNotEmpty(slon)) {
-      var latlon = ""
       var lat = java.lang.Double.NaN
       var lon = java.lang.Double.NaN
       try {
@@ -1554,6 +1600,17 @@ trait IndexDAO {
         case e: Exception => slat = ""; slon = ""
       }
     }
+
+    /* RR added geohash_grid */
+    var latlon_grid = ""
+    //for grid-polygon overlap searching: test
+    var gridReference = getArrayValue(columnOrder.gridReference, array)
+    if (gridReference != "") {
+      latlon_grid = getGridWKT(gridReference)
+    } else {
+      latlon_grid = latlon //use point if no grid reference
+    }
+    addField(doc, "geohash_grid", latlon_grid)
 
     //images
     val simages = getArrayValue(columnOrder.images, array)

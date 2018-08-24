@@ -733,6 +733,7 @@
     <!-- SOLR 4.0 Spatial Fields -->
     <field name="quad"     type="quad"     indexed="true" stored="true"  multiValued="false" />
     <field name="geohash"  type="geohash"  indexed="true" stored="true"  multiValued="false" />
+    <field name="geohash_grid"  type="geohash"  indexed="true" stored="true"  multiValued="false" />
 
     <!-- Some ALA dynamic fields -->
     <field name="abcd_identification_qualifier" type="string" indexed="true" stored="true" omitNorms="true" />
