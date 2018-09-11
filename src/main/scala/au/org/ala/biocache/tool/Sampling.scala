@@ -176,9 +176,12 @@ object Sampling extends Tool with IncrementalTool with Counter {
     val queue = new ArrayBlockingQueue[String](100)
     var ids = 0
 
+    val dlat = (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p"
+    val dlon = (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p"
+
     val requiredFields = Array(
-      "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p",
-      "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p"
+      dlat,
+      dlon
     )
 
     //THIS NEEDS TO USE ROWKEY file.....
@@ -193,8 +196,8 @@ object Sampling extends Tool with IncrementalTool with Counter {
         val result = Config.persistenceManager.getSelected(guid, "occ", requiredFields)
         if(!result.isEmpty){
           val map = result.get
-          val lat = map.get("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p").get
-          val lon = map.get("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p").get
+          val lat = map.get(dlat).get
+          val lon = map.get(dlon).get
 
           val point = LocationDAO.getSamplesForLatLon(lat, lon)
           if (!point.isEmpty) {
@@ -284,16 +287,17 @@ class Sampling  {
   import FileHelper._
 
   def handleLatLongInMap(map: Map[String, String], coordinates: mutable.HashSet[String], lp: LocationProcessor) {
-    val latLongWithOption = lp.processLatLong(map.getOrElse("decimalLatitude", null),
-      map.getOrElse("decimalLongitude", null),
-      map.getOrElse("geodeticDatum", null),
-      map.getOrElse("verbatimLongitude", null),
-      map.getOrElse("verbatimLongitude", null),
-      map.getOrElse("verbatimSRS", null),
+    val latLongWithOption = lp.processLatLong(
+      map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "geodeticDatum" else "geodeticdatum", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "verbatimLatitude" else "verbatimlatitude", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "verbatimLongitude" else "verbatimlongitude", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "verbatimSRS" else "verbatimsrs", null),
       map.getOrElse("easting", null),
       map.getOrElse("northing", null),
       map.getOrElse("zone", null),
-      map.getOrElse("gridReference", null),
+      map.getOrElse(if (Config.caseSensitiveCassandra) "gridReference" else "gridreference", null),
       new ArrayBuffer[QualityAssertion]
     )
     latLongWithOption match {
@@ -307,46 +311,51 @@ class Sampling  {
 
   def handleRecordMap(map: Map[String, String], coordinates: HashSet[String], lp: LocationProcessor) {
     handleLatLongInMap(map, coordinates, lp)
+    val dlatfield = if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude"
+    val dlonfield = if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude"
+    val origlatfield = if (Config.caseSensitiveCassandra) "originalDecimalLatitude" else "originaldecimallatitude"
+    val origlonfield = if (Config.caseSensitiveCassandra) "originalDecimalLongitude" else "originaldecimallongitude"
+    val origsensitivefield = if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues"
 
-    val originalSensitiveValues = map.getOrElse("originalSensitiveValues", "")
+    val originalSensitiveValues = map.getOrElse(origsensitivefield, "")
     if (originalSensitiveValues != "") {
       val sensitiveLatLong = Json.toMap(originalSensitiveValues)
-      val lat = sensitiveLatLong.getOrElse("decimalLatitude", null)
-      val lon = sensitiveLatLong.getOrElse("decimalLongitude", null)
+      val lat = sensitiveLatLong.getOrElse(dlatfield, null)
+      val lon = sensitiveLatLong.getOrElse(dlonfield, null)
       if (lat != null && lon != null) {
         coordinates += (lon + "," + lat)
-        val newMap = map ++ Map("decimalLatitude" -> lat.toString, "decimalLongitude" -> lon.toString)
+        val newMap = map ++ Map(dlatfield -> lat.toString, dlonfield -> lon.toString)
         handleLatLongInMap(newMap, coordinates, lp)
       }
     }
 
     //legacy storage of old lat/long original values before SDS processing - superceded by originalSensitiveValues
-    val originalDecimalLatitude = map.getOrElse("originalDecimalLatitude", "")
-    val originalDecimalLongitude = map.getOrElse("originalDecimalLongitude", "")
+    val originalDecimalLatitude = map.getOrElse(origlatfield, "")
+    val originalDecimalLongitude = map.getOrElse(origlonfield, "")
     if (originalDecimalLatitude != "" && originalDecimalLongitude != "") {
       coordinates += (originalDecimalLongitude + "," + originalDecimalLatitude)
     }
 
     //add the processed values
-    val processedDecimalLatitude = map.getOrElse("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p", "")
-    val processedDecimalLongitude = map.getOrElse("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p", "")
+    val processedDecimalLatitude = map.getOrElse(dlatfield + Config.persistenceManager.fieldDelimiter + "p", "")
+    val processedDecimalLongitude = map.getOrElse(dlonfield + Config.persistenceManager.fieldDelimiter + "p", "")
     if (processedDecimalLatitude != "" && processedDecimalLongitude != "") {
       coordinates += (processedDecimalLongitude + "," + processedDecimalLatitude)
     }
   }
 
   val properties = Array(
-    "decimalLatitude",
-    "decimalLongitude",
-    "decimalLatitude"  + Config.persistenceManager.fieldDelimiter + "p",
-    "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p",
-    "verbatimLatitude",
-    "verbatimLongitude",
-    "originalDecimalLatitude",
-    "originalDecimalLongitude",
-    "originalSensitiveValues",
-    "geodeticDatum",
-    "verbatimSRS",
+    if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude",
+    if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude",
+    (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude")  + Config.persistenceManager.fieldDelimiter + "p",
+    (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p",
+    if (Config.caseSensitiveCassandra) "verbatimLatitude" else "verbatimlatitude",
+    if (Config.caseSensitiveCassandra) "verbatimLongitude" else "verbatimlongitude",
+    if (Config.caseSensitiveCassandra) "originalDecimalLatitude" else "originaldecimallatitude",
+    if (Config.caseSensitiveCassandra) "originalDecimalLongitude" else "originaldecimallongitude",
+    if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues",
+    if (Config.caseSensitiveCassandra) "geodeticDatum" else "geodeticdatum",
+    if (Config.caseSensitiveCassandra) "verbatimSRS" else "verbatimsrs",
     "easting",
     "northing",
     "zone"
@@ -678,15 +687,16 @@ class LocColumnExporter(threadId: Int, dataResourceUid: String, handleRecordMap:
       if (keyFile.exists()) {
         logger.info("Using rowKeyFile " + keyFile.getPath)
         keyFile.foreachLine{ line =>
-          val map = Config.persistenceManager.getSelected(line, "occ", Array("decimalLatitude",
-            "decimalLongitude",
-            "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p",
-            "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p",
-            "verbatimLatitude",
-            "verbatimLongitude",
-            "originalDecimalLatitude",
-            "originalDecimalLongitude",
-            "originalSensitiveValues"))
+          val map = Config.persistenceManager.getSelected(line, "occ", Array(
+            if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude",
+            if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude",
+            (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p",
+            (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p",
+            if (Config.caseSensitiveCassandra) "verbatimLatitude" else "Verbatimlatitude",
+            if (Config.caseSensitiveCassandra) "verbatimLongitude" else "verbatimlongitude",
+            if (Config.caseSensitiveCassandra) "originalDecimalLatitude" else "originaldecimallatitude",
+            if (Config.caseSensitiveCassandra) "originalDecimalLongitude" else "originaldecimallongitude",
+            if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues"))
           handleRecordMap(map.get, coordinates, lp)
 
           if (counter % 100000 == 0 && counter > 0) {
@@ -712,15 +722,15 @@ class LocColumnExporter(threadId: Int, dataResourceUid: String, handleRecordMap:
           counter += 1
           Integer.MAX_VALUE > counter
 
-        }, 1000, 1, "decimalLatitude",
-          "decimalLongitude",
-          "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p",
-          "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p",
-          "verbatimLatitude",
-          "verbatimLongitude",
-          "originalDecimalLatitude",
-          "originalDecimalLongitude",
-          "originalSensitiveValues")
+        }, 1000, 1, if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude",
+          if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude",
+          (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p",
+          (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p",
+          if (Config.caseSensitiveCassandra) "verbatimLatitude" else "verbatimlatitude",
+          if (Config.caseSensitiveCassandra) "verbatimLongitude" else "verbatimlongitude",
+          if (Config.caseSensitiveCassandra) "originalDecimalLatitude" else "originaldecimallatitude",
+          if (Config.caseSensitiveCassandra) "originalDecimalLongitude" else "originaldecimallongitude",
+          if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")
 
         val fin = System.currentTimeMillis
         logger.info("[Unique Coordinate Thread " + threadId + "] " + counter + " took " + ((fin - start).toFloat) / 1000f + " seconds")

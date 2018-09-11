@@ -943,7 +943,6 @@ class Cassandra3PersistenceManager  @Inject() (
                           map.put(defin.getName, value)
                         }
                       }
-
                       try {
                         //processing - does this want to be on a separate thread ??
                         continuePaging.set(proc(rowkey, map.toMap, tokenRangeIdx.toString))

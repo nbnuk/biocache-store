@@ -185,8 +185,9 @@ class SampleLocalRecords extends Counter {
     var readCount = 0
     var rowkeys = Seq("")
     val queue = new util.HashSet[String]()
-    val dlat = "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p"
-    val dlon = "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p"
+
+    val dlat = (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p"
+    val dlon = (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p"
 
     val rowKeyFile : File = if (drs.size == 1) {
       Store.rowKeyFile(drs.iterator.next())
@@ -196,7 +197,6 @@ class SampleLocalRecords extends Counter {
 
     // do not use full scan when no -dr or -edr
     val useFullScan = !(skipDrs.isEmpty && drs.isEmpty) && _useFullScan
-
     if (rowKeyFile != null && rowKeyFile.exists()) {
       println("Using rowKeyFile " + rowKeyFile.getPath)
       rowkeys = scala.io.Source.fromFile(rowKeyFile, "UTF-8").getLines().toSeq
@@ -325,8 +325,8 @@ class SampleLocalRecords extends Counter {
     } else {
       logger.info(s"Starting loading sampling for all local=${!allNodes} records")
     }
-    val dlat = "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p"
-    val dlon = "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p"
+    val dlat = (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p"
+    val dlon = (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p"
 
     if (rowkeys.length > 0 && !rowkeys.iterator.next().isEmpty) {
       var counterLoaded = 0
