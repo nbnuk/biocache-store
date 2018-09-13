@@ -774,7 +774,7 @@ trait IndexDAO {
           countryCons,
           rawCountryCons,
           sensitive,
-          getParsedIntValue("coordinateUncertaintyInMeters", map),
+          getParsedValue("coordinateUncertaintyInMeters", map), /* was getParsedIntValue */
           getValue("userId", map, ""),
           getValue("userId", map, ""),
           getParsedValue("provenance", map),
@@ -1284,7 +1284,7 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), sensitive)
         i = i + 1
-        addField(doc, header(i), getParsedIntValue("coordinateUncertaintyInMeters", map))
+        addField(doc, header(i), getParsedValue("coordinateUncertaintyInMeters", map)) /* was getParsedIntValue */
         i = i + 1
         addField(doc, header(i), getValue("userId", map, ""))
         i = i + 1
