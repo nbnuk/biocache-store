@@ -9,6 +9,7 @@ import java.io.{File, FileWriter, OutputStream}
 import scala.util.parsing.json.JSON
 import au.org.ala.biocache.dao.OccurrenceDAO
 import au.org.ala.biocache.parser.DateParser
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.Config
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.vocab.{AssertionStatus}
@@ -175,7 +176,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") :::
     List( /* RR added fields below */
       "identification_verification_status","georeference_verification_status", "rights_holder", "organism_quantity", "organism_quantity_type",
-      "organism_scope", "organism_remarks", "row_key"
+      "organism_scope", "organism_remarks", "row_key", "geohash_grid", "day", "end_day", "end_month", "end_year"
     ) ::: Config.additionalFieldsToIndex /* additionalFieldHeaders */
 
   /**
@@ -240,6 +241,7 @@ trait IndexDAO {
         var slat = getParsedValue("decimalLatitude", map)
         var slon = getParsedValue("decimalLongitude", map)
         var latlon = ""
+        var latlon_grid = ""
         val sciName = getParsedValue("scientificName", map)
         val taxonConceptId = getParsedValue("taxonConceptID", map)
         val vernacularName = getParsedValue("vernacularName", map).trim
@@ -328,6 +330,15 @@ trait IndexDAO {
             case e: Exception => slat = ""; slon = ""
           }
         }
+
+        //for grid-polygon overlap searching: test
+        var gridReference = getValue("gridReference", map)
+        if (gridReference != "") {
+          latlon_grid = getGridWKT(gridReference)
+        } else {
+          latlon_grid = latlon //use point if no grid reference
+        }
+
         //get sensitive values map
         val sensitiveMap = {
           if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains("originalSensitiveValues")) {
@@ -558,7 +569,7 @@ trait IndexDAO {
           getValue("recordNumber", map, ""),
           if (firstLoadDate.isEmpty) "" else DateFormatUtils.format(firstLoadDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           getParsedValue("nameMatchMetric", map),
-          getValue("lifeStage", map, ""), /* RR getValue("phenology", map, ""), */
+          getValue("lifeStage", map, ""), /* NBN was getValue("phenology", map, ""), */
           outlierForLayers.mkString("|"),
           outlierForLayers.length.toString,
           taxonIssueArray.mkString("|"),
@@ -609,7 +620,12 @@ trait IndexDAO {
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
           getValue("organismRemarks", map),
-          getValue("rowKey", map)
+          getValue("rowKey", map),
+          latlon_grid,
+          getParsedValue("day", map),
+          getParsedValue("endDay", map),
+          getParsedValue("endMonth", map),
+          getParsedValue("endYear", map)
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -617,6 +633,34 @@ trait IndexDAO {
     } catch {
       case e: Exception => logger.error(e.getMessage, e); throw e
     }
+  }
+
+  def getGridWKT(gridReference: String = "") = {
+    var latlon_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+          latlon_grid = "POLYGON((" + minLatitude + " " + minLongitude + "," +
+            minLatitude + " " + maxLongitude + "," +
+            maxLatitude + " " + maxLongitude + "," +
+            maxLatitude + " " + minLongitude + "," +
+            minLatitude + " " + minLongitude + "))";
+          //logger.info("geohash_grid: " + latlon_grid)
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    latlon_grid
   }
 
   def getCsvWriter(sensitive : Boolean = false) = {

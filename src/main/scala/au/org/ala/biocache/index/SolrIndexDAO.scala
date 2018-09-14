@@ -20,7 +20,7 @@ import org.apache.commons.lang.StringUtils
 import java.util.concurrent.ArrayBlockingQueue
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.vocab.{AssertionCodes, SpeciesGroups, ErrorCodeCategory}
-import au.org.ala.biocache.util.{GridUtil, Json}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 
 /**
   * DAO for indexing to SOLR
