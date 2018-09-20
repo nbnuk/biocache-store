@@ -25,7 +25,7 @@ object IndexLocalRecords extends Tool {
   def main(args:Array[String]){
 
     var threads = 1
-    var solrHome = "/data/solr/"
+    var solrHome = Config.solrDataFolder
     val checkpointFile = Config.tmpWorkDir + "/index-local-records-checkpoints.txt"
     var solrConfigXmlPath = solrHome + "/biocache/conf/solrconfig.xml"
     var zkc = Config.zookeeperAddress

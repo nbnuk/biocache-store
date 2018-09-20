@@ -73,11 +73,12 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
       if(!solrHome.startsWith("http://")){
         if(solrHome.contains(":")) {
           //assume that it represents a SolrCloud
+          logger.info("Initialising SOLR cloud...")
           cloudServer = new CloudSolrClient(solrHome)
           cloudServer.setDefaultCollection("biocache")
           solrServer = cloudServer
         } else if (solrConfigPath != "") {
-          logger.info("Initialising embedded SOLR server.....")
+          logger.info("Initialising embedded SOLR server from config path.....")
           cc = CoreContainer.createAndLoad(new File(solrHome).toPath)
           solrServer = new EmbeddedSolrServer(cc, "biocache")
         } else {

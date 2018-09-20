@@ -176,7 +176,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition","license","individual_count","date_precision") :::
     List( /* RR added fields below */
       "identification_verification_status","georeference_verification_status", "rights_holder", "organism_quantity", "organism_quantity_type",
-      "organism_scope", "organism_remarks", "row_key", "geohash_grid", "day", "end_day", "end_month", "end_year"
+      "organism_scope", "organism_remarks", "row_key", /* "geohash_grid", */ "day", "end_day", "end_month", "end_year"
     ) ::: Config.additionalFieldsToIndex /* additionalFieldHeaders */
 
   /**
@@ -332,12 +332,14 @@ trait IndexDAO {
         }
 
         //for grid-polygon overlap searching: test
+        /* RR remove for now
         var gridReference = getValue("gridReference", map)
         if (gridReference != "") {
           latlon_grid = getGridWKT(gridReference)
         } else {
           latlon_grid = latlon //use point if no grid reference
         }
+        */
 
         //get sensitive values map
         val sensitiveMap = {
@@ -621,7 +623,7 @@ trait IndexDAO {
           getValue("organismScope", map),
           getValue("organismRemarks", map),
           getValue("rowKey", map),
-          latlon_grid,
+          /* latlon_grid, RR remove for now */
           getParsedValue("day", map),
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),

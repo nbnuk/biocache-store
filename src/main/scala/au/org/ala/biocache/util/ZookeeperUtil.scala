@@ -128,29 +128,32 @@ object ZookeeperUtil {
     import scala.collection.JavaConversions._
 
     println("Reading zookeeper config...")
+    try {
+      val builder = CuratorFrameworkFactory.builder()
+      val curator = builder
+        .namespace("configs")
+        .retryPolicy(new RetryOneTime(1))
+        .connectString(zookeeperHostPort).build()
 
-    val builder = CuratorFrameworkFactory.builder()
-    val curator = builder
-      .namespace("configs")
-      .retryPolicy(new RetryOneTime(1))
-      .connectString(zookeeperHostPort).build()
+      curator.start()
 
-    curator.start()
+      val list = curator.getChildren.forPath("/biocache")
+      val confDir = new File(solrHome + "/biocache/conf")
+      FileUtils.forceMkdir(confDir)
+      val dataDir = new File(solrHome + "/biocache/data")
+      FileUtils.forceMkdir(dataDir)
 
-    val list = curator.getChildren.forPath("/biocache")
-    val confDir = new File(solrHome + "/biocache/conf")
-    FileUtils.forceMkdir(confDir)
-    val dataDir = new File(solrHome + "/biocache/data")
-    FileUtils.forceMkdir(dataDir)
+      list.foreach(str => {
+        val data: Array[Byte] = curator.getData().forPath("/biocache/" + str)
+        val configFile = new String(data).map(_.toChar).toCharArray.mkString
+        FileUtils.writeStringToFile(new File(solrHome + "/biocache/conf/" + str), configFile)
+      })
 
-    list.foreach(str => {
-      val data:Array[Byte] = curator.getData().forPath("/biocache/" + str)
-      val configFile = new String(data).map(_.toChar).toCharArray.mkString
-      FileUtils.writeStringToFile(new File(solrHome + "/biocache/conf/" + str), configFile)
-    })
-
-    FileUtils.writeStringToFile(new File(solrHome + "/solr.xml"), "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><solr></solr>")
-    FileUtils.writeStringToFile(new File(solrHome + "/zoo.cfg"), "")
-    FileUtils.writeStringToFile(new File(solrHome + "/biocache/core.properties"), "name=biocache\nconfig=solrconfig.xml\nschema=schema.xml\ndataDir=data")
+      FileUtils.writeStringToFile(new File(solrHome + "/solr.xml"), "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><solr></solr>")
+      FileUtils.writeStringToFile(new File(solrHome + "/zoo.cfg"), "")
+      FileUtils.writeStringToFile(new File(solrHome + "/biocache/core.properties"), "name=biocache\nconfig=solrconfig.xml\nschema=schema.xml\ndataDir=data")
+    } catch {
+      case e: Exception => println("Zookeeper error: assume config is already set")
+    }
   }
 }

@@ -331,7 +331,7 @@ object Store {
     if (!readOnly) {
       val rowKey = occurrenceDAO.getRowKeyFromUuid(uuid).getOrElse(uuid)
       occurrenceDAO.addUserAssertion(rowKey, qualityAssertion)
-      occurrenceDAO.reIndex(rowKey)
+      occurrenceDAO.reIndex(rowKey) // RR remove test for flag an issue ***
     } else {
       throw new Exception("In read only model. Please try again later")
     }

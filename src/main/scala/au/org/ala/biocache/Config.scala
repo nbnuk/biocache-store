@@ -287,6 +287,7 @@ object Config {
   val exportIndexAsCsvPathSensitive = configModule.properties.getProperty("export.index.as.csv.path.sensitive", "")
 
   val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
+  val solrDataFolder = configModule.properties.getProperty("solr.data.folder", "/data/solr") // NBN
 }
 
 /**
