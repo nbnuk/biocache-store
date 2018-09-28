@@ -399,7 +399,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
-    , "geohash_grid" // *** test
+    /* , "geohash_grid" */ // *** test
     , "day", "end_day", "end_month", "end_year"
   ) ::: Config.additionalFieldsToIndex
 
@@ -848,7 +848,7 @@ trait IndexDAO {
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
           getValue("organismRemarks", map),
-          latlon_grid,
+          /* latlon_grid, */
           getParsedValue("day", map),
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),
@@ -1604,6 +1604,7 @@ trait IndexDAO {
     /* RR added geohash_grid */
     var latlon_grid = ""
     //for grid-polygon overlap searching: test
+    /*
     var gridReference = getArrayValue(columnOrder.gridReference, array)
     if (gridReference != "") {
       latlon_grid = getGridWKT(gridReference)
@@ -1611,6 +1612,7 @@ trait IndexDAO {
       latlon_grid = latlon //use point if no grid reference
     }
     addField(doc, "geohash_grid", latlon_grid)
+    */
 
     //images
     val simages = getArrayValue(columnOrder.images, array)
