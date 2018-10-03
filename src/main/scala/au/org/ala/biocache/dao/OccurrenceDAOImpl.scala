@@ -902,7 +902,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     if (!record.isEmpty) {
 
       //preserve the raw record
-      val qaMap = qualityAssertionProperties ++ Map("snapshot" -> Json.toJSON(record.get))
+      val qaMap = qualityAssertionProperties ++ (if (qualityAssertion.relatedUuid == null || qualityAssertion.relatedUuid.isEmpty()) Map("relatedUuid" -> "") else Map()) ++ Map("snapshot" -> Json.toJSON(record.get))
+
       persistenceManager.put(rowKey, qaEntityName, qaMap, true, false)
       val systemAssertions = getSystemAssertions(rowKey)
       val userAssertions = getUserAssertions(rowKey)
@@ -969,7 +970,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           Map(
             "rowkey" -> toBeDeleted.referenceRowKey,
             (if (Config.caseSensitiveCassandra) "userId" else "userid") -> toBeDeleted.getUserId,
-            "code"   -> toBeDeleted.code.toString
+            "code"   -> toBeDeleted.code.toString,
+            (if (Config.caseSensitiveCassandra) "relatedUuid" else "relateduuid") -> toBeDeleted.getRelatedUuid // new cassandra primary key
           ),
           qaEntityName
         )

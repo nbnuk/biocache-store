@@ -337,7 +337,7 @@ object Store {
     if (!readOnly) {
       val rowKey = occurrenceDAO.getRowKeyFromUuid(uuid).getOrElse(uuid)
       occurrenceDAO.addUserAssertion(rowKey, qualityAssertion)
-      //occurrenceDAO.reIndex(rowKey) // RR removed to test 'flag an issue' (getting bad request failures)
+      occurrenceDAO.reIndex(rowKey) // RR removed to test 'flag an issue' (getting bad request failures)
     } else {
       throw new Exception("In read only model. Please try again later")
     }
@@ -393,7 +393,7 @@ object Store {
     if (!readOnly) {
       val rowKey = occurrenceDAO.getRowKeyFromUuid(uuid).getOrElse(uuid);
       occurrenceDAO.deleteUserAssertion(rowKey, assertionUuid)
-      occurrenceDAO.reIndex(rowKey)
+      occurrenceDAO.reIndex(rowKey) // RR remove on live?
     } else {
       throw new Exception("In read only model. Please try again later")
     }
