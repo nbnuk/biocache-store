@@ -560,13 +560,13 @@ trait IndexDAO {
         }
 
 
-        //for grid-polygon overlap searching: test
-        var gridReference = getValue("gridReference", map)
-        if (gridReference != "") {
-          latlon_grid = getGridWKT(gridReference)
-        } else {
-          latlon_grid = latlon //use point if no grid reference
-        }
+        //for grid-polygon overlap searching: RR test
+        //var gridReference = getValue("gridReference", map)
+        //if (gridReference != "") {
+        //  latlon_grid = getGridWKT(gridReference)
+        //} else {
+        //  latlon_grid = latlon //use point if no grid reference
+        //}
 
         //get sensitive values map
         val sensitiveMap = {
