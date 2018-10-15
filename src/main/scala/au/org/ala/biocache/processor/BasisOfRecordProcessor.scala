@@ -24,8 +24,11 @@ class BasisOfRecordProcessor extends Processor {
     if (raw.occurrence.basisOfRecord == null || raw.occurrence.basisOfRecord.isEmpty) {
       if (processed.occurrence.basisOfRecord != null && !processed.occurrence.basisOfRecord.isEmpty)
         Array[QualityAssertion]() //NC: When using default values we are not testing against so the QAs don't need to be included.
-      else //add a quality assertion
+      else { //add a quality assertion
+        val default_term = BasisOfRecord.matchTerm("HumanObservation") //hard-coded default for NBN
+        processed.occurrence.basisOfRecord = default_term.get.canonical
         Array(QualityAssertion(MISSING_BASIS_OF_RECORD, "Missing basis of record"))
+      }
     } else {
       val term = BasisOfRecord.matchTerm(raw.occurrence.basisOfRecord)
       if (term.isEmpty) {
