@@ -90,64 +90,66 @@ object DwCACreator extends Tool {
         val dataResource2OutputStreams = getDataResourceUids.map { uid => (uid, dwcc.createOutputForCSV(directory, uid) ) }.toMap
         Config.persistenceManager.pageOverSelect("occ", (key, map) => {
           synchronized {
-            val dr = map.getOrElse("dataResourceUid", "")
-            val deletedDate = map.getOrElse("deletedDate", "")
+            val dr = map.getOrElse(if (Config.caseSensitiveCassandra) "dataResourceUid" else "dataresourceuid", "")
+            val deletedDate = map.getOrElse(if (Config.caseSensitiveCassandra) "deletedDate" else "deleteddate", "")
             if (dr != "" && deletedDate =="") {
-              val dataResourceMap = dataResource2OutputStreams.get(dr)
-              if(!dataResourceMap.isEmpty && !dataResourceMap.get.isEmpty){
-                val (zop, csv) = dataResourceMap.get.get
-                synchronized {
-                  val eventDate = {
-                    val eventDate = map.getOrElse("eventDate_p", "")
-                    val eventDateEnd = map.getOrElse("eventDateEnd_p", "")
-                    if(eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd){
-                      eventDate + "/" + eventDateEnd
-                    } else {
-                      eventDate
+              if (dataResource2OutputStreams.get(dr) != None) {
+                val dataResourceMap = dataResource2OutputStreams.get(dr)
+                if (!dataResourceMap.isEmpty && !dataResourceMap.get.isEmpty) {
+                  val (zop, csv) = dataResourceMap.get.get
+                  synchronized {
+                    val eventDate = {
+                      val eventDate = map.getOrElse(if (Config.caseSensitiveCassandra) "eventDate_p" else "eventdate_p" , "")
+                      val eventDateEnd = map.getOrElse(if (Config.caseSensitiveCassandra) "eventDateEnd_p" else "eventdateend_p", "")
+                      if (eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd) {
+                        eventDate + "/" + eventDateEnd
+                      } else {
+                        eventDate
+                      }
                     }
+                    csv.writeNext(Array(
+                      cleanValue(map.getOrElse("rowkey", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "catalogNumber" else "catalognumber", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "collectionCode" else "collectioncode", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "institutionCode" else "institutioncode", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "recordNumber" else "recordnumber", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "basisOfRecord_p" else "basisofrecord_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "recordedBy" else "recordedby", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "occurrenceStatus_p" else "occurrencestatus_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "individualCount" else "individualcount", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "scientificName_p" else "scientificname_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "taxonConceptID_p" else "taxonconceptid_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "taxonRank_p" else "taxonrank_p", "")),
+                      cleanValue(map.getOrElse("kingdom_p", "")),
+                      cleanValue(map.getOrElse("phylum_p", "")),
+                      cleanValue(map.getOrElse("classs_p", "")),
+                      cleanValue(map.getOrElse("order_p", "")),
+                      cleanValue(map.getOrElse("family_p", "")),
+                      cleanValue(map.getOrElse("genus_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "vernacularName_p" else "vernacularname_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLatitude_p" else "decimallatitude_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLongitude_p" else "decimallongitude_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "geodeticDatum_p" else "geodeticdatum_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "coordinateUncertaintyInMeters_p" else "coordinateuncertaintyinmeters_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "maximumElevationInMeters" else "maximumelevationinmeters", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "minimumElevationInMeters" else "minimumelevationinmeters", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "minimumDepthInMeters" else "minimumdepthinmeters", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "maximumDepthInMeters" else "maximumdepthinmeters", "")),
+                      cleanValue(map.getOrElse("country_p", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "stateProvince_p" else "stateprovince_p", "")),
+                      cleanValue(map.getOrElse("locality", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "locationRemarks" else "locationremarks", "")),
+                      cleanValue(map.getOrElse("year_p", "")),
+                      cleanValue(map.getOrElse("month_p", "")),
+                      cleanValue(map.getOrElse("day_p", "")),
+                      cleanValue(eventDate),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "eventID" else "eventid", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "identifiedBy" else "identifiedby", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "occurrenceRemarks" else "occurrenceremarks", "")),
+                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "dataGeneralizations_p" else "datageneralizations_p", ""))
+                    ))
+                    csv.flush()
                   }
-                  csv.writeNext(Array(
-                    cleanValue(map.getOrElse("rowkey", "")),
-                    cleanValue(map.getOrElse("catalogNumber",  "")),
-                    cleanValue(map.getOrElse("collectionCode", "")),
-                    cleanValue(map.getOrElse("institutionCode", "")),
-                    cleanValue(map.getOrElse("recordNumber", "")),
-                    cleanValue(map.getOrElse("basisOfRecord_p", "")),
-                    cleanValue(map.getOrElse("recordedBy", "")),
-                    cleanValue(map.getOrElse("occurrenceStatus_p", "")),
-                    cleanValue(map.getOrElse("individualCount", "")),
-                    cleanValue(map.getOrElse("scientificName_p", "")),
-                    cleanValue(map.getOrElse("taxonConceptID_p", "")),
-                    cleanValue(map.getOrElse("taxonRank_p", "")),
-                    cleanValue(map.getOrElse("kingdom_p", "")),
-                    cleanValue(map.getOrElse("phylum_p", "")),
-                    cleanValue(map.getOrElse("classs_p", "")),
-                    cleanValue(map.getOrElse("order_p", "")),
-                    cleanValue(map.getOrElse("family_p", "")),
-                    cleanValue(map.getOrElse("genus_p", "")),
-                    cleanValue(map.getOrElse("vernacularName_p", "")),
-                    cleanValue(map.getOrElse("decimalLatitude_p", "")),
-                    cleanValue(map.getOrElse("decimalLongitude_p", "")),
-                    cleanValue(map.getOrElse("geodeticDatum_p", "")),
-                    cleanValue(map.getOrElse("coordinateUncertaintyInMeters_p", "")),
-                    cleanValue(map.getOrElse("maximumElevationInMeters", "")),
-                    cleanValue(map.getOrElse("minimumElevationInmeters", "")),
-                    cleanValue(map.getOrElse("minimumDepthInMeters", "")),
-                    cleanValue(map.getOrElse("maximumDepthInMeters", "")),
-                    cleanValue(map.getOrElse("country_p", "")),
-                    cleanValue(map.getOrElse("stateProvince_p", "")),
-                    cleanValue(map.getOrElse("locality", "")),
-                    cleanValue(map.getOrElse("locationRemarks", "")),
-                    cleanValue(map.getOrElse("year_p", "")),
-                    cleanValue(map.getOrElse("month_p", "")),
-                    cleanValue(map.getOrElse("day_p", "")),
-                    cleanValue(eventDate),
-                    cleanValue(map.getOrElse("eventID", "")),
-                    cleanValue(map.getOrElse("identifiedBy", "")),
-                    cleanValue(map.getOrElse("occurrenceRemarks", "")),
-                    cleanValue(map.getOrElse("dataGeneralizations_p", ""))
-                  ))
-                  csv.flush()
                 }
               }
             }
@@ -156,9 +158,11 @@ object DwCACreator extends Tool {
         }, threads, 1000, defaultFields:_*)
 
         dataResource2OutputStreams.values.foreach { zopAndCsv =>
-          zopAndCsv.get._1.flush()
-          zopAndCsv.get._1.closeEntry()
-          zopAndCsv.get._1.close()
+          if (zopAndCsv != None) {
+            zopAndCsv.get._1.flush()
+            zopAndCsv.get._1.closeEntry()
+            zopAndCsv.get._1.close()
+          }
         }
       } catch {
         case e:Exception => {
