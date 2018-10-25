@@ -398,7 +398,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
   }
 
   def getErrorCodes(map: Map[String, String]): Array[Integer] = {
-    val array: Array[List[Integer]] = FullRecordMapper.qaFields.filter(field => map.get(field).getOrElse("[]") != "[]").toArray.map(field => {
+    //some NBN qa fields have null instead of [], which caused error
+    val array: Array[List[Integer]] = FullRecordMapper.qaFields.filter(field => (if (map.get(field).getOrElse("[]") == null) "[]" else map.get(field).getOrElse("[]")) != "[]").toArray.map(field => {
       Json.toListWithGeneric(map.get(field).get, classOf[java.lang.Integer])
     }).asInstanceOf[Array[List[Integer]]]
     if (!array.isEmpty)
