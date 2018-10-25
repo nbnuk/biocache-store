@@ -473,7 +473,9 @@ class Sampling  {
       if (Config.layersServiceSampling) {
         processBatchRemote(writer, points, fields, callback)
       } else {
-        processBatch(writer, points, fields, callback)
+        logger.info("Sampling is disabled")
+        return
+//        processBatch(writer, points, fields, callback)
       }
 
       totalProcessed += points.size
