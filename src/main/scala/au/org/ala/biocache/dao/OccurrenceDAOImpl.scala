@@ -3,7 +3,7 @@ package au.org.ala.biocache.dao
 import java.io.OutputStream
 import java.util.Date
 
-import au.org.ala.biocache._
+import au.org.ala.biocache.{Config, _}
 import au.org.ala.biocache.index.{IndexDAO, IndexFields}
 import au.org.ala.biocache.load.{DownloadMedia, FullRecordMapper}
 import au.org.ala.biocache.model._
@@ -539,6 +539,15 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     //commit
     if (deleteIfNullValue) {
       properties ++= fr.getRawFields().filter { case (k, v) => !properties.isDefinedAt(k) } map { case (k, v) => (k, null) }
+    }
+    if (Config.clearOriginalSensitiveValues) {
+      //for consistency these would be set to NULL instead of "" but they will most likely be overwritten by the next processing run as sensitive values
+      if (!properties.isDefinedAt("originalSensitiveValues")) properties ++= Map("originalSensitiveValues" -> "")
+      if (!properties.isDefinedAt("decimalLatitude")) properties ++= Map("decimalLatitude" -> "")
+      if (!properties.isDefinedAt("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p" -> "")
+      if (!properties.isDefinedAt("decimalLongitude")) properties ++= Map("decimalLongitude" -> "")
+      if (!properties.isDefinedAt("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p" -> "")
+      if (!properties.isDefinedAt("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p" -> "")
     }
 
     persistenceManager.put(fr.rowKey, entityName, properties.toMap, true, deleteIfNullValue)

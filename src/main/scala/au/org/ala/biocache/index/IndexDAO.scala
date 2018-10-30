@@ -401,12 +401,13 @@ trait IndexDAO {
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
     /* , "geohash_grid" */ // *** test
     , "day", "end_day", "end_month", "end_year"
+    , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
   ) ::: Config.additionalFieldsToIndex
 
   /**
    * sensitive csv header columns
    */
-  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality")
+  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality", "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end")
 
   /**
    * Constructs a scientific name.
@@ -460,7 +461,6 @@ trait IndexDAO {
    * should result in a quicker load time.
    */
   def getOccIndexModel(guid: String, map: scala.collection.Map[String, String]) : List[String] = {
-
     try {
       //get the lat lon values so that we can determine all the point values
       val deleted = getValue(FullRecordMapper.deletedColumn, map, "false")
@@ -569,8 +569,9 @@ trait IndexDAO {
         //}
 
         //get sensitive values map
+        //for ((k,v) <- map) println(s"key: $k, value: $v")
         val sensitiveMap = {
-          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains("originalSensitiveValues")) {
+          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains(if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")) {
             try {
               val osv = getValue("originalSensitiveValues", map, "{}")
               val parsed = JSON.parseFull(osv)
@@ -813,7 +814,8 @@ trait IndexDAO {
           getParsedValue("duplicationStatus", map),
           getParsedValue("associatedOccurrences", map),
           dupTypes.mkString("|"),
-          getParsedValue("coordinateUncertaintyInMeters", sensitiveMap),
+          //getParsedValue("coordinateUncertaintyInMeters", sensitiveMap), //TODO won't work for non-case-sensitive config
+          sensitiveMap.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""),
           distanceOutsideExpertRange,
           getParsedValue("verbatimElevation", map),
           getParsedValue("minimumElevationInMeters", map),
@@ -852,7 +854,10 @@ trait IndexDAO {
           getParsedValue("day", map),
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),
-          getParsedValue("endYear", map)
+          getParsedValue("endYear", map),
+          sensitiveMap.getOrElse("gridReference", ""),
+          sensitiveMap.getOrElse("eventDate", ""),
+          sensitiveMap.getOrElse("eventDateEnd", "")
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -1309,13 +1314,13 @@ trait IndexDAO {
         for (v1 <- getParsedValue("establishmentMeans", map).split("; "))
           if (StringUtils.isNotEmpty(v1)) addField(doc, header(i), v1)
         i = i + 1
-        addField(doc, header(i), map.getOrElse("loanSequenceNumber", ""))
+        addField(doc, header(i), map.getOrElse(if (Config.caseSensitiveCassandra) "loanSequenceNumber" else "loansequencenumber", ""))
         i = i + 1
-        addField(doc, header(i), map.getOrElse("loanIdentifier", ""))
+        addField(doc, header(i), map.getOrElse(if (Config.caseSensitiveCassandra) "loanIdentifier" else "loanidentifier", ""))
         i = i + 1
-        addField(doc, header(i), map.getOrElse("loanDestination", ""))
+        addField(doc, header(i), map.getOrElse(if (Config.caseSensitiveCassandra) "loanDestination" else "loandestination", ""))
         i = i + 1
-        addField(doc, header(i), map.getOrElse("loanForBotanist", ""))
+        addField(doc, header(i), map.getOrElse(if (Config.caseSensitiveCassandra) "loanForBotanist" else "loanforbotanist", ""))
         i = i + 1
         addField(doc, header(i), if (loanDate.isEmpty) "" else DateFormatUtils.format(loanDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"))
         i = i + 1
@@ -1374,7 +1379,8 @@ trait IndexDAO {
         //          for (j <- dupTypes)
         //            if (StringUtils.isNotEmpty(j)) addField(doc,header(i), j)
         i = i + 1
-        addField(doc, header(i), getParsedValue("coordinateUncertaintyInMeters", sensitiveMap))
+        //addField(doc, header(i), getParsedValue("coordinateUncertaintyInMeters", sensitiveMap)) //won't work for non-case-sensitive config
+        addField(doc, header(i), sensitiveMap.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p",""))
         i = i + 1
         addField(doc, header(i), distanceOutsideExpertRange)
         i = i + 1
@@ -1453,6 +1459,7 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getParsedValue("endYear", map))
         i = i + 1
+
 
         Config.additionalFieldsToIndex.foreach(field => {
           addField(doc, header(i), getValue(field, map))

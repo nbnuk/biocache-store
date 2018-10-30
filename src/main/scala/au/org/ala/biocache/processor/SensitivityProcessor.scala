@@ -81,6 +81,7 @@ class SensitivityProcessor extends Processor {
 
     //does the object have some original sensitive values
     //these should override the processed versions
+    //NBN: but, won't these overwrite updated values in a record that has been reloaded?
     if(raw.occurrence.originalSensitiveValues != null){
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
