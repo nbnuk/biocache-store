@@ -324,19 +324,20 @@ trait IndexDAO {
     ("taxonRank", "rank", -1, PARSED),
     ("taxonRankID", "rank_id", -1, PARSED),
     ("typeStatus", "type_status", -1, PARSED),
-    /* ("verbatimDepth", "depth", -1, PARSED), RR replaced with below */
+    /* ("verbatimDepth", "depth", -1, PARSED), NBN replaced with below */
     ("verbatimDepth", "raw_depth", -1, RAW),
     ("verbatimElevation", "elevation", -1, PARSED),
     ("vernacularName", "common_name", -1, PARSED),
     ("year", "year", -1, PARSED),
     ("day", "day", -1, PARSED),
-    ("endday", "end_day", -1, PARSED),
+    ("endday", "end_day", -1, PARSED), //index end date fields
     ("endmonth", "end_month", -1, PARSED),
     ("endyear", "end_year", -1, PARSED),
-    ("organismquantity", "organism_quantity", -1, RAW),
+    ("organismquantity", "organism_quantity", -1, RAW), //other NBN fields to index
     ("organismquantitytype", "organism_quantity_type", -1, RAW),
     ("organismscope", "organism_scope", -1, RAW),
-    ("organismremarks", "organism_remarks", -1, RAW)
+    ("organismremarks", "organism_remarks", -1, RAW),
+    ("rightsholder", "rightsholder", -1, RAW) //fix for index-local-node missing this field for sensitive records
   )
 
   /**
