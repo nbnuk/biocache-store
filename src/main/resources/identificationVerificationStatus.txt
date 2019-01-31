@@ -1,0 +1,10 @@
+Accepted
+Accepted - correct
+Accepted - considered correct
+Unconfirmed
+Unconfirmed - plausible
+Unconfirmed - not reviewed
+Unconfirmed - unreviewed	Unconfirmed - not reviewed
+Considered Correct	Accepted - considered correct
+Correct	Accepted - correct
+Unassessed	Unconfirmed - not reviewed

@@ -138,6 +138,16 @@ class MiscellaneousProcessor extends Processor {
       assertions += QualityAssertion(MISSING_DATEIDENTIFIED, "Missing dateIdentified")
     else
       assertions += QualityAssertion(MISSING_DATEIDENTIFIED, 1)
+
+    if (raw.identification.identificationVerificationStatus != null && !raw.identification.identificationVerificationStatus.isEmpty) {
+      val term = IdentificationVerificationStatus.matchTerm(raw.identification.identificationVerificationStatus)
+      if (!term.isEmpty) {
+        processed.identification.identificationVerificationStatus = term.get.canonical
+      } else {
+        val default_term = IdentificationVerificationStatus.matchTerm("Unconfirmed") //hard-coded default for NBN
+        processed.identification.identificationVerificationStatus = default_term.get.canonical
+      }
+    }
   }
 
   /**
