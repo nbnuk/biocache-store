@@ -620,7 +620,19 @@ class EventProcessor extends Processor {
 
     // attempt to calculate a date precision based on the values
     if (StringUtils.isEmpty(processed.event.datePrecision)){
+      //before date (NBN)
+      if ((processed.event.day == null && processed.event.month == null && processed.event.year == null) &&
+        (processed.event.endDay != null || processed.event.endMonth != null || processed.event.endYear != null)) {
+        if (processed.event.endDay != null) {
+          determinedDatePrecision = BEFORE_DAY_PRECISION
+        } else if (processed.event.endMonth != null) {
+          determinedDatePrecision = BEFORE_MONTH_PRECISION
+        } else {
+          determinedDatePrecision = BEFORE_YEAR_PRECISION
+        }
+      }
       //do we have a range
+      else
       if(!startDate.isEmpty && !endDate.isEmpty) {
         determinedDatePrecision = DAY_RANGE_PRECISION
         //can only be day range precision because dates only populated if complete (though a defined date precision might reduce them, but then this would not be called)
@@ -666,6 +678,10 @@ class EventProcessor extends Processor {
   val DAY_PRECISION = "Day"
   val MONTH_PRECISION = "Month"
   val YEAR_PRECISION = "Year"
+
+    val BEFORE_DAY_PRECISION = "Before Day"
+    val BEFORE_MONTH_PRECISION = "Before Month"
+    val BEFORE_YEAR_PRECISION = "Before Year"
 
   def getName = "event"
 }

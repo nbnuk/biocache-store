@@ -38,30 +38,49 @@ object DateParser {
         x
       }
     }
-    //assume ISO
-    val eventDateWithOption = parseISODate(dateStrNormalised)
+    //NBN match 'before' format e.g. /2008 , /2008-02, /2008-02-23
+    if (dateStr.trim.startsWith("/")) {
+      val eventDateBeforeWithOption = parseBeforeDate(dateStrNormalised)
+      eventDateBeforeWithOption match {
+        case Some(eventDate) => {
+          if (isValid(eventDate)) {
+            val emptyStartDate: Date = new Date()
+            val dtEnd: Option[EventDate] = Some(EventDate(emptyStartDate, "", "", "", "", eventDate.parsedStartDate, eventDate.startDate, eventDate.startDay, eventDate.startMonth, eventDate.startYear, true))
+            dtEnd
+          } else {
+            None
+          }
+        }
+        case None => None
+      }
+    } else {
 
-    //if max year set, validate
-    eventDateWithOption match {
-      case Some(eventDate) => {
-        if (!isValid(eventDate)) {
+
+      //assume ISO
+      val eventDateWithOption = parseISODate(dateStrNormalised)
+
+      //if max year set, validate
+      eventDateWithOption match {
+        case Some(eventDate) => {
+          if (!isValid(eventDate)) {
+            val secondAttempt = parseNonISODate(dateStrNormalised)
+            if (!secondAttempt.isEmpty && isValid(secondAttempt.get)) {
+              secondAttempt
+            } else {
+              parseNonISOTruncatedYearDate(dateStrNormalised)
+            }
+          } else {
+            eventDateWithOption
+          }
+        }
+        case None => {
+          //NQ 2014-04-07: second attempt - needed because when strict parsing is enabled non iso formats will fall down to here
           val secondAttempt = parseNonISODate(dateStrNormalised)
-          if(!secondAttempt.isEmpty && isValid(secondAttempt.get)){
+          if (!secondAttempt.isEmpty && isValid(secondAttempt.get)) {
             secondAttempt
           } else {
             parseNonISOTruncatedYearDate(dateStrNormalised)
           }
-        } else {
-          eventDateWithOption
-        }
-      }
-      case None => {
-        //NQ 2014-04-07: second attempt - needed because when strict parsing is enabled non iso formats will fall down to here
-        val secondAttempt = parseNonISODate(dateStrNormalised)
-        if(!secondAttempt.isEmpty && isValid(secondAttempt.get)){
-          secondAttempt
-        } else {
-          parseNonISOTruncatedYearDate(dateStrNormalised)
         }
       }
     }
@@ -81,6 +100,17 @@ object DateParser {
       case _:Exception => None
     }
   }
+
+  def parseBeforeDate(date: String): Option[EventDate] = {
+    date match {
+      case ISOWithMonthNameDate(date) => Some(date)
+      case ISOSingleYear(date) => Some(date)
+      case ISOSingleDate(date) => Some(date)
+      case ISOMonthDate(date) => Some(date)
+      case _ => None
+    }
+  }
+
 
   /**
    * Handles these formats (taken from Darwin Core specification):
