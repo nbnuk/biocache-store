@@ -79,6 +79,9 @@ class SensitivityProcessor extends Processor {
       rawMap.put("coordinateUncertaintyInMeters", processed.location.coordinateUncertaintyInMeters)
     }
 
+    //*** RR NBN do lat/long sensitive check here?
+
+
     //does the object have some original sensitive values
     //these should override the processed versions
     //NBN: but, won't these overwrite updated values in a record that has been reloaded?
@@ -130,6 +133,12 @@ class SensitivityProcessor extends Processor {
       rawMap("month") = processed.event.month
     if (processed.event.year != null)
       rawMap("year") = processed.event.year
+    if (processed.event.endDay != null)
+      rawMap("endDay") = processed.event.endDay
+    if (processed.event.endMonth != null)
+      rawMap("endMonth") = processed.event.endMonth
+    if (processed.event.endYear != null)
+      rawMap("endYear") = processed.event.endYear
 
     if (logger.isDebugEnabled()) {
       logger.debug("Testing with the following properties: " + rawMap + ", and Taxon Concept ID :" + processed.classification.taxonConceptID)
@@ -160,13 +169,18 @@ class SensitivityProcessor extends Processor {
             if (StringUtils.isNotBlank(raw.location.gridReference)) {
               originalSensitiveValues.put("gridReference", raw.location.gridReference)
             }
-            originalSensitiveValues.put("eventDate", raw.event.eventDate)
-            originalSensitiveValues.put("eventDateEnd", raw.event.eventDateEnd)
-            originalSensitiveValues.put("eventTime", raw.event.eventTime)
+
             originalSensitiveValues.put("eventID", raw.event.eventID)
-            originalSensitiveValues.put("day", raw.event.day)
-            originalSensitiveValues.put("month", raw.event.month)
-            originalSensitiveValues.put("verbatimEventDate", raw.event.verbatimEventDate)
+            if (Config.sensitiveDateDay) {
+              originalSensitiveValues.put("eventDate", raw.event.eventDate)
+              originalSensitiveValues.put("eventDateEnd", raw.event.eventDateEnd)
+              originalSensitiveValues.put("eventTime", raw.event.eventTime)
+              originalSensitiveValues.put("day", raw.event.day)
+              originalSensitiveValues.put("month", raw.event.month)
+              originalSensitiveValues.put("endDay", raw.event.endDay)
+              originalSensitiveValues.put("endMonth", raw.event.endMonth)
+              originalSensitiveValues.put("verbatimEventDate", raw.event.verbatimEventDate)
+            }
 
             //remove all the el/cl's from the original sensitive values
             SpatialLayerDAO.sdsLayerList.foreach { key => originalSensitiveValues.remove(key) }
@@ -228,36 +242,67 @@ class SensitivityProcessor extends Processor {
         rawPropertiesToUpdate -= "dataGeneralizations"
 
         //remove the day from the values if present
-        raw.event.day = ""
-        raw.event.month = ""
+        if (Config.sensitiveDateDay) {
+          raw.event.day = ""
+          raw.event.eventDate = ""
+          raw.event.endDay = ""
+          raw.event.eventDateEnd = ""
+          raw.event.eventTime = ""
+          raw.event.verbatimEventDate = ""
+        }
         raw.location.easting = ""
         raw.location.northing = ""
-        raw.event.eventDate = ""
-        raw.event.eventDateEnd = ""
-        raw.event.eventTime = ""
         raw.event.eventID = ""
-        raw.event.verbatimEventDate = ""
 
-        processed.event.day = ""
-        processed.event.eventDate = ""
-        if (processed.event.eventDateEnd != null) {
-          processed.event.eventDateEnd = ""
-        }
-        if (processed.event.eventTime != null) {
-          processed.event.eventTime = ""
+        if (Config.sensitiveDateDay) {
+          processed.event.day = ""
+          if (processed.event.endDay != null) {
+            processed.event.endDay = ""
+          }
+          processed.event.eventDate = ""
+          if (processed.event.eventDateEnd != null) {
+            processed.event.eventDateEnd = ""
+          }
+          if (processed.event.eventTime != null) {
+            processed.event.eventTime = ""
+          }
         }
 
         //remove this field values
-        rawPropertiesToUpdate.put("day", "")
-        rawPropertiesToUpdate.put("month", "")
-        rawPropertiesToUpdate.put("easting", "")
+        if (Config.sensitiveDateDay) {
+          rawPropertiesToUpdate.put("day", "")
+          rawPropertiesToUpdate.put("endDay", "")
+          rawPropertiesToUpdate.put("eventDate", "")
+          rawPropertiesToUpdate.put("eventDateEnd", "")
+          rawPropertiesToUpdate.put("eventTime", "")
+          rawPropertiesToUpdate.put("verbatimEventDate", "")
+        }
         rawPropertiesToUpdate.put("northing", "")
-        rawPropertiesToUpdate.put("eventDate", "")
-        rawPropertiesToUpdate.put("eventDateEnd", "")
+        rawPropertiesToUpdate.put("easting", "")
         rawPropertiesToUpdate.put("eventID", "")
-        rawPropertiesToUpdate.put("eventTime", "")
-        rawPropertiesToUpdate.put("verbatimEventDate", "")
 
+        if (!Config.sensitiveDateDay) {
+          if (raw.event.eventDate != null) {
+            rawPropertiesToUpdate.put("eventDate", raw.event.eventDate)
+          } else if (processed.event.eventDate != null) {
+            rawPropertiesToUpdate.put("eventDate", processed.event.eventDate)
+          }
+          if (raw.event.eventDateEnd != null) {
+            rawPropertiesToUpdate.put("eventDateEnd", raw.event.eventDateEnd)
+          } else if (processed.event.eventDateEnd != null) {
+            rawPropertiesToUpdate.put("eventDateEnd", processed.event.eventDateEnd)
+          }
+          if (raw.event.eventTime != null) {
+            rawPropertiesToUpdate.put("eventTime", raw.event.eventTime)
+          } else if (processed.event.eventTime != null) {
+            rawPropertiesToUpdate.put("eventTime", processed.event.eventTime)
+          }
+          if (raw.event.verbatimEventDate != null) {
+            rawPropertiesToUpdate.put("verbatimEventDate", raw.event.verbatimEventDate)
+          } else if (processed.event.verbatimEventDate != null) {
+            rawPropertiesToUpdate.put("verbatimEventDate", processed.event.verbatimEventDate)
+          }
+        }
         //update the object for downstream processing
         rawPropertiesToUpdate.foreach { case (key, value) => raw.setProperty(key, value) }
 
@@ -348,8 +393,9 @@ class SensitivityProcessor extends Processor {
       processed.location.bbox = lastProcessed.get.location.bbox
       processed.occurrence.informationWithheld = lastProcessed.get.occurrence.informationWithheld
       processed.occurrence.dataGeneralizations = lastProcessed.get.occurrence.dataGeneralizations
-      processed.event.day = lastProcessed.get.event.eventDateEnd
-      processed.event.eventDate = lastProcessed.get.event.eventDateEnd
+      processed.event.day = lastProcessed.get.event.day //was eventDateEnd ???
+      processed.event.endDay = lastProcessed.get.event.endDay 
+      processed.event.eventDate = lastProcessed.get.event.eventDate //was eventDateEnd ???
       processed.event.eventDateEnd = lastProcessed.get.event.eventDateEnd
     }
 
