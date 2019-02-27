@@ -542,6 +542,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     }
     if (Config.clearOriginalSensitiveValues) {
       //for consistency these would be set to NULL instead of "" but they will most likely be overwritten by the next processing run as sensitive values
+      //TODO *** what about other sensitive fields? locality, eventdate, eventdatend, gridreference?
       if (!properties.isDefinedAt("originalSensitiveValues")) properties ++= Map("originalSensitiveValues" -> "")
       if (!properties.isDefinedAt("decimalLatitude")) properties ++= Map("decimalLatitude" -> "")
       if (!properties.isDefinedAt("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p" -> "")
@@ -753,7 +754,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     // Updating system assertion, pass in false
     val (userAssertionStatus, trueUserAssertions) = getCombinedUserStatus(false, userAssertions)
 
-    val verified = if (userAssertionStatus == AssertionStatus.QA_VERIFIED || userAssertionStatus == AssertionStatus.QA_CORRECTED) true else false
+    val verified = if (userAssertionStatus == AssertionStatus.QA_VERIFIED || userAssertionStatus == AssertionStatus.QA_CORRECTED || userAssertionStatus == AssertionStatus.QA_TODELETE) true else false
 
     val falseUserAssertions = userAssertions.filter { qa =>
       qa.code != AssertionCodes.VERIFIED.code &&
@@ -1015,7 +1016,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     *
     * If Collection Admin verifies the record, currentAssertion will have
     * code: 50000 (AssertionCodes.VERIFIED.code),
-    * qaStatus: AssertionStatus.QA_OPEN_ISSUE, AssertionStatus.QA_VERIFIED, AssertionStatus:QA_CORRECTED
+    * qaStatus: AssertionStatus.QA_OPEN_ISSUE, AssertionStatus.QA_VERIFIED, AssertionStatus:QA_CORRECTED, AssertionStatus:QA_TODELETE
     */
   private def getCombinedUserStatus(bVerified: Boolean, userAssertions: List[QualityAssertion]): (Int, ArrayBuffer[QualityAssertion]) = {
 

@@ -16,9 +16,10 @@ object AssertionStatus {
   val QA_CORRECTED = 50003   //the record has been corrected by data custodian - the update may or may not be visible yet
   val QA_NONE = 50004        //status of a record with no user assertions ??
   val QA_UNCONFIRMED = 50005 //open issue
+  val QA_TODELETE = 500006   //known bad, to delete
 
   def isUserAssertionType(code:Int) :Boolean = {
-    (code == QA_OPEN_ISSUE || code == QA_UNCONFIRMED || code == QA_NONE || code == QA_VERIFIED || code == UNCHECKED)
+    (code == QA_OPEN_ISSUE || code == QA_UNCONFIRMED || code == QA_NONE || code == QA_VERIFIED || code == QA_TODELETE || code == UNCHECKED)
   }
 
   def getQAAssertionName (code: String) : String = {
@@ -28,6 +29,7 @@ object AssertionStatus {
       case QA_CORRECTED => return "QA_CORRECTED"
       case QA_NONE => return "QA_NONE"
       case QA_UNCONFIRMED => return "QA_UNCONFIRMED"
+      case QA_TODELETE => return "QA_TODELETE"
       case _ => return code.toString
     }
   }
