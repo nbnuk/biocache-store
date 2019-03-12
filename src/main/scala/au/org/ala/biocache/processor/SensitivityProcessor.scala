@@ -190,6 +190,11 @@ class SensitivityProcessor extends Processor {
           }
         }
 
+        val currentUncertainty = if (StringUtils.isNotEmpty(processed.location.coordinateUncertaintyInMeters)) {
+          java.lang.Float.parseFloat(processed.location.coordinateUncertaintyInMeters)
+        } else {
+          0
+        }
         //take away the values that need to be added to the processed record NOT the raw record
         val uncertainty = rawPropertiesToUpdate.get("generalisationInMetres")
         val generalisationToApplyInMetres = rawPropertiesToUpdate.get("generalisationToApplyInMetres")
@@ -197,11 +202,6 @@ class SensitivityProcessor extends Processor {
           //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
           if (StringUtils.isNotEmpty(uncertainty.get.toString)) {
 
-            val currentUncertainty = if (StringUtils.isNotEmpty(processed.location.coordinateUncertaintyInMeters)) {
-              java.lang.Float.parseFloat(processed.location.coordinateUncertaintyInMeters)
-            } else {
-              0
-            }
 
             val newUncertainty = currentUncertainty + java.lang.Integer.parseInt(uncertainty.get.toString)
             processed.location.coordinateUncertaintyInMeters = newUncertainty.toString
@@ -223,7 +223,18 @@ class SensitivityProcessor extends Processor {
             if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
               rawPropertiesToUpdate.put("gridReference", "")
             } else {
-              processed.location.coordinateUncertaintyInMeters = generalisationToApplyInMetres.get
+                if (currentUncertainty >= java.lang.Integer.parseInt(generalisationToApplyInMetres.get)) {
+                  //raw coordinate uncertainty is already cruder than the SDS-derived generalisation
+                  processed.location.coordinateUncertaintyInMeters =currentUncertainty.toString
+                  processed.location.decimalLatitude = rawMap("decimalLatitude")
+                  processed.location.decimalLongitude = rawMap("decimalLongitude")
+                  rawPropertiesToUpdate("decimalLatitude") = rawMap("decimalLatitude")
+                  rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
+                  rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
+                } else {
+                  processed.location.coordinateUncertaintyInMeters = generalisationToApplyInMetres.get
+                }
+
               val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetres.get)
               if (generalisedRef.isDefined) {
                 rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
@@ -394,7 +405,7 @@ class SensitivityProcessor extends Processor {
       processed.occurrence.informationWithheld = lastProcessed.get.occurrence.informationWithheld
       processed.occurrence.dataGeneralizations = lastProcessed.get.occurrence.dataGeneralizations
       processed.event.day = lastProcessed.get.event.day //was eventDateEnd ???
-      processed.event.endDay = lastProcessed.get.event.endDay 
+      processed.event.endDay = lastProcessed.get.event.endDay
       processed.event.eventDate = lastProcessed.get.event.eventDate //was eventDateEnd ???
       processed.event.eventDateEnd = lastProcessed.get.event.eventDateEnd
     }
