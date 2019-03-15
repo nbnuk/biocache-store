@@ -79,8 +79,6 @@ class SensitivityProcessor extends Processor {
       rawMap.put("coordinateUncertaintyInMeters", processed.location.coordinateUncertaintyInMeters)
     }
 
-    //*** RR NBN do lat/long sensitive check here?
-
 
     //does the object have some original sensitive values
     //these should override the processed versions
@@ -90,7 +88,7 @@ class SensitivityProcessor extends Processor {
       raw.occurrence.originalSensitiveValues.foreach {
         case (key, value) => {
           raw.setProperty(key, value)
-          rawMap.put(key, value)
+          rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
         }
       }
     }
@@ -145,7 +143,16 @@ class SensitivityProcessor extends Processor {
     }
 
     //SDS check - now get the ValidationOutcome from the Sensitive Data Service
+    //sds1.4.4 expects rawMap to have camelcase keys, not all lowercase, so it fails to find e.g. decimalLatitude
+    //TODO fix sds. This is a hacky workaround
+    if (rawMap.contains("decimallatitude")) rawMap("decimalLatitude") = rawMap("decimallatitude")
+    if (rawMap.contains("decimallongitude")) rawMap("decimalLongitude") = rawMap("decimallongitude")
+    if (rawMap.contains("dataresourceuid")) rawMap("dataResourceUid") = rawMap("dataresourceuid")
+
+
     val outcome = SensitivityDAO.getSDS.testMapDetails(Config.sdsFinder, rawMap, exact, processed.classification.taxonConceptID)
+    //TODO: do we need to set any rawMap lowercase fields from the camelcase entries in outcome? eg. locationRemarks etc.
+    //TODO: not sure. Need test record.
 
     logger.debug("SDS outcome: " + outcome)
 
