@@ -187,7 +187,6 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   }
 
 
-
   def streamIndex(proc: java.util.Map[String, AnyRef] => Boolean, fieldsToRetrieve: Array[String], query: String, filterQueries: Array[String], sortFields: Array[String], multivaluedFields: Option[Array[String]] = None) {
     pageOverIndex(proc, fieldsToRetrieve, query, filterQueries, None)
   }
@@ -504,7 +503,6 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
     if (shouldIndex(map, startDate)) {
 
       val values = getOccIndexModel(guid, map)
-
       if (values.length > 0 && values.length != header.length) {
         logger.error("Values don't matcher header: " + values.length + ":" + header.length + ", values:header")
         logger.error("Headers: " + header.toString())
@@ -768,7 +766,9 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         val hasUserAssertions = getValue(FullRecordMapper.userQualityAssertionColumn, map)
         if (hasUserAssertions != "") {
           val assertionUserIds = extractUserIds(hasUserAssertions)
-          assertionUserIds.foreach {  doc.addField("assertion_user_id", _) }
+          assertionUserIds.foreach {
+            doc.addField("assertion_user_id", _)
+          }
         }
 
         // add query assertions
@@ -1088,6 +1088,17 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         val speciesLists = TaxonSpeciesListDAO.getCachedListsForTaxon(getArrayValue(columnOrder.taxonConceptIDP, dataRow))
         speciesLists.foreach { v =>
           doc.addField("species_list_uid", v)
+        }
+
+        //NBN some records have null firstLoaded. The raw lastModifiedTime looks like when the record was first processed, so use that as a stop-gap
+        if ((getArrayValue(columnOrder.firstLoaded, dataRow) == "") && (getArrayValue(columnOrder.lastModifiedTime, dataRow) != "")) {
+          val dateValue = DateParser.parseDate(getArrayValue(columnOrder.lastModifiedTime, dataRow))
+          if (!dateValue.isEmpty) {
+            val dte = dateValue.get.parsedStartDate
+            doc.addField("first_loaded_date", dte.toInstant.toString())
+          } else {
+            logger.error("Unable to convert value to date " + getArrayValue(columnOrder.lastModifiedTime, dataRow) + " for " + guid)
+          }
         }
 
         /**
@@ -1649,6 +1660,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
       maxResults = numFound
     }
   }
+
 }
 
 class ColumnOrder {
@@ -1726,6 +1738,11 @@ class ColumnOrder {
     this.eastingP = dataRow.getIndexOf("easting" + Config.persistenceManager.fieldDelimiter + "p")
     this.northingP = dataRow.getIndexOf("northing" + Config.persistenceManager.fieldDelimiter + "p")
     this.gridReference = dataRow.getIndexOf("gridReference")
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      this.gridReferenceWKT = dataRow.getIndexOf("gridReferenceWKT") // NBN Cassandra WKT ***
+    } else {
+      this.gridReferenceWKT = -1
+    }
     this.queryAssertionColumn = dataRow.getIndexOf(FullRecordMapper.queryAssertionColumn)
     this.elP = dataRow.getIndexOf("el" + Config.persistenceManager.fieldDelimiter + "p")
     this.clP = dataRow.getIndexOf("cl" + Config.persistenceManager.fieldDelimiter + "p")
@@ -1734,6 +1751,9 @@ class ColumnOrder {
     this.leftP = dataRow.getIndexOf("left" + Config.persistenceManager.fieldDelimiter + "p")
     this.rightP = dataRow.getIndexOf("right" + Config.persistenceManager.fieldDelimiter + "p")
     this.datePrecisionP = dataRow.getIndexOf("datePrecision" + Config.persistenceManager.fieldDelimiter + "p")
+
+    this.firstLoaded = dataRow.getIndexOf("firstLoaded") //NBN
+    this.lastModifiedTime = dataRow.getIndexOf("lastModifiedTime") //not _p
 
     val isUsed: Array[Boolean] = new Array[Boolean](dataRow.getNumberOfFields())
     val columnNames: Array[String] = new Array[String](dataRow.getNumberOfFields())
@@ -1886,6 +1906,10 @@ class ColumnOrder {
   var deletedColumn: Int = -1
 
   var gridReference: Int = -1
+  var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
+
+  var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
+  var lastModifiedTime: Int = -1
 
   var qualityAssertionColumn: Int = -1
   var miscPropertiesColumn: Int = -1

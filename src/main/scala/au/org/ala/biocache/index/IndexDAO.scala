@@ -400,7 +400,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
-    /* , "geohash_grid" */ // *** test
+    , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
   ) ::: Config.additionalFieldsToIndex
@@ -470,7 +470,6 @@ trait IndexDAO {
         var slat = getParsedValue("decimalLatitude", map)
         var slon = getParsedValue("decimalLongitude", map)
         var latlon = ""
-        var latlon_grid = ""
         val sciName = getParsedValue("scientificName", map)
         val taxonConceptId = getParsedValue("taxonConceptID", map)
         val vernacularName = getParsedValue("vernacularName", map).trim
@@ -560,14 +559,13 @@ trait IndexDAO {
           }
         }
 
-
         //for grid-polygon overlap searching: RR test
-        //var gridReference = getValue("gridReference", map)
-        //if (gridReference != "") {
-        //  latlon_grid = getGridWKT(gridReference)
-        //} else {
-        //  latlon_grid = latlon //use point if no grid reference
-        //}
+        var poly_grid = ""
+        if (Config.gridRefIndexingPolyReadFromCassandra) {
+          poly_grid = getGridWKTConfigWrapper(getValue("gridReference", map), getValue("gridReferenceWKT", map), latlon)
+        } else {
+          poly_grid = getGridWKTConfigWrapper(getValue("gridReference", map), "", latlon)
+        }
 
         //get sensitive values map
         //for ((k,v) <- map) println(s"key: $k, value: $v")
@@ -670,7 +668,14 @@ trait IndexDAO {
 
         val lastUserAssertion = DateParser.parseStringToDate(getValue(FullRecordMapper.lastUserAssertionDateColumn, map, ""))
 
-        val firstLoadDate = DateParser.parseStringToDate(getValue("firstLoaded", map))
+        //NBN some records have null firstLoaded. The raw lastModifiedTime looks like when the record was first processed, so use that as a stop-gap
+        val firstLoadDate = {
+          if (getValue("firstLoaded", map) == "") {
+            DateParser.parseStringToDate(getValue("lastModifiedTime", map))
+          } else {
+            DateParser.parseStringToDate(getValue("firstLoaded", map))
+          }
+        }
 
         val loanDate = DateParser.parseStringToDate(getValue("loanDate", map, ""))
 
@@ -851,7 +856,7 @@ trait IndexDAO {
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
           getValue("organismRemarks", map),
-          /* latlon_grid, */
+          poly_grid,
           getParsedValue("day", map),
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),
@@ -868,8 +873,29 @@ trait IndexDAO {
     }
   }
 
+  def getGridWKTConfigWrapper(gridReference: String = "", gridReferenceWKT: String = "", latlon: String = "") :String = {
+    var poly_grid = ""
+    var gridRefWKTuse = ""
+    if (Config.gridRefIndexingPolyEnabled) {
+      if (gridReference.length() >= Config.gridRefIndexingPolyOmitGrids) {
+        //logger.info("indexing grid")
+        if (Config.gridRefIndexingPolyReadFromCassandra) {
+          gridRefWKTuse = gridReferenceWKT
+        } else {
+          gridRefWKTuse = getGridWKT(gridReference) //WKT in lon,lat order
+          //logger.info("from getGrid:")
+        }
+      }
+    }
+    if (gridRefWKTuse != "" ) {
+      gridRefWKTuse
+    } else {
+      latlon //use point if no grid reference (in lat,lon order as per SOLR specification)
+    }
+  }
+
   def getGridWKT(gridReference: String = "") = {
-    var latlon_grid = ""
+    var poly_grid = ""
     if (gridReference != "") {
       GridUtil.gridReferenceToEastingNorthing(gridReference) match {
         case Some(gr) => {
@@ -882,11 +908,12 @@ trait IndexDAO {
           val maxLatitude = bbox(1).get._1
           val maxLongitude = bbox(1).get._2
 
-          latlon_grid = "POLYGON((" + minLatitude + " " + minLongitude + "," +
-            minLatitude + " " + maxLongitude + "," +
-            maxLatitude + " " + maxLongitude + "," +
-            maxLatitude + " " + minLongitude + "," +
-            minLatitude + " " + minLongitude + "))";
+          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
+            minLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + minLatitude + "," +
+            minLongitude + " " + minLatitude + "))";
+          //in long-lat order
           //logger.info("geohash_grid: " + latlon_grid)
         }
         case None => {
@@ -894,7 +921,7 @@ trait IndexDAO {
         }
       }
     }
-    latlon_grid
+    poly_grid
   }
 
   def getCsvWriter(sensitive: Boolean = false) = {
@@ -1099,7 +1126,15 @@ trait IndexDAO {
 
         val lastUserAssertion = DateParser.parseStringToDate(getValue(FullRecordMapper.lastUserAssertionDateColumn, map, ""))
 
-        val firstLoadDate = DateParser.parseStringToDate(getValue("firstLoaded", map))
+        //not used?
+        //NBN some records have null firstLoaded. The raw lastModifiedTime looks like when the record was first processed, so use that as a stop-gap
+        val firstLoadDate = {
+          if (getValue("firstLoaded", map) == "") {
+            DateParser.parseStringToDate(getValue("lastModifiedTime", map))
+          } else {
+            DateParser.parseStringToDate(getValue("firstLoaded", map))
+          }
+        }
 
         val loanDate = DateParser.parseStringToDate(getValue("loanDate", map, ""))
 
@@ -1508,10 +1543,12 @@ trait IndexDAO {
       var value: String = {
         if (h._4 == 3) { // Parsed
           getArrayValue(array_header_parsed_idx(i), array)
+        } else if (h._4 == 2) { //Raw
+          getArrayValue(array_header_idx(i), array)
         } else if (h._4 >= 0) { //Both
-          val v = getArrayValue(array_header_idx(i), array)
-          if (StringUtils.isEmpty(v) && h._4 == 0) {
-            getArrayValue(array_header_parsed_idx(i), array)
+          val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
+          if (StringUtils.isEmpty(v)) {
+            getArrayValue(array_header_idx(i), array)
           } else {
             v
           }
@@ -1545,11 +1582,13 @@ trait IndexDAO {
         val h = headerAttributesFix(i)
         var value: String = {
           if (h._4 == 3) { // Parsed
-            getArrayValue(array_header_parsed_idx_fix(i), array)
+            getArrayValue(array_header_parsed_idx(i), array)
+          } else if (h._4 == 2) { //Raw
+            getArrayValue(array_header_idx(i), array)
           } else if (h._4 >= 0) { //Both
-            val v = getArrayValue(array_header_idx_fix(i), array)
-            if (StringUtils.isEmpty(v) && h._4 == 0) {
-              getArrayValue(array_header_parsed_idx_fix(i), array)
+            val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
+            if (StringUtils.isEmpty(v)) {
+              getArrayValue(array_header_idx(i), array)
             } else {
               v
             }
@@ -1609,18 +1648,16 @@ trait IndexDAO {
       }
     }
 
-    /* RR added geohash_grid */
-    var latlon_grid = ""
-    //for grid-polygon overlap searching: test
-    /*
-    var gridReference = getArrayValue(columnOrder.gridReference, array)
-    if (gridReference != "") {
-      latlon_grid = getGridWKT(gridReference)
+    /* RR added for polygon indexing */
+    var poly_grid = ""
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      poly_grid = getGridWKTConfigWrapper(getArrayValue(columnOrder.gridReference, array), getArrayValue(columnOrder.gridReferenceWKT, array), latlon)
     } else {
-      latlon_grid = latlon //use point if no grid reference
+      poly_grid = getGridWKTConfigWrapper(getArrayValue(columnOrder.gridReference, array), "", latlon)
     }
-    addField(doc, "geohash_grid", latlon_grid)
-    */
+
+    addField(doc, "geohash_grid", poly_grid)
+
 
     //images
     val simages = getArrayValue(columnOrder.images, array)
@@ -1747,8 +1784,10 @@ trait IndexDAO {
           addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", "")))
           addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", "")))
           addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", "")))
-          addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
-          addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
+          if (Config.sensitiveDateDay) {
+            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
+            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
+          }
           addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
         } catch {
           case _: Exception => Map[String, String]()
