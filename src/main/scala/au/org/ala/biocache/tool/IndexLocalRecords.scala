@@ -44,7 +44,7 @@ object IndexLocalRecords extends Tool {
     }
     if(parser.parse(args)){
       val ilr = new IndexLocalRecords()
-      ZookeeperUtil.getSolrConfig(zkc, solrHome)
+      ZookeeperUtil.getSolrConfig(zkc, solrHome) //NBN: when running in IDE this triggers an error, but with it commented out it seems to revert to indexDAO.scala instead of SolrIndexDAO.scala
       ilr.indexRecords(threads, solrHome, solrConfigXmlPath, optimise, optimiseOnly, checkpointFile)
     }
   }

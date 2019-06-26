@@ -559,7 +559,7 @@ trait IndexDAO {
           }
         }
 
-        //for grid-polygon overlap searching: RR test
+        //for grid-polygon overlap searching: NBN test
         var poly_grid = ""
         if (Config.gridRefIndexingPolyReadFromCassandra) {
           poly_grid = getGridWKTConfigWrapper(getValue("gridReference", map), getValue("gridReferenceWKT", map), latlon)

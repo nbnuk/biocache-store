@@ -80,9 +80,26 @@ class SensitivityProcessor extends Processor {
     }
 
 
+
+    //temporary
+    /*
+    var sensitiveGridDifferentFromBlurred = false
+    var originalRawMapGridReference = ""
+    if(raw.occurrence.originalSensitiveValues != null) {
+      if (raw.occurrence.originalSensitiveValues.contains("gridReference") &&
+        rawMap.contains("gridreference")) {
+        if (rawMap("gridreference") != raw.occurrence.originalSensitiveValues("gridReference")) {
+          sensitiveGridDifferentFromBlurred = true
+          originalRawMapGridReference = rawMap("gridreference")
+        }
+      }
+    }
+    */
+
     //does the object have some original sensitive values
     //these should override the processed versions
     //NBN: but, won't these overwrite updated values in a record that has been reloaded?
+
     if(raw.occurrence.originalSensitiveValues != null){
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
@@ -92,6 +109,46 @@ class SensitivityProcessor extends Processor {
         }
       }
     }
+
+    //hopefully one-off fix for incorrectly processed sensitive records with grid instead of coordinates: the generalised lat/long values were
+    //stored in originalsensitivevalues instead of the grid centroid, which might be more precise
+    //e.g. {"coordinateUncertaintyInMeters_p":"100.0","decimalLongitude":"-4.6","decimalLatitude":"54.1","gridReference":"SC303697"}
+    /*
+    if(raw.occurrence.originalSensitiveValues != null) {
+      if (raw.occurrence.originalSensitiveValues.contains("gridReference") &&
+        Config.gridRefIndexingEnabled && raw.location.gridReference != null &&
+        raw.occurrence.originalSensitiveValues.contains("decimalLatitude") &&
+        raw.occurrence.originalSensitiveValues.contains("decimalLongitude")) {
+        if (sensitiveGridDifferentFromBlurred) {
+          //if sensitive coords are centroid of non-sensitive (i.e. blurred) grid, then recalc using sensitive grid
+          //assumes that record did not have both grid and coords supplied
+          //below doesn't work because lat/longs rounded off before storage baed on coord uncertainty, so differ from the actual centroid
+          /* val checkPnt = GridUtil.processGridReference(originalRawMapGridReference)
+          if ((checkPnt.get.latitude.toDouble - raw.occurrence.originalSensitiveValues("decimalLatitude").toDouble).abs < 0.001 &&
+            (checkPnt.get.longitude.toDouble - raw.occurrence.originalSensitiveValues("decimalLongitude").toDouble).abs < 0.001) { */
+          if (rawMap("datageneralizations_p").contains("already generalised")) {
+            val newPnt = GridUtil.processGridReference(raw.occurrence.originalSensitiveValues("gridReference"))
+            raw.occurrence.originalSensitiveValues -= "decimalLongitude"
+            raw.occurrence.originalSensitiveValues -= "decimalLatitude"
+
+
+            raw.location.decimalLongitude = newPnt.get.longitude
+            raw.location.decimalLatitude = newPnt.get.latitude
+            raw.location.gridReference = raw.occurrence.originalSensitiveValues("gridReference")
+            rawMap -= "decimallongitude"
+            rawMap -= "decimallatitude"
+            rawMap -= "gridreference"
+            rawMap.put("decimallongitude", newPnt.get.longitude)
+            rawMap.put("decimallatitude", newPnt.get.latitude)
+            rawMap.put("gridreference", raw.occurrence.originalSensitiveValues("gridReference"))
+
+            //if (rawMap.contains("decimallatitude")) rawMap -= "decimallatitude"
+            //if (rawMap.contains("decimallongitude")) rawMap -= "decimallongitude"
+          }
+        }
+      }
+    }
+    */
 
     if (processed.location.hasCoordinates) {
 

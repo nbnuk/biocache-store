@@ -569,7 +569,15 @@ class LocationProcessor extends Processor {
     } else {
       //check to see if the uncertainty has incorrectly been put in the precision
       if (raw.location.coordinatePrecision != null) {
-        val value = raw.location.coordinatePrecision.toFloatWithOption
+        var value = raw.location.coordinatePrecision.toFloatWithOption
+        if (raw.location.coordinatePrecision.endsWith("km") || raw.location.coordinatePrecision.endsWith("m")) { //another way to misuse coordinatePrecision
+          if (raw.location.coordinatePrecision.endsWith("km")) {
+            value = raw.location.coordinatePrecision.dropRight(2).toFloatWithOption
+            if (!value.isEmpty && value.get > 1) value = Option(value.get*1000)
+          } else {
+            value = raw.location.coordinatePrecision.dropRight(1).toFloatWithOption
+          }
+        }
         if (!value.isEmpty && value.get > 1) {
           processed.location.coordinateUncertaintyInMeters = value.get.toInt.toString
           val comment = "Supplied precision, " + raw.location.coordinatePrecision + ", is assumed to be uncertainty in metres";

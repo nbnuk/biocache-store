@@ -87,7 +87,12 @@ object DwCACreator extends Tool {
     if(parser.parse(args)){
       val dwcc = new DwCACreator
       try {
-        val dataResource2OutputStreams = getDataResourceUids.map { uid => (uid, dwcc.createOutputForCSV(directory, uid) ) }.toMap
+        var dataResource2OutputStreams = Map[String, Option[(ZipOutputStream, CSVWriter)]]()
+        if (resourceUid == "" || resourceUid == "all") {
+          dataResource2OutputStreams = getDataResourceUids.map { uid => (uid, dwcc.createOutputForCSV(directory, uid)) }.toMap
+        } else {
+          dataResource2OutputStreams = Map(resourceUid -> dwcc.createOutputForCSV(directory, resourceUid))
+        }
         Config.persistenceManager.pageOverSelect("occ", (key, map) => {
           synchronized {
             val dr = map.getOrElse(if (Config.caseSensitiveCassandra) "dataResourceUid" else "dataresourceuid", "")
