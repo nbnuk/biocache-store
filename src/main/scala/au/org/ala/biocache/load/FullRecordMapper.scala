@@ -38,6 +38,8 @@ object FullRecordMapper {
   val taxonomicalQa = "class"
   val queryAssertionColumn = "queryAssertions" + Config.persistenceManager.fieldDelimiter + "p"
 
+  val gridreferenceWktColumn = "gridReferenceWKT" // NBN ***
+
   val qaFields = Processors.processorMap.values.map(processor => markAsQualityAssertion(processor.asInstanceOf[Processor].getName))
 
   /**
@@ -72,6 +74,10 @@ object FullRecordMapper {
     properties.put(FullRecordMapper.locationDeterminedColumn, fullRecord.locationDetermined.toString)
     properties.put(FullRecordMapper.geospatialDecisionColumn, fullRecord.geospatiallyKosher.toString)
     properties.put(FullRecordMapper.taxonomicDecisionColumn, fullRecord.taxonomicallyKosher.toString)
+
+    if (fullRecord.location.gridReferenceWKT != null) {
+      properties.put(FullRecordMapper.gridreferenceWktColumn, fullRecord.location.gridReferenceWKT.toString) // NBN ***
+    }
 
     if (fullRecord.lastModifiedTime != "") {
       properties.put(FullRecordMapper.markNameBasedOnVersion(FullRecordMapper.alaModifiedColumn, version), fullRecord.lastModifiedTime)

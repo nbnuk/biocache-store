@@ -282,6 +282,9 @@ object Config {
 
   //grid reference indexing
   val gridRefIndexingEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.enabled", "false"))
+  val gridRefIndexingPolyEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.enabled", "false"))
+  val gridRefIndexingPolyOmitGrids = configModule.properties.getProperty("gridref.indexing.poly.omit.grids.less.than", "0").toInt
+  val gridRefIndexingPolyReadFromCassandra = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.read.from.cassandra", "false"))
 
   //used by location processor for associating a country with an occurrence record where only stateProvince supplied
   val defaultCountry = configModule.properties.getProperty("default.country", "Australia")

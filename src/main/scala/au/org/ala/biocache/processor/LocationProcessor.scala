@@ -98,6 +98,12 @@ class LocationProcessor extends Processor {
     //check marine/non-marine
     checkForBiomeMismatch(raw, processed, assertions)
 
+    //NBN Cassandra WKT ***
+    //requires gridreferencewkt, gridreferencewkt_p field in DB
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      processGridWKT(raw, processed)
+    }
+
 
     //return the assertions created by this processor
     assertions.toArray
@@ -528,6 +534,53 @@ class LocationProcessor extends Processor {
     } else {
       None
     }
+  }
+
+  /**
+    * If gridreference supplied, convert to WKT
+    *
+    * @param raw
+    * @param processed
+
+    */
+  // NBN ***
+  private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
+
+    if (raw.location.gridReference != null) {
+      raw.location.gridReferenceWKT = getGridWKT(raw.location.gridReference)
+      processed.location.gridReferenceWKT = raw.location.gridReferenceWKT //need a proper processed version for sensitive data?
+    } else {
+      //use point if no grid reference?
+    }
+  }
+
+  private def getGridWKT(gridReference: String = "") = {
+    var poly_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+
+          //for WKT, need to give points in lon-lat order, not lat-lon
+          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
+            minLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + minLatitude + "," +
+            minLongitude + " " + minLatitude + "))"
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    poly_grid
   }
 
 

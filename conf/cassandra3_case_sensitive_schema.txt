@@ -285,6 +285,8 @@ CREATE TABLE occ.occ (
     "geospatiallyKosher" text,
     "globalConservation" text,
     "gridReference" text,
+    "gridReferenceWKT" text,
+    "gridReferenceWKT_p" text,
     habitat text,
     habitat_p text,
     "higherClassification" text,
