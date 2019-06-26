@@ -178,7 +178,7 @@
         <dependency>
             <groupId>au.org.ala</groupId>
             <artifactId>sds</artifactId>
-            <version>1.4.4</version>
+            <version>1.4.6</version> <!-- was 1.4.4. 1.4.6 includes 50km generalisation (local build and put in maven repo) -->
             <exclusions>
                 <exclusion>
                     <groupId>commons-lang</groupId>
@@ -220,7 +220,7 @@
         <dependency>
             <groupId>au.org.ala</groupId>
             <artifactId>ala-name-matching</artifactId>
-            <version>3.3</version>
+            <version>3.4</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.gbif</groupId>
@@ -289,7 +289,7 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <!-- GBIF crawler library uses Stopwatch methods that require 18.0+ -->
-            <version>24.0-jre</version>
+            <version>24.0-jre</version> <!-- 27.1-jre 24.0-jre -->
         </dependency>
         <!-- Google Guice -->
         <dependency>

@@ -104,6 +104,7 @@ object GridUtil {
 
       val gridRefSeq = Array(
         gridRefs.getOrElse("grid_ref_100000", ""),
+        gridRefs.getOrElse("grid_ref_50000", ""),
         gridRefs.getOrElse("grid_ref_10000", ""),
         gridRefs.getOrElse("grid_ref_2000", ""),
         gridRefs.getOrElse("grid_ref_1000", ""),
@@ -111,16 +112,18 @@ object GridUtil {
       )
 
       val ref = {
-        if (uncertainty > 10000) {
+        if (uncertainty > 50000) {
           getBestValue(gridRefSeq, 0)
-        } else if (uncertainty <= 10000 && uncertainty > 2000) {
+        } else if (uncertainty <= 50000 && uncertainty > 10000) {
           getBestValue(gridRefSeq, 1)
-        } else if (uncertainty <= 2000 && uncertainty > 1000) {
+        } else if (uncertainty <= 10000 && uncertainty > 2000) {
           getBestValue(gridRefSeq, 2)
-        } else if (uncertainty <= 1000 && uncertainty > 100) {
+        } else if (uncertainty <= 2000 && uncertainty > 1000) {
           getBestValue(gridRefSeq, 3)
-        } else if (uncertainty < 100) {
+        } else if (uncertainty <= 1000 && uncertainty > 100) {
           getBestValue(gridRefSeq, 4)
+        } else if (uncertainty < 100) {
+          getBestValue(gridRefSeq, 5)
         } else {
           ""
         }
@@ -156,6 +159,7 @@ object GridUtil {
     * Takes a grid reference and returns a map of grid references at different resolutions.
     * Map will look like:
     * grid_ref_100000 -> "NO"
+    * grid_ref_50000 -> "NOSW"
     * grid_ref_10000 -> "NO11"
     * grid_ref_1000 -> "NO1212"
     * grid_ref_100 -> "NO123123"
@@ -178,25 +182,46 @@ object GridUtil {
             val eastingAsStr = padWithZeros((gr.easting.toInt % 100000).toString, 5)
             val northingAsStr = padWithZeros((gr.northing.toInt % 100000).toString, 5)
 
-            //add grid references for 10km, and 1km
+            //add grid reference for 50km
             if (eastingAsStr.length() >= 2 && northingAsStr.length() >= 2) {
-              map.put("grid_ref_10000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1))
-            }
-            if (eastingAsStr.length() >= 3 && northingAsStr.length() >= 3) {
-              val eastingWithin10km = eastingAsStr.substring(1, 2).toInt
-              val northingWithin10km = northingAsStr.substring(1, 2).toInt
-              val tetrad = tetradLetters((eastingWithin10km / 2) * 5 + (northingWithin10km /2))
-
-              if(gridSize != -1 && gridSize <= 2000){
-                map.put("grid_ref_2000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1) + tetrad)
+              var quad = ""
+              if (eastingAsStr.substring(0, 1).toInt < 5) { //W
+                if (northingAsStr.substring(0, 1).toInt < 5) { //S
+                  quad = "SW"
+                } else { //N
+                  quad = "NW"
+                }
+              } else { //E
+                if (northingAsStr.substring(0, 1).toInt < 5) { //S
+                  quad = "SE"
+                } else { //N
+                  quad = "NE"
+                }
               }
-              if(gridSize != -1 && gridSize <= 1000) {
-                map.put("grid_ref_1000", gr.gridLetters + eastingAsStr.substring(0, 2) + northingAsStr.substring(0, 2))
-              }
+              map.put("grid_ref_50000", gr.gridLetters + quad)
             }
 
-            if (gridSize != -1 && gridSize <= 100 && eastingAsStr.length > 3) {
-              map.put("grid_ref_100", gr.gridLetters + eastingAsStr.substring(0, 3) + northingAsStr.substring(0, 3))
+            if (gridSize < 50000) {
+              //add grid references for 10km, and 1km
+              if (eastingAsStr.length() >= 2 && northingAsStr.length() >= 2) {
+                map.put("grid_ref_10000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1))
+              }
+              if (eastingAsStr.length() >= 3 && northingAsStr.length() >= 3) {
+                val eastingWithin10km = eastingAsStr.substring(1, 2).toInt
+                val northingWithin10km = northingAsStr.substring(1, 2).toInt
+                val tetrad = tetradLetters((eastingWithin10km / 2) * 5 + (northingWithin10km / 2))
+
+                if (gridSize != -1 && gridSize <= 2000) {
+                  map.put("grid_ref_2000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1) + tetrad)
+                }
+                if (gridSize != -1 && gridSize <= 1000) {
+                  map.put("grid_ref_1000", gr.gridLetters + eastingAsStr.substring(0, 2) + northingAsStr.substring(0, 2))
+                }
+              }
+
+              if (gridSize != -1 && gridSize <= 100 && eastingAsStr.length > 3) {
+                map.put("grid_ref_100", gr.gridLetters + eastingAsStr.substring(0, 3) + northingAsStr.substring(0, 3))
+              }
             }
           }
       }
@@ -340,6 +365,8 @@ object GridUtil {
     *
     * with additional extensions to handle 2km grid references e.g. NM39A
     *
+    * ADDED: handling for 50km grids like 'SK SE' (although NBN won't accept data in this format, these grids can be assigned for sensitive records with 50km generalisations)
+    *
     * @param gridRef
     * @return easting, northing, coordinate uncertainty in meters, minEasting, minNorthing, maxEasting, maxNorthing
     */
@@ -347,6 +374,7 @@ object GridUtil {
 
     //deal with the 2k OS grid ref separately
     val osGridRefNoEastingNorthing = ("""([A-Z]{2})""").r
+    val osGridRef50kRegex = ("""([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""").r
     val osGridRefRegex1Number = """([A-Z]{2})\s*([0-9]+)$""".r
     val osGridRef2kRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
     val osGridRefRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)$""".r
@@ -371,6 +399,9 @@ object GridUtil {
       }
       case osGridRefNoEastingNorthing(gridletters) => {
         (gridletters, "0", "0", "",  "", getCoordinateUncertaintyFromGridRef(0,0))
+      }
+      case osGridRef50kRegex(gridletters, quadRef) => {
+        (gridletters, "0", "0", "", quadRef, getCoordinateUncertaintyFromGridRef(0, 2))
       }
       case _ => return None
     }
@@ -441,15 +472,18 @@ object GridUtil {
       }
     } else if(quadRef != ""){
 
-      val cellSize = {
+      var cellSize = {
         if (easting.length == 1) 5000
         else if (easting.length == 2) 500
         else if (easting.length == 3) 50
         else if (easting.length == 4) 5
         else 0
       }
+      if (coordinateUncertainty.getOrElse(0) == 50000) { //50km grids only
+        cellSize = 50000
+      }
       if(cellSize > 0) {
-        twoKRef match {
+        quadRef match {
           case "NW" => {
             e = e + (cellSize / 2)
             n = n + (cellSize + cellSize / 2)
@@ -474,6 +508,28 @@ object GridUtil {
     val coordinateUncertaintyOrZero = if(coordinateUncertainty.isEmpty) 0 else coordinateUncertainty.get
 
     Some(GridRef(gridletters, e, n, coordinateUncertainty, e, n, e + coordinateUncertaintyOrZero, n + coordinateUncertaintyOrZero, OSGB_CRS))
+  }
+
+/**
+  * Convert a WGS84 lat/lon coordinate to ordnance survey grid reference using coordinateUncertaintyInMeters to define grid cell size
+  * This is a port of this javascript code:
+  *
+  * http://www.movable-type.co.uk/scripts/latlong-gridref.html (i.e. https://cdn.rawgit.com/chrisveness/geodesy/v1.1.3/osgridref.js)
+  *
+  * with additional extensions to handle 2km grid references e.g. NM39A
+  *
+  * @param lat latitude
+  * @param lon longitude
+  * @param coordinateUncertaintyInMeters
+  * @param geodeticDatum geodeticDatum (if empty assume WGS84)
+  * @return OS gridRef
+  */
+  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String): Option[String] = {
+    val datum = lookupEpsgCode(geodeticDatum)
+    //make finest scale gridref from lat-lon
+    //truncate this as needed for coordinateUncertainty
+    val result = ""
+    Some(result)
   }
 
   /**
