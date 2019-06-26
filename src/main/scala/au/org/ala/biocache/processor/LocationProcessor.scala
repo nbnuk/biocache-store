@@ -5,6 +5,7 @@ import au.org.ala.biocache.caches.{LocationDAO, SpatialLayerDAO, TaxonProfileDAO
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
 import au.org.ala.biocache.parser.{DistanceRangeParser, VerbatimLatLongParser}
+import au.org.ala.biocache.util.GridUtil.{irishGridReferenceToEastingNorthing, osGridReferenceToEastingNorthing}
 import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, StringHelper}
 import au.org.ala.biocache.vocab._
 import org.apache.commons.lang.StringUtils
@@ -102,6 +103,12 @@ class LocationProcessor extends Processor {
 
     //check marine/non-marine
     checkForBiomeMismatch(raw, processed, assertions)
+
+    //NBN Cassandra WKT ***
+    //requires gridreferencewkt, gridreferencewkt_p field in DB
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      processGridWKT(raw, processed)
+    }
 
 
     //return the assertions created by this processor
@@ -535,6 +542,32 @@ class LocationProcessor extends Processor {
     }
   }
 
+  /**
+    * If gridreference supplied, convert to WKT
+    *
+    * @param raw
+    * @param processed
+
+    */
+  // NBN ***
+  private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
+
+    if (raw.location.gridReference != null) {
+      raw.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
+      processed.location.gridReferenceWKT = raw.location.gridReferenceWKT
+
+      if (processed.occurrence.informationWithheld == null)
+        processed.occurrence.informationWithheld = ""
+      else
+        processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " ";
+
+      processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation( raw.location.gridReference );
+      // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
+
+    } else {
+      //use point if no grid reference?
+    }
+  }
 
   /**
     * Get the number of decimal places in a double value in string form

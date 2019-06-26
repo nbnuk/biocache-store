@@ -686,6 +686,53 @@ object GridUtil {
     }
   }
 
+  // get grid reference as human readable text with an annotation to say if it's a OSGB or OSI grid
+  def getGridAsTextWithAnnotation(gridReference: String = "") = {
+    var text = ""
+    if (gridReference != "") {
+      // see if it's OSGB
+      val result = GridUtil.osGridReferenceToEastingNorthing( gridReference )
+      if(!result.isEmpty){
+        text = "OSGB Grid Reference " + gridReference;
+      } else {
+        // otherwise assume it's OSI
+        text = "OSI Grid Reference " + gridReference
+      }
+    }
+    text
+  }
+
+  // get grid WKT from a grid reference
+  def getGridWKT(gridReference: String = "") = {
+    var poly_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+
+          //for WKT, need to give points in lon-lat order, not lat-lon
+          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
+            minLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + minLatitude + "," +
+            minLongitude + " " + minLatitude + "))"
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    poly_grid
+  }
+
+
   /**
     * Converts a easting northing to a decimal latitude/longitude.
     *

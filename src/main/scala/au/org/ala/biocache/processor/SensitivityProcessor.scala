@@ -335,9 +335,13 @@ class SensitivityProcessor extends Processor {
           }
         }
 
-        processed.occurrence.informationWithheld = rawPropertiesToUpdate.getOrElse("informationWithheld", "")
+        // add a guard here as we may have already updated this field when building WKT
+        if ((processed.occurrence.informationWithheld == null) || (processed.occurrence.informationWithheld == "")) {
+          processed.occurrence.informationWithheld = rawPropertiesToUpdate.getOrElse("informationWithheld", "")
+          rawPropertiesToUpdate -= "informationWithheld"
+        }
+
         processed.occurrence.dataGeneralizations = rawPropertiesToUpdate.getOrElse("dataGeneralizations", "")
-        rawPropertiesToUpdate -= "informationWithheld"
         rawPropertiesToUpdate -= "dataGeneralizations"
 
         //remove the day from the values if present
@@ -433,6 +437,15 @@ class SensitivityProcessor extends Processor {
         })
         processed.occurrence.informationWithheld = infoMessage
       }
+
+      // recalculate footprint and informationWithheld annotation using generalised grid
+      if (raw.location.gridReference != null) {
+        raw.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
+        processed.location.gridReferenceWKT = raw.location.gridReferenceWKT
+        processed.occurrence.informationWithheld = GridUtil.getGridAsTextWithAnnotation( raw.location.gridReference );
+        // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
+      }
+
     } else {
       //Species is NOT sensitive
       //if the raw record has originalSensitive values we need to re-initialise the value

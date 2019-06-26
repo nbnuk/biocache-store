@@ -277,6 +277,8 @@ CREATE TABLE occ (
     globalconservation text,
     gridreference text,
     gridreference_p text,
+    gridreferencewkt text,
+    gridreferencewkt_p text,
     group text,
     habitat text,
     habitat_p text,
