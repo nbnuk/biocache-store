@@ -47,4 +47,26 @@ object GISUtil {
       case ex: Exception => None
     }
   }
+
+  def reprojectCoordinatesWGS84ToOSGB36(coordinate1: Double, coordinate2: Double,
+                                  decimalPlacesToRoundTo: Int): Option[(String, String)] = {
+    try {
+      val wgs84CRS = CRS.decode("EPSG:4326", false)
+      val osgb36CRS = CRS.decode("EPSG:27700", false)
+
+      val transformOp = new DefaultCoordinateOperationFactory().createOperation(wgs84CRS, osgb36CRS)
+      val directPosition = new GeneralDirectPosition(coordinate1, coordinate2)
+      val osgb36LatLong = transformOp.getMathTransform().transform(directPosition, null)
+
+      val longitude = osgb36LatLong.getOrdinate(0)
+      val latitude = osgb36LatLong.getOrdinate(1)
+
+      val roundedLongitude = Precision.round(longitude, decimalPlacesToRoundTo)
+      val roundedLatitude = Precision.round(latitude, decimalPlacesToRoundTo)
+
+      Some(roundedLatitude.toString, roundedLongitude.toString)
+    } catch {
+      case ex: Exception => None
+    }
+  }
 }

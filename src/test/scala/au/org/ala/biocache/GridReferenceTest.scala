@@ -205,5 +205,38 @@ class GridReferenceTest extends FunSuite {
     expectResult("HY489020") { map.get("grid_ref_100") }
   }
 
+  test("Lat/long to gridref at different resolutions") {
+
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "WGS84") match {
+      case Some(gr) => {
+        expectResult("SJ") { gr }
+      }
+    }
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "WGS84") match {
+      case Some(gr) => {
+        expectResult("SJ58") { gr }
+      }
+    }
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "WGS84") match {
+      case Some(gr) => {
+        expectResult("SJ5486") { gr }
+      }
+    }
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "EPSG:27700") match {
+      case Some(gr) => {
+        expectResult("SJ") { gr }
+      }
+    }
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "EPSG:27700") match {
+      case Some(gr) => {
+        expectResult("SJ58") { gr }
+      }
+    }
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "EPSG:27700") match {
+      case Some(gr) => {
+        expectResult("SJ5486") { gr }
+      }
+    }
+  }
 
 }

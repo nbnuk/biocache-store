@@ -4,11 +4,12 @@ import java.util
 import java.util.Collections
 
 import au.org.ala.biocache.model.QualityAssertion
-import au.org.ala.biocache.vocab.{AssertionStatus, AssertionCodes}
+import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus}
 import au.org.ala.biocache.vocab.AssertionCodes._
 import au.org.ala.biocache.vocab.AssertionStatus._
 import com.google.common.cache.CacheBuilder
 import org.apache.commons.lang.StringUtils
+import org.apache.commons.math3.util.Precision
 import org.geotools.referencing.CRS
 import org.slf4j.LoggerFactory
 
@@ -516,7 +517,8 @@ object GridUtil {
   *
   * http://www.movable-type.co.uk/scripts/latlong-gridref.html (i.e. https://cdn.rawgit.com/chrisveness/geodesy/v1.1.3/osgridref.js)
   *
-  * with additional extensions to handle 2km grid references e.g. NM39A
+  * Note: does not handle 2000m uncertainty
+  *
   *
   * @param lat latitude
   * @param lon longitude
@@ -526,10 +528,122 @@ object GridUtil {
   */
   def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String): Option[String] = {
     val datum = lookupEpsgCode(geodeticDatum)
-    //make finest scale gridref from lat-lon
-    //truncate this as needed for coordinateUncertainty
-    val result = ""
-    Some(result)
+
+    var N = 0.0
+    var E = 0.0
+
+    if (!(datum == Some("") || datum == Some("EPSG:27700") || datum == Some("EPSG:4326"))) {
+      return None
+    } else {
+      if (datum == Some("EPSG:27700")) {
+        //in OSGB36
+        //TODO: it would be good if this came from a library instead of written the hard (and potentially buggy) way.
+        val φ = lat.toRadians
+        val λ = lon.toRadians
+
+        val a = 6377563.396
+        val b = 6356256.909       // Airy 1830 major & minor semi-axes
+        val F0 = 0.9996012717     // NatGrid scale factor on central meridian
+        val φ0 = (49).toRadians
+        val λ0 = (-2).toRadians   // NatGrid true origin is 49°N,2°W
+        val N0 = -100000
+        val E0 = 400000           // northing & easting of true origin, metres
+        val e2 = 1 - (b*b)/(a*a)  // eccentricity squared
+        val n = (a-b)/(a+b)
+        val n2 = n*n
+        val n3 = n*n*n;           // n, n², n³
+
+        val cosφ = Math.cos(φ)
+        val sinφ = Math.sin(φ)
+        val ν = a * F0 / Math.sqrt(1 - e2 * sinφ * sinφ) // nu = transverse radius of curvature
+        val ρ = a * F0 * (1 - e2) / Math.pow(1 - e2 * sinφ * sinφ, 1.5) // rho = meridional radius of curvature
+        val η2 = ν / ρ - 1 // eta = ?
+
+        val Ma = (1 + n + (5 / 4) * n2 + (5 / 4) * n3) * (φ - φ0)
+        val Mb = (3 * n + 3 * n * n + (21 / 8) * n3) * Math.sin(φ - φ0) * Math.cos(φ + φ0)
+        val Mc = ((15 / 8) * n2 + (15 / 8) * n3) * Math.sin(2 * (φ - φ0)) * Math.cos(2 * (φ + φ0))
+        val Md = (35 / 24) * n3 * Math.sin(3 * (φ - φ0)) * Math.cos(3 * (φ + φ0))
+        val M = b * F0 * (Ma - Mb + Mc - Md) // meridional arc
+
+        val cos3φ = cosφ * cosφ * cosφ
+        val cos5φ = cos3φ * cosφ * cosφ
+        val tan2φ = Math.tan(φ) * Math.tan(φ)
+        val tan4φ = tan2φ * tan2φ
+
+        val I = M + N0
+        val II = (ν / 2) * sinφ * cosφ
+        val III = (ν / 24) * sinφ * cos3φ * (5 - tan2φ + 9 * η2)
+        val IIIA = (ν / 720) * sinφ * cos5φ * (61 - 58 * tan2φ + tan4φ)
+        val IV = ν * cosφ
+        val V = (ν / 6) * cos3φ * (ν / ρ - tan2φ)
+        val VI = (ν / 120) * cos5φ * (5 - 18 * tan2φ + tan4φ + 14 * η2 - 58 * tan2φ * η2)
+
+        val Δλ = λ - λ0
+        val Δλ2 = Δλ * Δλ
+        val Δλ3 = Δλ2 * Δλ
+        val Δλ4 = Δλ3 * Δλ
+        val Δλ5 = Δλ4 * Δλ
+        val Δλ6 = Δλ5 * Δλ
+
+        N = I + II * Δλ2 + III * Δλ4 + IIIA * Δλ6
+        E = E0 + IV * Δλ + V * Δλ3 + VI * Δλ5
+
+        N = Precision.round(N,3) //(mm precision)
+        E = Precision.round(E,3)
+
+      } else { //assume WGS84
+
+        val reprojectedNorthingsEastings = GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 10)
+        val (rNorthings, rEastings) = reprojectedNorthingsEastings.get
+        N = rNorthings.toDouble
+        E = rEastings.toDouble
+      }
+    }
+
+    val digits = coordinateUncertaintyInMeters match {
+      case 1 => 10
+      case 10 => 8
+      case 100 => 6
+      case 1000 => 4
+      case 10000 => 2
+      case 100000 => 0
+      case _ => return None
+    }
+    getGridFromNorthingEasting(N, E, digits)
+  }
+
+  def getGridFromNorthingEasting(n:Double, e:Double, digits:Int): Option[String] = {
+    if ((digits % 2 != 0) || digits > 16) {
+      return None
+    } else {
+      // get the 100km-grid indices// get the 100km-grid indices
+
+      val e100k = Math.floor(e / 100000)
+      val n100k = Math.floor(n / 100000)
+
+      if (e100k < 0 || e100k > 6 || n100k < 0 || n100k > 12) {
+        return None
+      }
+      // translate those into numeric equivalents of the grid letters// translate those into numeric equivalents of the grid letters
+      var l1 = (19 - n100k) - (19 - n100k) % 5 + Math.floor((e100k + 10) / 5)
+      var l2 = (19 - n100k) * 5 % 25 + e100k % 5
+      // compensate for skipped 'I' and build grid letter-pairs// compensate for skipped 'I' and build grid letter-pairs
+      if (l1 > 7) {
+        l1 += 1
+      }
+      if (l2 > 7) {
+        l2 += 1
+      }
+      val letterPair = (l1 + Character.codePointAt("A", 0)).toChar.toString.concat((l2 + Character.codePointAt("A", 0)).toChar.toString)
+      // strip 100km-grid indices from easting & northing, and reduce precision// strip 100km-grid indices from easting & northing, and reduce precision
+      val eMod = Math.floor((e % 100000) / Math.pow(10, 5 - digits / 2))
+      val nMod = Math.floor((n % 100000) / Math.pow(10, 5 - digits / 2))
+      // pad eastings & northings with leading zeros (just in case, allow up to 16-digit (mm) refs)
+      var eModStr = padWithZeros(eMod.round.toString(),8).takeRight(digits/2)
+      var nModStr = padWithZeros(nMod.round.toString(),8).takeRight(digits/2)
+
+      return Some(letterPair.concat(eModStr).concat(nModStr))
+    }
   }
 
   /**
