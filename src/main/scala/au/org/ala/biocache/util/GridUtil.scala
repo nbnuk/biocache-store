@@ -513,9 +513,6 @@ object GridUtil {
 
 /**
   * Convert a WGS84 lat/lon coordinate to ordnance survey grid reference using coordinateUncertaintyInMeters to define grid cell size
-  * This is a port of this javascript code:
-  *
-  * http://www.movable-type.co.uk/scripts/latlong-gridref.html (i.e. https://cdn.rawgit.com/chrisveness/geodesy/v1.1.3/osgridref.js)
   *
   * Note: does not handle 2000m uncertainty
   *
@@ -537,66 +534,16 @@ object GridUtil {
     } else {
       if (datum == Some("EPSG:27700")) {
         //in OSGB36
-        //TODO: it would be good if this came from a library instead of written the hard (and potentially buggy) way.
-        val φ = lat.toRadians
-        val λ = lon.toRadians
-
-        val a = 6377563.396
-        val b = 6356256.909       // Airy 1830 major & minor semi-axes
-        val F0 = 0.9996012717     // NatGrid scale factor on central meridian
-        val φ0 = (49).toRadians
-        val λ0 = (-2).toRadians   // NatGrid true origin is 49°N,2°W
-        val N0 = -100000
-        val E0 = 400000           // northing & easting of true origin, metres
-        val e2 = 1 - (b*b)/(a*a)  // eccentricity squared
-        val n = (a-b)/(a+b)
-        val n2 = n*n
-        val n3 = n*n*n;           // n, n², n³
-
-        val cosφ = Math.cos(φ)
-        val sinφ = Math.sin(φ)
-        val ν = a * F0 / Math.sqrt(1 - e2 * sinφ * sinφ) // nu = transverse radius of curvature
-        val ρ = a * F0 * (1 - e2) / Math.pow(1 - e2 * sinφ * sinφ, 1.5) // rho = meridional radius of curvature
-        val η2 = ν / ρ - 1 // eta = ?
-
-        val Ma = (1 + n + (5 / 4) * n2 + (5 / 4) * n3) * (φ - φ0)
-        val Mb = (3 * n + 3 * n * n + (21 / 8) * n3) * Math.sin(φ - φ0) * Math.cos(φ + φ0)
-        val Mc = ((15 / 8) * n2 + (15 / 8) * n3) * Math.sin(2 * (φ - φ0)) * Math.cos(2 * (φ + φ0))
-        val Md = (35 / 24) * n3 * Math.sin(3 * (φ - φ0)) * Math.cos(3 * (φ + φ0))
-        val M = b * F0 * (Ma - Mb + Mc - Md) // meridional arc
-
-        val cos3φ = cosφ * cosφ * cosφ
-        val cos5φ = cos3φ * cosφ * cosφ
-        val tan2φ = Math.tan(φ) * Math.tan(φ)
-        val tan4φ = tan2φ * tan2φ
-
-        val I = M + N0
-        val II = (ν / 2) * sinφ * cosφ
-        val III = (ν / 24) * sinφ * cos3φ * (5 - tan2φ + 9 * η2)
-        val IIIA = (ν / 720) * sinφ * cos5φ * (61 - 58 * tan2φ + tan4φ)
-        val IV = ν * cosφ
-        val V = (ν / 6) * cos3φ * (ν / ρ - tan2φ)
-        val VI = (ν / 120) * cos5φ * (5 - 18 * tan2φ + tan4φ + 14 * η2 - 58 * tan2φ * η2)
-
-        val Δλ = λ - λ0
-        val Δλ2 = Δλ * Δλ
-        val Δλ3 = Δλ2 * Δλ
-        val Δλ4 = Δλ3 * Δλ
-        val Δλ5 = Δλ4 * Δλ
-        val Δλ6 = Δλ5 * Δλ
-
-        N = I + II * Δλ2 + III * Δλ4 + IIIA * Δλ6
-        E = E0 + IV * Δλ + V * Δλ3 + VI * Δλ5
-
-        N = Precision.round(N,3) //(mm precision)
-        E = Precision.round(E,3)
+        val northingsEastings = GISUtil.coordinatesOSGB36toNorthingEasting(lat, lon, 3)
+        val (northings, eastings) = northingsEastings.get
+        N = northings.toDouble
+        E = eastings.toDouble
 
       } else { //assume WGS84
-
-        val reprojectedNorthingsEastings = GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 10)
-        val (rNorthings, rEastings) = reprojectedNorthingsEastings.get
-        N = rNorthings.toDouble
-        E = rEastings.toDouble
+        val reprojectedNorthingsEastings = GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
+        val (northings, eastings) = reprojectedNorthingsEastings.get
+        N = northings.toDouble
+        E = eastings.toDouble
       }
     }
 
