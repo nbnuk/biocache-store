@@ -65,6 +65,7 @@ object AssertionCodes {
   val ZERO_LONGITUDE_COORDINATES = ErrorCode("zeroLongitude",54,true,"Supplied longitude are zero", Warning)
 
   val DECIMAL_LAT_LONG_CALCULATED_FROM_GRID_REF = ErrorCode("decimalLatLongCalculatedFromGridReference", 55, false, "Decimal latitude and longitude were calculated using grid reference", Warning)
+  val GRID_REF_CALCULATED_FROM_LAT_LONG = ErrorCode("gridReferenceCalculatedFromLatLong", 56, false, "Grid reference calculated using latitude and longitude", Warning)
 
   //taxonomy issues
   val TAXONOMIC_ISSUE = ErrorCode("taxonomicIssue",10000,false,"Taxonomic issue", Error)  // general purpose option

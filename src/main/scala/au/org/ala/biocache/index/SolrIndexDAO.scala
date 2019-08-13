@@ -753,7 +753,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt)
           val northing = getParsedValue("northing", map)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
-          val gridRef = getValue("gridReference", map)
+          val gridRef = getParsedValueIfAvailable("gridReference", map, "")
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)
             val map = GridUtil.getGridRefAsResolutions(gridRef)
@@ -955,7 +955,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt)
           val northing = getParsedValue("northing", map)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
-          val gridRef = getValue("gridReference", map)
+          val gridRef = getParsedValueIfAvailable("gridReference", map, "")
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)
             val map = GridUtil.getGridRefAsResolutions(gridRef)
@@ -1119,7 +1119,11 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt)
           val northing = getArrayValue(columnOrder.northingP, dataRow)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
-          val gridRef = getArrayValue(columnOrder.gridReference, dataRow)
+
+          var gridRef = getArrayValue(columnOrder.gridReference, dataRow)
+          if (gridRef == "") {
+            gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
+          }
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)
             val map = GridUtil.getGridRefAsResolutions(gridRef)
@@ -1738,6 +1742,7 @@ class ColumnOrder {
     this.eastingP = dataRow.getIndexOf("easting" + Config.persistenceManager.fieldDelimiter + "p")
     this.northingP = dataRow.getIndexOf("northing" + Config.persistenceManager.fieldDelimiter + "p")
     this.gridReference = dataRow.getIndexOf("gridReference")
+    this.gridReferenceP = dataRow.getIndexOf("gridReference"+ Config.persistenceManager.fieldDelimiter + "p")
     if (Config.gridRefIndexingPolyReadFromCassandra) {
       this.gridReferenceWKT = dataRow.getIndexOf("gridReferenceWKT") // NBN Cassandra WKT ***
     } else {
@@ -1907,6 +1912,7 @@ class ColumnOrder {
 
   var gridReference: Int = -1
   var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
+  var gridReferenceP: Int = -1
 
   var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
   var lastModifiedTime: Int = -1

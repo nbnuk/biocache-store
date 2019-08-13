@@ -234,6 +234,11 @@ class SensitivityProcessor extends Processor {
               originalSensitiveValues.put("gridReference", raw.location.gridReference)
             }
 
+            if (StringUtils.isNotBlank(processed.location.gridReference)) {
+              //store processed high-resolution grid reference
+              originalSensitiveValues.put("gridReference" + Config.persistenceManager.fieldDelimiter + "p", processed.location.gridReference)
+            }
+
             originalSensitiveValues.put("eventID", raw.event.eventID)
             if (Config.sensitiveDateDay) {
               originalSensitiveValues.put("eventDate", raw.event.eventDate)
@@ -308,6 +313,25 @@ class SensitivityProcessor extends Processor {
             }
           } else {
             rawPropertiesToUpdate.put("gridReference", "")
+          }
+        }
+
+        //if grid reference was derived from coordinates
+        if (processed.location.gridReference != null) {
+          if (generalisationToApplyInMetres.isDefined) {
+            //reduce the quality of the grid reference
+            if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
+              processed.setProperty("gridReference", "")
+            } else {
+              val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, generalisationToApplyInMetres.get)
+              if (generalisedRef.isDefined) {
+                processed.setProperty("gridReference", generalisedRef.get)
+              } else {
+                processed.setProperty("gridReference", "")
+              }
+            }
+          } else {
+            processed.setProperty("gridReference", "")
           }
         }
 

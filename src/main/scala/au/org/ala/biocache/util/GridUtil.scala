@@ -1,7 +1,6 @@
 package au.org.ala.biocache.util
 
 import java.util
-import java.util.Collections
 
 import au.org.ala.biocache.model.QualityAssertion
 import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus}
@@ -9,7 +8,6 @@ import au.org.ala.biocache.vocab.AssertionCodes._
 import au.org.ala.biocache.vocab.AssertionStatus._
 import com.google.common.cache.CacheBuilder
 import org.apache.commons.lang.StringUtils
-import org.apache.commons.math3.util.Precision
 import org.geotools.referencing.CRS
 import org.slf4j.LoggerFactory
 
@@ -548,12 +546,12 @@ object GridUtil {
     }
 
     val digits = coordinateUncertaintyInMeters match {
-      case 1 => 10
-      case 10 => 8
-      case 100 => 6
-      case 1000 => 4
-      case 10000 => 2
-      case 100000 => 0
+      case x if (x < 10)                    => 10
+      case x if (10 <= x && x < 100)        => 8
+      case x if (100 <= x && x < 1000)      => 6
+      case x if (1000 <= x && x < 10000)    => 4
+      case x if (10000 <= x && x < 100000)  => 2
+      case x if (100000 <= x)               => 0
       case _ => return None
     }
     getGridFromNorthingEasting(N, E, digits)

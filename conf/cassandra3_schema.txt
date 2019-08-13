@@ -275,6 +275,7 @@ CREATE TABLE occ (
     geospatiallykosher text,
     globalconservation text,
     gridreference text,
+    gridreference_p text,
     group text,
     habitat text,
     habitat_p text,

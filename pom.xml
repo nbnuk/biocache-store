@@ -178,7 +178,7 @@
         <dependency>
             <groupId>au.org.ala</groupId>
             <artifactId>sds</artifactId>
-            <version>1.4.6</version> <!-- was 1.4.4. 1.4.6 includes 50km generalisation (local build and put in maven repo) -->
+            <version>1.4.6-NBN</version> <!-- was 1.4.4. 1.4.6-NBN includes 50km generalisation (local build and put in maven repo) -->
             <exclusions>
                 <exclusion>
                     <groupId>commons-lang</groupId>

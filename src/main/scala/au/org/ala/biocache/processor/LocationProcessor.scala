@@ -52,6 +52,9 @@ class LocationProcessor extends Processor {
       //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
       checkCoordinateUncertainty(raw, processed, assertions)
 
+      //set grid ref if coordinates were supplied
+      setGridRefFromCoordinates(raw, processed, assertions)
+
       //intersect values with sensitive areas
       val intersectValues = SpatialLayerDAO.intersect(processed.location.decimalLongitude, processed.location.decimalLatitude)
 
@@ -626,6 +629,25 @@ class LocationProcessor extends Processor {
       assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, "Uncertainty was not supplied")
     } else {
       assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, PASSED)
+    }
+  }
+
+  /**
+    * If coordinates were supplied but no grid reference, populate gridReference from coords
+    * @param raw
+    * @param processed
+    * @param assertions
+    */
+  private def setGridRefFromCoordinates(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+    if (processed.location.decimalLatitude != null
+      && processed.location.decimalLongitude != null
+      && processed.location.gridReference == null
+      && processed.location.coordinateUncertaintyInMeters != null) {
+      val osGrid = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84")
+      if (osGrid.isDefined) {
+          processed.location.gridReference = osGrid.get
+          assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+     }
     }
   }
 

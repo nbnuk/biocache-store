@@ -861,7 +861,7 @@ trait IndexDAO {
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),
           getParsedValue("endYear", map),
-          sensitiveMap.getOrElse("gridReference", ""),
+          if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", "")
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
@@ -1788,7 +1788,12 @@ trait IndexDAO {
             addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
             addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
           }
-          addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
+          if (parsed.getOrElse("gridReference","") != "") {
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
+          } else {
+            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
+          }
         } catch {
           case _: Exception => Map[String, String]()
         }
