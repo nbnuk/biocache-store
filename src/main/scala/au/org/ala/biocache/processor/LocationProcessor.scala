@@ -642,6 +642,7 @@ class LocationProcessor extends Processor {
     if (processed.location.decimalLatitude != null
       && processed.location.decimalLongitude != null
       && processed.location.gridReference == null
+      && raw.location.gridReference == null
       && processed.location.coordinateUncertaintyInMeters != null) {
       val osGrid = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84")
       if (osGrid.isDefined) {
