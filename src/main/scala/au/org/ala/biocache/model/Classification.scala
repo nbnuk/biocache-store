@@ -66,6 +66,7 @@ class Classification extends Cloneable with POSO {
   @BeanProperty var subspeciesID:String = _
   @BeanProperty var left:String = _
   @BeanProperty var right:String = _
+  @BeanProperty var establishmentMeansTaxon:String = _
   @BeanProperty var speciesHabitats:Array[String] = _
   @BeanProperty var speciesGroups:Array[String] =_
   @BeanProperty var nameMatchMetric:String =_ //stores the type of name match that was performed

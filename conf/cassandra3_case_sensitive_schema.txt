@@ -243,6 +243,7 @@ CREATE TABLE occ.occ (
     "endYear" text,
     "establishmentMeans" text,
     "establishmentMeans_p" text,
+    "establishmentMeansTaxon_p" text,
     "eventAttributes" text,
     "eventDate" text,
     "eventDateEnd" text,

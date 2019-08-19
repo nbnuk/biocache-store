@@ -232,6 +232,9 @@ class ClassificationProcessor extends Processor {
             processed.classification.nameMatchMetric = "defaultHigherMatch"
           }
 
+          //add establishment means for the taxon
+          processed.classification.establishmentMeansTaxon = nsr.getEstablishmentMeans
+
           //add a common name
           processed.classification.vernacularName = CommonNameDAO.getByGuid(nsr.getLsid).getOrElse(null)
 
