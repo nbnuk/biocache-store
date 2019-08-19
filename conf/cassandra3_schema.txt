@@ -231,6 +231,7 @@ CREATE TABLE occ (
     endyear text,
     establishmentmeans text,
     establishmentmeans_p text,
+    establishmentmeanstaxon_p text,
     event_qa text,
     eventattributes text,
     eventdate text,
