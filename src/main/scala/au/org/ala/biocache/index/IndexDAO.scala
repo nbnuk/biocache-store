@@ -337,7 +337,10 @@ trait IndexDAO {
     ("organismquantitytype", "organism_quantity_type", -1, RAW),
     ("organismscope", "organism_scope", -1, RAW),
     ("organismremarks", "organism_remarks", -1, RAW),
-    ("rightsholder", "rightsholder", -1, RAW) //fix for index-local-node missing this field for sensitive records
+    ("rightsholder", "rightsholder", -1, RAW), //fix for index-local-node missing this field for sensitive records
+    ("native", "native", -1, RAW),
+    ("vitality", "vitality", -1, RAW),
+    ("nameParseType", "name_parse_type", -1, RAW)
   )
 
   /**
@@ -400,6 +403,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
+    , "native", "vitality", "name_parse_type"
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
@@ -856,6 +860,9 @@ trait IndexDAO {
           getValue("organismQuantityType", map),
           getValue("organismScope", map),
           getValue("organismRemarks", map),
+          getValue("native", map),
+          getValue("vitality", map),
+          getValue("nameParseType", map),
           poly_grid,
           getParsedValue("day", map),
           getParsedValue("endDay", map),
@@ -1486,6 +1493,12 @@ trait IndexDAO {
         addField(doc, header(i), getValue("organismScope", map))
         i = i + 1
         addField(doc, header(i), getValue("organismRemarks", map))
+        i = i + 1
+        addField(doc, header(i), getValue("native", map))
+        i = i + 1
+        addField(doc, header(i), getValue("vitality", map))
+        i = i + 1
+        addField(doc, header(i), getValue("nameParseType", map))
         i = i + 1
         addField(doc, header(i), getParsedValue("day", map))
         i = i + 1

@@ -279,10 +279,12 @@ geospatial_kosher	string	geospatiallyKosher	F	F	F	F
 	string	nameAccordingTo	F	F	F	F
 	string	nameAccordingTo_p	F	F	F	F
 	string	nameAccordingToID	F	F	F	F
+	string	nameParseType	F	F	F	F
 	string	nameParseType_p	F	F	F	F
 	string	namePublishedIn	F	F	F	F
 	string	namePublishedInID	F	F	F	F
 	string	namePublishedInYear	F	F	F	F
+	string	native	F	F	F	F
 	string	naturalOccurrence	F	F	F	F
 	string	nearNamedPlaceRelationTo	F	F	F	F
 	string	nomenclaturalCode	F	F	F	F
@@ -377,6 +379,7 @@ occurrenceStatus	string	occurrenceStatus_p	F	F	F	F
 	string	verifier	F	F	F	F
 	string	videos	T	T	F	F
 	string	videos_p	T	T	F	F
+	string	vitality	F	F	F	F
 	string	waterBody	F	F	F	F
 	string	year	F	F	F	F
 	string	zone	F	F	F	F
