@@ -179,6 +179,7 @@ distance_outside_expert_range	double	distanceOutsideExpertRange_p	F	F		F
 	string	easting	F	F	F	F
 	string	endDayOfYear	F	F	F	F
 	string	establishmentMeans	F	F	F	F
+	string	establishmentMeansTaxon	F	F	F	F
 	string	event_qa	T	T	F	F
 	string	eventDate	F	F	F	F
 	string	eventRemarks	F	F	F	F
@@ -279,7 +280,6 @@ geospatial_kosher	string	geospatiallyKosher	F	F	F	F
 	string	nameAccordingTo	F	F	F	F
 	string	nameAccordingTo_p	F	F	F	F
 	string	nameAccordingToID	F	F	F	F
-	string	nameParseType	F	F	F	F
 	string	nameParseType_p	F	F	F	F
 	string	namePublishedIn	F	F	F	F
 	string	namePublishedInID	F	F	F	F

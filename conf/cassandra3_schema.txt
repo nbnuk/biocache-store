@@ -388,7 +388,6 @@ CREATE TABLE occ (
     namepublishedin text,
     namepublishedinid text,
     namepublishedinyear text,
-    native text,
     naturaloccurrence text,
     nearnamedplacerelationto text,
     nomenclaturalcode text,
