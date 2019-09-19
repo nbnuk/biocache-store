@@ -82,6 +82,7 @@ object AssertionCodes {
   val MISSING_IDENTIFICATIONREFERENCES = ErrorCode("missingIdentificationReferences",10011,false,"identificationReferences not supplied with the record", Missing)
   val MISSING_DATEIDENTIFIED = ErrorCode("missingDateIdentified", 10012,false,"identificationDate not supplied with the record", Missing)
   val NAME_NOT_SUPPLIED = ErrorCode("nameNotSupplied", 10015,false,"No scientific name or vernacular name was supplied", Missing)
+  val MISSING_IDENTIFICATIONVERIFICATIONSTATUS = ErrorCode("missingIdentificationVerificationStatus",10016, false,"IdentificationVerificationStatus not supplied with the record", Missing)
 
   //miscellaneous issues
   val MISSING_BASIS_OF_RECORD = ErrorCode("missingBasisOfRecord",20001,true,"Basis of record not supplied", Missing)
@@ -99,6 +100,7 @@ object AssertionCodes {
   val UNRECOGNISED_OCCURRENCE_STATUS = ErrorCode("unrecognisedOccurrenceStatus", 20017, false, "Occurrence status not recognised", Error)
   val ASSUMED_PRESENT_OCCURRENCE_STATUS = ErrorCode("assumedPresentOccurrenceStatus", 20018, false, "Occurrence status assumed to be present", Warning)
   val OTHER_ISSUE_USER_FLAGGED = ErrorCode("otherIssueUserFlagged", 20019, false, "Other issue", Error)
+  val UNRECOGNISED_IDENTIFICATIONVERIFICATIONSTATUS = ErrorCode("unrecognisedIdentificationVerificationStatus",20020, false,"IdentificationVerificationStatus not recognised", Error)
 
   //temporal issues
   val TEMPORAL_ISSUE = ErrorCode("temporalIssue",30000,false,"Temporal issue", Error)  // general purpose option
