@@ -168,6 +168,7 @@ class ProcessLocalRecords {
                 readCount.intValue()
               )
 
+              /*
               val processorTimings = processor.getProcessTimings.toMap
               JMX.updateProcessingCacheStatistics(
                 ClassificationDAO.getCacheSize,
@@ -181,6 +182,7 @@ class ProcessLocalRecords {
                 Config.persistenceManager.asInstanceOf[Cassandra3PersistenceManager].getCacheSize,
                 processorTimings
               )
+               */
             }
           }
         }

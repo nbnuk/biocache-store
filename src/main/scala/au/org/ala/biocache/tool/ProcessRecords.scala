@@ -111,6 +111,7 @@ object ProcessRecords extends Tool with IncrementalTool {
       val p = new StringConsumer(queue, ids, { guid =>
         counter += 1
         val rawProcessed = Config.occurrenceDAO.getRawProcessedByRowKey(guid)
+
         if (!rawProcessed.isEmpty) {
           val rp = rawProcessed.get
           recordProcessor.processRecord(rp(0), rp(1))
@@ -129,6 +130,11 @@ object ProcessRecords extends Tool with IncrementalTool {
     }
 
     file.foreachLine(line => queue.put(line.trim))
+
+    while (queue.size() > 0) {
+      Thread.sleep(1000)
+    }
+
     pool.foreach(t => t.shouldStop = true)
     pool.foreach(_.join)
 
