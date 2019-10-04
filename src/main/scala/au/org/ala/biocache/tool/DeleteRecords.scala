@@ -21,6 +21,7 @@ object DeleteRecords extends Tool {
     var query: Option[String] = None
     var dr: Option[String] = None
     var lastLoadedDate: Option[String] = None
+    var lastUpdatedBeforeDate: Option[String] = None
     var file: Option[String] = None
     var fieldDelimiter:Char = '\t'
 
@@ -35,8 +36,12 @@ object DeleteRecords extends Tool {
       opt("dr", "resource", "The data resource to process", {
         v: String => dr = Some(v)
       })
-      opt("lld", "last-loaded", "Delete records from a data resource that where not loade before a date (yyy-MM-dd format)", {
+      opt("lld", "last-loaded", "Delete records from a data resource that were not loaded before a date (yyy-MM-dd format)", {
         v: String => lastLoadedDate = Some(v)
+      })
+      // Allow for full format date (rather than just to nearest day granularity) could be very useful when cleaning up data interactively during a process run.
+      opt("lub", "last-updated-before", "Delete records from a data resource that were last updated before a date (yyy-mm-ddThh:mm:ssZ format, ie '2019-09-25T11:19:08Z')", {
+        v: String => lastUpdatedBeforeDate = Some(v)
       })
       opt("f", "file", "The file of row keys to delete. Can be an absolute local file path or URL to a file that contains rowkeys or UUIDs.", {
         v: String => file = Some(v)
@@ -49,6 +54,7 @@ object DeleteRecords extends Tool {
     if (parser.parse(args)) {
       val deletor: Option[RecordDeletor] = {
         if (!query.isEmpty) Some(new QueryDelete(query.get))
+        else if (!dr.isEmpty && !lastUpdatedBeforeDate.isEmpty) Some(new QueryDelete("data_resource_uid:" + dr.get + s" AND last_load_date:[* TO ${lastUpdatedBeforeDate.get}]"))
         else if (!dr.isEmpty && !lastLoadedDate.isEmpty) Some(new QueryDelete("data_resource_uid:" + dr.get + s" AND -last_load_date:[${lastLoadedDate.get}T00:00:00Z TO *]"))
         else if (!dr.isEmpty ) Some(new QueryDelete("data_resource_uid:" + dr.get))
         else if (file.isDefined) Some(new FileDelete(file.get, hasHeader))

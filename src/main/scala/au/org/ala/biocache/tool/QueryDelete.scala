@@ -26,6 +26,7 @@ class QueryDelete(query: String) extends RecordDeletor {
     file.foreachLine { line =>
       //use the occ DAO to delete so that the record is added to the dellog cf
       occurrenceDAO.delete(line, false, true)
+      logger.info( "deleting " + line )
       count = count + 1
     }
     val finished = System.currentTimeMillis

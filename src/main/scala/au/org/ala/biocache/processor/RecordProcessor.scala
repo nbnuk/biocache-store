@@ -11,6 +11,7 @@ import au.org.ala.biocache.model.{FullRecord, Processed, QualityAssertion, Versi
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Runnable for starting record processing.
@@ -53,7 +54,8 @@ class RecordProcessor {
   val processTime = org.apache.commons.lang.time.DateFormatUtils.format(new java.util.Date, "yyyy-MM-dd'T'HH:mm:ss'Z'")
   val duplicates = List("D", "D1", "D2")
 
-  val processTimings: mutable.Map[String, AtomicLong] = scala.collection.mutable.Map[String, AtomicLong]()
+//  val processTimings: mutable.Map[String, AtomicLong] = scala.collection.mutable.Map[String, AtomicLong]()
+  val processTimings: ConcurrentHashMap[String, AtomicLong] = new ConcurrentHashMap[String, AtomicLong]()
 
   def getProcessTimings = processTimings
 
@@ -91,7 +93,8 @@ class RecordProcessor {
               logger.warn("Non-fatal error processing record: " + raw.rowKey + ", processorName: " + processor.getName + ", error: " + e.getMessage(), e)
             }
           } finally {
-            processTimings.getOrElseUpdate(processor.getName, new AtomicLong(0)).addAndGet((System.nanoTime() - start))
+//            processTimings.getOrElseUpdate(processor.getName, new AtomicLong(0)).addAndGet((System.nanoTime() - start))
+            processTimings.getOrDefault(processor.getName, new AtomicLong(0)).addAndGet((System.nanoTime() - start))
           }
         }
       }
@@ -111,7 +114,8 @@ class RecordProcessor {
       } else {
         val startPersist = System.nanoTime()
         occurrenceDAO.updateOccurrence(guid, currentProcessed, processed, systemAssertions, Processed)
-        processTimings.getOrElseUpdate("persist", new AtomicLong(0)).addAndGet((System.nanoTime() - startPersist))
+//        processTimings.getOrElseUpdate("persist", new AtomicLong(0)).addAndGet((System.nanoTime() - startPersist))
+        processTimings.getOrDefault("persist", new AtomicLong(0)).addAndGet((System.nanoTime() - startPersist))
         null
       }
     } catch {

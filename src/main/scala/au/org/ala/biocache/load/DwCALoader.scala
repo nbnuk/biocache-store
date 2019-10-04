@@ -234,14 +234,14 @@ class DwCALoader extends DataLoader {
 
         //the details of how to construct the UniqueID belong in the Collectory
         val uniqueID = {
-          //create the unique ID
-          if (!uniqueTerms.isEmpty) {
-            val uniqueTermValues = uniqueTerms.map(t => recordAsMap.get(t.simpleName()))
-            val id = (List(resourceUid) ::: uniqueTermValues.toList).mkString("|").trim
-            Some(if (stripSpaces) id.replaceAll("\\s", "") else id)
-          } else {
-            None
+          val uniqueTermValues = uniqueTerms.map { t =>
+            val nextUniqueTermValue = recordAsMap.get(t.simpleName())
+            if (!nextUniqueTermValue.isDefined) {
+              throw new Exception("Unable to load resourceUid, a primary key value was missing on record " + count + " : resourceUid=" + resourceUid + " missing unique term " + t.simpleName() + " uniqueTerms=" + uniqueTerms)
+            }
+            nextUniqueTermValue.get
           }
+          Some( Config.occurrenceDAO.createUniqueID(resourceUid, uniqueTermValues, stripSpaces) )
         }
 
         //lookup the column
