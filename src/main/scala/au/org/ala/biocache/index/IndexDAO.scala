@@ -264,7 +264,7 @@ trait IndexDAO {
     ("occurrenceRemarks", "occurrence_remarks", -1, RAW),
     ("occurrenceStatus", "raw_occurrence_status", -1, RAW),
     ("originalNameUsage", "original_name_usage", -1, RAW),
-    ("lifeStage", "life_stage", -1, RAW), /* was phenology */
+    ("lifeStage", "life_stage", 4, RAW), /* was phenology */
     ("photographer", "photographer", -1, RAW),
     ("recordedBy", "collector", -1, RAW),
     ("recordNumber", "record_number", -1, RAW),
@@ -1096,8 +1096,14 @@ trait IndexDAO {
 
         val sDupType = getParsedValue("duplicationType", map, "[]")
         if (StringUtils.isNotEmpty(sDupType))
-          jsonArrayLoop(outlierForLayerStr, (item, idx) => {
+          jsonArrayLoop(sDupType, (item, idx) => {
             addField(doc, "duplicate_type", item)
+          })
+
+        val sLifeStage = getValue("lifeStage", map, "[]")
+        if (StringUtils.isNotEmpty(sLifeStage))
+          jsonArrayLoop(sLifeStage, (item, idx) => {
+            addField(doc, "life_stage", item)
           })
 
         //Only set the geospatially kosher field if there are coordinates supplied
@@ -1579,7 +1585,15 @@ trait IndexDAO {
 
       if (StringUtils.isNotEmpty(value)) {
         if (h._3 == 4) { // Multivalue
-          jsonArrayLoop(value, h._2, doc)
+          if (h._1 == "lifeStage" && value.contains("|")) { //not sure if other fields should have this treatment, or make generic if not JSON
+            for (value_sub <- value.split('|').map(_.trim)) {
+              if (value_sub != "") {
+                addField(doc, h._2, value_sub)
+              }
+            }
+          } else {
+            jsonArrayLoop(value, h._2, doc)
+          }
         } else  { // Default
           addField(doc, h._2, value)
         }

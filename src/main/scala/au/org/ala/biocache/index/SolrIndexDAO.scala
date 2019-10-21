@@ -461,7 +461,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   }
 
   val multifields = Array("duplicate_inst", "establishment_means", "species_group", "assertions", "data_hub_uid", "interactions", "outlier_layer",
-    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue")
+    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage")
 
   val typeNotSuitableForModelling = Array("invalid", "historic", "vagrant", "irruptive")
 
@@ -520,7 +520,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
             if (multifields.contains(header(i))) {
               //multiple values in this field
               val multiValuedField = new SolrInputField(header(i))
-              for (value <- values(i).split('|')) {
+              for (value <- values(i).split('|').map(_.trim)) {
                 if (value != "") {
                   multiValuedField.addValue(value, 1.0f)
                 }
@@ -1759,6 +1759,7 @@ class ColumnOrder {
 
     this.firstLoaded = dataRow.getIndexOf("firstLoaded") //NBN
     this.lastModifiedTime = dataRow.getIndexOf("lastModifiedTime") //not _p
+    this.lifeStage = dataRow.getIndexOf("lifeStage")
 
     val isUsed: Array[Boolean] = new Array[Boolean](dataRow.getNumberOfFields())
     val columnNames: Array[String] = new Array[String](dataRow.getNumberOfFields())
@@ -1914,6 +1915,7 @@ class ColumnOrder {
   var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
   var gridReferenceP: Int = -1
 
+  var lifeStage: Int = -1
   var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
   var lastModifiedTime: Int = -1
 
