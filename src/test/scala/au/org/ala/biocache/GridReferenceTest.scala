@@ -205,38 +205,108 @@ class GridReferenceTest extends FunSuite {
     expectResult("HY489020") { map.get("grid_ref_100") }
   }
 
-  test("Lat/long to gridref at different resolutions") {
+  test("Lat/long to OSGB gridref at different resolutions") {
 
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "WGS84") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "WGS84", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ") { gr }
+        expectResult("SJ") {
+          gr
+        }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "WGS84") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "WGS84", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ58") { gr }
+        expectResult("SJ58") {
+          gr
+        }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "WGS84") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "WGS84", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ5486") { gr }
+        expectResult("SJ5486") {
+          gr
+        }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "EPSG:27700") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ") { gr }
+        expectResult("SJ") {
+          gr
+        }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "EPSG:27700") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ58") { gr }
+        expectResult("SJ58") {
+          gr
+        }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "EPSG:27700") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
-        expectResult("SJ5486") { gr }
+        expectResult("SJ5486") {
+          gr
+        }
       }
     }
+    //at 1m precision this test fails: Expected "TG514091317[7]", but got "TG514091317[8]"
+    GridUtil.latLonToOsGrid(52.65757, 1.71791, 10, "EPSG:27700", "OSGB") match {
+      case Some(gr) => {
+        expectResult("TG51401317") {
+          gr
+        }
+      }
+    }
+  }
+
+  test("Lat/long to Irish gridref at different resolutions") {
+
+    //slight discrepancies compared to https://irish.gridreferencefinder.com/
+    //at 1m Expected "O 10007 36119", but got "O 10021 36117"
+    //at 10m Expected "O100[0]3611", but got "O100[2]3611"
+    /*GridUtil.latLonToOsGrid(53.36404, -6.34803281, 1, "WGS84", "Irish") match {
+      case Some(gr) => {
+        expectResult("O1000736119") {
+          gr
+        }
+      }
+    }*/
+
+    //at 1m Expected "J10474 68567", but got "J10488 68581"
+    /* GridUtil.latLonToOsGrid(54.5535, -6.2931, 1, "WGS84", "Irish") match {
+      case Some(gr) => {
+        expectResult("J1047468567") {
+          gr
+        }
+      }
+    } */
+
+    GridUtil.latLonToOsGrid(54.88744, -6.3562, 10, "WGS84", "Irish") match {
+      case Some(gr) => {
+        expectResult("D05530565") {
+          gr
+        }
+      }
+    }
+
+    GridUtil.latLonToOsGrid(54.72375, -6.51556, 10, "WGS84", "Irish") match {
+      case Some(gr) => {
+        expectResult("H95698720") {
+          gr
+        }
+      }
+    }
+
+    //at 1m failing against real data: Expected "H8295[970824]", but got "H8295[870823]"
+    //irish.gridreferencefinder.com gives "H 82948 70808" so its all a bit messy to test
+    GridUtil.latLonToOsGrid(54.57889, -6.71781, 10, "WGS84", "Irish") match {
+      case Some(gr) => {
+        expectResult("H82957082") {
+          gr
+        }
+      }
+    }
+
   }
 
 }

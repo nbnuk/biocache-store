@@ -48,8 +48,9 @@ object GISUtil {
     }
   }
 
+  //returns northing and eastings, not lat-lon
   def reprojectCoordinatesWGS84ToOSGB36(coordinate1: Double, coordinate2: Double,
-                                  decimalPlacesToRoundTo: Int): Option[(String, String)] = {
+                                        decimalPlacesToRoundTo: Int): Option[(String, String)] = {
     try {
       val wgs84CRS = CRS.decode("EPSG:4326", false)
       val osgb36CRS = CRS.decode("EPSG:27700", false)
@@ -60,6 +61,31 @@ object GISUtil {
 
       val longitude = osgb36LatLong.getOrdinate(0)
       val latitude = osgb36LatLong.getOrdinate(1)
+
+      val roundedLongitude = Precision.round(longitude, decimalPlacesToRoundTo)
+      val roundedLatitude = Precision.round(latitude, decimalPlacesToRoundTo)
+
+      Some(roundedLatitude.toString, roundedLongitude.toString)
+    } catch {
+      case ex: Exception => None
+    }
+  }
+
+  //returns northing and eastings, not lat-lon
+  def reprojectCoordinatesWGS84ToOSNI(coordinate1: Double, coordinate2: Double,
+                                        decimalPlacesToRoundTo: Int): Option[(String, String)] = {
+    try {
+      val wgs84CRS = CRS.decode("EPSG:4326", false)
+      val osniCRS = CRS.decode("EPSG:29903", false) //https://epsg.io/29903
+
+      val transformOp = new DefaultCoordinateOperationFactory().createOperation(wgs84CRS, osniCRS)
+      val directPosition = new GeneralDirectPosition(coordinate1, coordinate2)
+      val osniLatLong = transformOp.getMathTransform().transform(directPosition, null)
+
+      //getting discrepancies in 1m and 10m grid sometimes. though that could be an issue on the other side as opposed to with this code
+      //if set northings and eastings to match then get same grid
+      val longitude = osniLatLong.getOrdinate(0)
+      val latitude = osniLatLong.getOrdinate(1)
 
       val roundedLongitude = Precision.round(longitude, decimalPlacesToRoundTo)
       val roundedLatitude = Precision.round(latitude, decimalPlacesToRoundTo)
@@ -135,5 +161,75 @@ object GISUtil {
     } catch {
       case ex: Exception => None
     }
+  }
+
+  //port of http://www.carabus.co.uk/ll_ngr.html
+  //not used at present
+  //lat lon would first need to be Helmert transformed WGS84 -> Irish ellipsoid
+  def coordinatesLatLonToNorthingEasting(lat: Double, lon: Double, gridType: String): Option[(String, String)] = {
+    try {
+      var phi = lat.toRadians // convert latitude to radians
+      var lam = lon.toRadians // convert longitude to radians
+      //assume OSGB values
+      var a = 6377563.396                           // OSGB semi-major axis
+      var b = 6356256.91                            // OSGB semi-minor axis
+      var e0 = 400000                               // OSGB easting of false origin
+      var n0 = -100000                              // OSGB northing of false origin
+      var f0 = 0.9996012717                         // OSGB scale factor on central meridian
+      var e2 = 0.0066705397616                      // OSGB eccentricity squared
+      var lam0 = -0.034906585039886591              // OSGB false east
+      var phi0 = 0.85521133347722145                // OSGB false north
+      if (gridType == "Irish") {
+        a = 6377340.189                             // OSI semi-major
+        b = 6356034.447                             // OSI semi-minor
+        e0 = 200000                                 // OSI easting of false origin
+        n0 = 250000                                 // OSI northing of false origin
+        f0 = 1.000035                               // OSI scale factor on central meridian
+        e2 = 0.00667054015                          // OSI eccentricity squared
+        lam0 = -0.13962634015954636615389526147909  // OSI false east
+        phi0 = 0.93375114981696632365417456114141   // OSI false north
+      }
+      val af0 = a * f0
+      val bf0 = b * f0
+
+      // easting
+      val slat2 = Math.sin(phi) * Math.sin(phi)
+      val nu = af0 / (Math.sqrt(1 - (e2 * slat2)))
+      val rho = (nu * (1 - e2)) / (1 - (e2 * slat2))
+      val eta2 = (nu / rho) - 1
+      val p = lam - lam0
+      val IV = nu * Math.cos(phi)
+      val clat3 = Math.pow(Math.cos(phi), 3)
+      val tlat2 = Math.tan(phi) * Math.tan(phi)
+      val V = (nu / 6) * clat3 * ((nu / rho) - tlat2)
+      val clat5 = Math.pow(Math.cos(phi), 5)
+      val tlat4 = Math.pow(Math.tan(phi), 4)
+      val VI = (nu / 120) * clat5 * ((5 - (18 * tlat2)) + tlat4 + (14 * eta2) - (58 * tlat2 * eta2))
+      var east = e0 + (p * IV) + (Math.pow(p, 3) * V) + (Math.pow(p, 5) * VI)
+
+      // northing
+      val n = (af0 - bf0) / (af0 + bf0)
+      val M = Marc(bf0, n, phi0, phi)
+      val I = M + n0
+      val II = (nu / 2) * Math.sin(phi) * Math.cos(phi)
+      val III = ((nu / 24) * Math.sin(phi) * Math.pow(Math.cos(phi), 3)) * (5 - Math.pow(Math.tan(phi), 2) + (9 * eta2))
+      val IIIA = ((nu / 720) * Math.sin(phi) * clat5) * (61 - (58 * tlat2) + tlat4)
+      var north = I + ((p * p) * II) + (Math.pow(p, 4) * III) + (Math.pow(p, 6) * IIIA)
+
+      east = Math.round(east); // round to whole number
+      north = Math.round(north); // round to whole number
+
+      Some(north.toString, east.toString)
+    } catch {
+      case ex: Exception => None
+    }
+  }
+
+  def Marc(bf0: Double, n: Double, phi0: Double, phi: Double): Double = {
+    val MarcVal = bf0 * (((1 + n + ((5 / 4) * (n * n)) + ((5 / 4) * (n * n * n))) * (phi - phi0))
+      - (((3 * n) + (3 * (n * n)) + ((21 / 8) * (n * n * n))) * (Math.sin(phi - phi0)) * (Math.cos(phi + phi0)))
+      + ((((15 / 8) * (n * n)) + ((15 / 8) * (n * n * n))) * (Math.sin(2 * (phi - phi0))) * (Math.cos(2 * (phi + phi0))))
+      - (((35 / 24) * (n * n * n)) * (Math.sin(3 * (phi - phi0))) * (Math.cos(3 * (phi + phi0)))))
+    MarcVal
   }
 }

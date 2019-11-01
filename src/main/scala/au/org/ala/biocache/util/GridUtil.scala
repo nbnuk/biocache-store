@@ -510,18 +510,19 @@ object GridUtil {
   }
 
 /**
-  * Convert a WGS84 lat/lon coordinate to ordnance survey grid reference using coordinateUncertaintyInMeters to define grid cell size
+  * Convert a WGS84 lat/lon coordinate to either OSGB (ordnance survey GB) or Irish OS grid reference using coordinateUncertaintyInMeters to define grid cell size
   *
   * Note: does not handle 2000m uncertainty
   *
+  *  http://www.carabus.co.uk/ll_ngr.html
   *
   * @param lat latitude
   * @param lon longitude
   * @param coordinateUncertaintyInMeters
   * @param geodeticDatum geodeticDatum (if empty assume WGS84)
-  * @return OS gridRef
+  * @return gridRef
   */
-  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String): Option[String] = {
+  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String, gridType:String): Option[String] = {
     val datum = lookupEpsgCode(geodeticDatum)
 
     var N = 0.0
@@ -536,9 +537,12 @@ object GridUtil {
         val (northings, eastings) = northingsEastings.get
         N = northings.toDouble
         E = eastings.toDouble
-
       } else { //assume WGS84
-        val reprojectedNorthingsEastings = GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
+        val reprojectedNorthingsEastings = gridType match {
+          case "OSGB" => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
+          case "Irish" => GISUtil.reprojectCoordinatesWGS84ToOSNI(lat, lon, 3)
+          case _ => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
+        }
         val (northings, eastings) = reprojectedNorthingsEastings.get
         N = northings.toDouble
         E = eastings.toDouble
@@ -554,10 +558,11 @@ object GridUtil {
       case x if (100000 <= x)               => 0
       case _ => return None
     }
-    getGridFromNorthingEasting(N, E, digits)
+    getOSGridFromNorthingEasting(N, E, digits, gridType)
+
   }
 
-  def getGridFromNorthingEasting(n:Double, e:Double, digits:Int): Option[String] = {
+  def getOSGridFromNorthingEasting(n:Double, e:Double, digits:Int, gridType: String): Option[String] = {
     if ((digits % 2 != 0) || digits > 16) {
       return None
     } else {
@@ -580,14 +585,19 @@ object GridUtil {
         l2 += 1
       }
       val letterPair = (l1 + Character.codePointAt("A", 0)).toChar.toString.concat((l2 + Character.codePointAt("A", 0)).toChar.toString)
-      // strip 100km-grid indices from easting & northing, and reduce precision// strip 100km-grid indices from easting & northing, and reduce precision
+      val letterPairLastOnly = ((l2 + Character.codePointAt("A", 0)).toChar.toString)
+      // strip 100km-grid indices from easting & northing, and reduce precision
       val eMod = Math.floor((e % 100000) / Math.pow(10, 5 - digits / 2))
       val nMod = Math.floor((n % 100000) / Math.pow(10, 5 - digits / 2))
       // pad eastings & northings with leading zeros (just in case, allow up to 16-digit (mm) refs)
       var eModStr = padWithZeros(eMod.round.toString(),8).takeRight(digits/2)
       var nModStr = padWithZeros(nMod.round.toString(),8).takeRight(digits/2)
 
-      return Some(letterPair.concat(eModStr).concat(nModStr))
+      gridType match {
+        case "Irish" => Some(letterPairLastOnly.concat(eModStr).concat(nModStr))
+        case "OSGB" => Some(letterPair.concat(eModStr).concat(nModStr))
+        case _ => Some(letterPair.concat(eModStr).concat(nModStr)) //default
+      }
     }
   }
 

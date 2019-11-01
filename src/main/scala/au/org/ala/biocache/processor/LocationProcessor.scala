@@ -52,8 +52,7 @@ class LocationProcessor extends Processor {
       //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
       checkCoordinateUncertainty(raw, processed, assertions)
 
-      //set grid ref if coordinates were supplied
-      setGridRefFromCoordinates(raw, processed, assertions)
+
 
       //intersect values with sensitive areas
       val intersectValues = SpatialLayerDAO.intersect(processed.location.decimalLongitude, processed.location.decimalLatitude)
@@ -68,6 +67,9 @@ class LocationProcessor extends Processor {
       if (processed.location.stateProvince != null && StringUtils.isNotEmpty(Config.defaultCountry)) {
         processed.location.country = Config.defaultCountry
       }
+
+      //set grid ref if coordinates were supplied
+      setGridRefFromCoordinates(raw, processed, assertions)
 
       //habitat, no standard vocab available
       processed.location.habitat = raw.location.habitat
@@ -644,11 +646,21 @@ class LocationProcessor extends Processor {
       && processed.location.gridReference == null
       && raw.location.gridReference == null
       && processed.location.coordinateUncertaintyInMeters != null) {
-      val osGrid = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84")
-      if (osGrid.isDefined) {
-          processed.location.gridReference = osGrid.get
-          assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
-     }
+      val gbList = List("Wales", "Scotland", "England") //OSGB-grid countries hard-coded
+      val niList = List("Northern Ireland") //Irish grid
+      var gridCalc = None: Option[String]
+      var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
+      if (niList.contains(processed.location.stateProvince)) {
+        gridToUse = "Irish"
+      } else if ((processed.location.decimalLongitude.toDouble < -5.0) &&
+          (processed.location.decimalLatitude.toDouble < 57.0 && processed.location.decimalLatitude.toDouble > 48.0)) {
+        gridToUse = "Irish"
+      }
+      gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse)
+      if (gridCalc.isDefined) {
+        processed.location.gridReference = gridCalc.get
+        assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+      }
     }
   }
 
