@@ -228,6 +228,20 @@ class GridReferenceTest extends FunSuite {
         }
       }
     }
+    GridUtil.latLonToOsGrid(52.00464, -5.081357, 100, "WGS84", "OSGB") match {
+      case Some(gr) => {
+        expectResult("SM886385") {
+          gr
+        }
+      }
+    }
+    GridUtil.latLonToOsGrid(52.01419, -5.09049, 100, "WGS84", "OSGB") match {
+      case Some(gr) => {
+        expectResult("SM880395") {
+          gr
+        }
+      }
+    }
     GridUtil.latLonToOsGrid(53.36916, -2.69094, 100000, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
         expectResult("SJ") {

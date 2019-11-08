@@ -646,11 +646,13 @@ class LocationProcessor extends Processor {
       && processed.location.gridReference == null
       && raw.location.gridReference == null
       && processed.location.coordinateUncertaintyInMeters != null) {
-      val gbList = List("Wales", "Scotland", "England") //OSGB-grid countries hard-coded
+      val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
       val niList = List("Northern Ireland") //Irish grid
       var gridCalc = None: Option[String]
       var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
-      if (niList.contains(processed.location.stateProvince)) {
+      if (gbList.contains(processed.location.stateProvince)) {
+        gridToUse = "OSGB"
+      } else if (niList.contains(processed.location.stateProvince)) {
         gridToUse = "Irish"
       } else if ((processed.location.decimalLongitude.toDouble < -5.0) &&
           (processed.location.decimalLatitude.toDouble < 57.0 && processed.location.decimalLatitude.toDouble > 48.0)) {
