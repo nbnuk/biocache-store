@@ -119,6 +119,9 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var outlierForLayers:Array[String] = _
   @BeanProperty var photographer:String =_
 
+  @BeanProperty var organismScope:String =_
+  @BeanProperty var organismRemarks:String =_
+
   @JsonIgnore
   def getOriginalSensitiveValues():Map[String,String] = originalSensitiveValues
 
