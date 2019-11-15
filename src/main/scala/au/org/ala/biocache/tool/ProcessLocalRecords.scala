@@ -1,7 +1,7 @@
 package au.org.ala.biocache.tool
 
 import java.io.File
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
 
 import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches._
@@ -133,6 +133,13 @@ class ProcessLocalRecords {
     var updateCount = new AtomicLong(0)
     var readCount = new AtomicLong(0)
 
+    // +smp
+    val slowDownMax = 5                                     // maximum number of accumulated slow downs before we abort
+    val rpsMin = 500f                                      // records per second processing limit under which we consider we are running too slowly
+    var cleanAbort = new AtomicBoolean(false)   // flag to indicate we are aborting because we are running too slowly
+    var slowDownCount = new AtomicInteger( 0 )  // accumulated count of slow down detected
+    // -smp
+
     setCheckpoints(startTokenRangeIdx, checkpointFile)
 
     val total = {
@@ -159,6 +166,30 @@ class ProcessLocalRecords {
             val recordsPerSec = Math.round(10000f / timeInSecs)
             logger.info(s"Record/sec:$recordsPerSec,  updated:$updateCount, read:$readCount,  Last rowkey: $uuid  Last 1000 in $timeInSecs")
             lastLog = end
+
+            // if we aren't already aborting because we are running too slow then check to see if we should abort
+            if (!cleanAbort.get()) {
+              // are we running too slow?
+              if (recordsPerSec < rpsMin) {
+                // accumulate, as we don't want one 'blip' to cause us to abort
+                val newSlowDownCount = slowDownCount.incrementAndGet()
+                // let the poor user know what's happening
+                logger.info("slow down detected: (" + slowDownCount + "/" + slowDownMax + ")")
+                // should we abort now?
+                if (newSlowDownCount >= slowDownMax) {
+                  // yes, so flag it
+                  cleanAbort.set( true )
+                  logger.info("slow down detected: accumulated speed is too slow, aborting")
+                  // Set a flag so worker threads can detect request to exit and abort cleanly
+                  System.setProperty("slowDownCleanAbort", "true")
+                }
+              }
+              else {
+                // reset to avoid 'blips', we need at least slowDownMax consecutive counts of
+                // slow rps in order to abort
+                slowDownCount.set( 0 )
+              }
+            }
 
             if(Config.jmxDebugEnabled){
               JMX.updateProcessingStats(
