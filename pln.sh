@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 # script to manage biocache process-local-node
 #
