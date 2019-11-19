@@ -983,7 +983,10 @@ class Cassandra3PersistenceManager  @Inject() (
                 }
                 val fw = new FileWriter(tokenRangeCheckPointFile, true)
                 try {
-                  fw.write(tokenRangeIdx + "," + counter + "\n")
+                  // only checkpoint processed counts
+                  if (counter > 0) {
+                    fw.write(tokenRangeIdx + "," + counter + "\n")
+                  }
                 }
                 finally fw.close()
               } catch {

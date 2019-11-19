@@ -221,8 +221,15 @@ class ProcessLocalRecords {
       }, null, threads)
     }
 
-    //Move checkpoint file if complete
-    new File(checkpointFile).renameTo(new File(checkpointFile + ".complete"))
+    // only mark checkpoints as complete if we aren't exiting early
+    val exitEarly = java.util.Objects.equals(System.getProperty("slowDownCleanAbort"), "true")
+    if (exitEarly) {
+      logger.info( "Exiting early, will restart from last point when next started")
+    }
+    else {
+      //Move checkpoint file if complete
+      new File(checkpointFile).renameTo(new File(checkpointFile + ".complete"))
+    }
 
     val end = System.currentTimeMillis()
     val timeInMinutes = ((end - start).toFloat / 100f / 60f / 60f)
