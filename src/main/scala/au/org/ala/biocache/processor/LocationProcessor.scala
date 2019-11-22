@@ -578,12 +578,12 @@ class LocationProcessor extends Processor {
         if (raw.location.coordinatePrecision.endsWith("km") || raw.location.coordinatePrecision.endsWith("m")) { //another way to misuse coordinatePrecision
           if (raw.location.coordinatePrecision.endsWith("km")) {
             value = raw.location.coordinatePrecision.dropRight(2).toFloatWithOption
-            if (!value.isEmpty && value.get > 1) value = Option(value.get*1000)
+            if (!value.isEmpty && value.get > 0) value = Option(value.get*1000)
           } else {
             value = raw.location.coordinatePrecision.dropRight(1).toFloatWithOption
           }
         }
-        if (!value.isEmpty && value.get > 1) {
+        if (!value.isEmpty && value.get > 0) {
           processed.location.coordinateUncertaintyInMeters = value.get.toInt.toString
           val comment = "Supplied precision, " + raw.location.coordinatePrecision + ", is assumed to be uncertainty in metres";
           assertions += QualityAssertion(UNCERTAINTY_IN_PRECISION, comment)
