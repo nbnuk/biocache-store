@@ -200,7 +200,7 @@ class LocationProcessor extends Processor {
     */
   private def processAltitudeAndDepth(guid: String, raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
     //check that the values are numeric
-    processVerbatimDepth(raw, processed, assertions)
+    // processVerbatimDepth(raw, processed, assertions)     turn off this processing as per Sophie NBN request
     processVerbatimElevation(raw, processed, assertions)
     processMinMaxDepth(raw, processed, assertions)
   }
