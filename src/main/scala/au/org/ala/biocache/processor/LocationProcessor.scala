@@ -583,7 +583,7 @@ class LocationProcessor extends Processor {
             value = raw.location.coordinatePrecision.dropRight(1).toFloatWithOption
           }
         }
-        if (!value.isEmpty && value.get > 0) {
+        if (!value.isEmpty && value.get > 1) {
           processed.location.coordinateUncertaintyInMeters = value.get.toInt.toString
           val comment = "Supplied precision, " + raw.location.coordinatePrecision + ", is assumed to be uncertainty in metres";
           assertions += QualityAssertion(UNCERTAINTY_IN_PRECISION, comment)
