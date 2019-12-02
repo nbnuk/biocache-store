@@ -339,7 +339,10 @@ trait IndexDAO {
     ("organismremarks", "organism_remarks", -1, RAW),
     ("rightsholder", "rightsholder", -1, RAW), //fix for index-local-node missing this field for sensitive records
     ("establishmentMeansTaxon", "establishment_means_taxon", -1, PARSED),
-    ("vitality", "vitality", -1, RAW)
+    ("vitality", "vitality", -1, RAW),
+    ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
+    ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
+    ("habitatTaxon", "habitats_taxon", 4, PARSED)
   )
 
   /**
@@ -402,7 +405,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
-    , "establishment_means_taxon", "vitality"
+    , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon"
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
@@ -861,6 +864,9 @@ trait IndexDAO {
           getValue("organismRemarks", map),
           getParsedValue("establishmentMeansTaxon", map),
           getValue("vitality", map),
+          getParsedValueIfAvailable("scientificNameAuthorship", map, ""),
+          getParsedValueIfAvailable("nomenclaturalStatus", map, ""),
+          getParsedValueIfAvailable("habitatTaxon", map, ""),
           poly_grid,
           getParsedValue("day", map),
           getParsedValue("endDay", map),
@@ -1105,6 +1111,13 @@ trait IndexDAO {
           jsonArrayLoop(sLifeStage, (item, idx) => {
             addField(doc, "life_stage", item)
           })
+
+        val sHabitat = getValue("habitatTaxon", map, "")
+        if (StringUtils.isNotEmpty(sHabitat))
+          jsonArrayLoop(sHabitat, (item, idx) => {
+            addField(doc, "habitats_taxon", item)
+          })
+
 
         //Only set the geospatially kosher field if there are coordinates supplied
         val geoKosher = if (slat == "" && slon == "") "" else getValue(FullRecordMapper.geospatialDecisionColumn, map, "")
@@ -1502,6 +1515,11 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getValue("vitality", map))
         i = i + 1
+        addField(doc, header(i), getValue("scientificNameAuthorship", map))
+        i = i + 1
+        addField(doc, header(i), getValue("nomenclaturalStatus", map))
+        i = i + 1
+
         addField(doc, header(i), getValue("nameParseType", map))
         i = i + 1
         addField(doc, header(i), getParsedValue("day", map))
@@ -1585,7 +1603,7 @@ trait IndexDAO {
 
       if (StringUtils.isNotEmpty(value)) {
         if (h._3 == 4) { // Multivalue
-          if (h._1 == "lifeStage" && value.contains("|")) { //not sure if other fields should have this treatment, or make generic if not JSON
+          if ((h._1 == "lifeStage" || h._1 == "habitatTaxon") && value.contains("|")) { //not sure if other fields should have this treatment, or make generic if not JSON
             for (value_sub <- value.split('|').map(_.trim)) {
               if (value_sub != "") {
                 addField(doc, h._2, value_sub)

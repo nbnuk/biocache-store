@@ -234,6 +234,17 @@ class ClassificationProcessor extends Processor {
 
           //add establishment means for the taxon
           processed.classification.establishmentMeansTaxon = nsr.getEstablishmentMeans
+          //add nomenclatural status for the taxon
+          processed.classification.nomenclaturalStatus = nsr.getNomenclaturalStatus
+          //add authorship for taxon
+          processed.classification.scientificNameAuthorship = nsr.getAuthor
+          //add habitats for taxon (save as single pipe-delimited string in Cassandra, split into individual entries when indexing)
+          val habs = nsr.getHabitat
+          if (habs == null) {
+            processed.classification.habitatTaxon = ""
+          } else {
+            processed.classification.habitatTaxon = habs.replace("/","|")
+          }
 
           //add a common name
           processed.classification.vernacularName = CommonNameDAO.getByGuid(nsr.getLsid).getOrElse(null)

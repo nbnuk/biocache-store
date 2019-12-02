@@ -68,6 +68,7 @@ class Classification extends Cloneable with POSO {
   @BeanProperty var right:String = _
   @BeanProperty var establishmentMeansTaxon:String = _
   @BeanProperty var speciesHabitats:Array[String] = _
+  @BeanProperty var habitatTaxon:String = _ //habitats from the taxon record, not from the occurrence data
   @BeanProperty var speciesGroups:Array[String] =_
   @BeanProperty var nameMatchMetric:String =_ //stores the type of name match that was performed
   @BeanProperty var taxonomicIssue:Array[String] = _ //stores if no issue, questionableSpecies, conferSpecies or affinitySpecies

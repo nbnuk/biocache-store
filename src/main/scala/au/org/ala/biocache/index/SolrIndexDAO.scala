@@ -461,7 +461,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   }
 
   val multifields = Array("duplicate_inst", "establishment_means", "species_group", "assertions", "data_hub_uid", "interactions", "outlier_layer",
-    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage")
+    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage", "habitats_taxon")
 
   val typeNotSuitableForModelling = Array("invalid", "historic", "vagrant", "irruptive")
 
@@ -1760,6 +1760,9 @@ class ColumnOrder {
     this.firstLoaded = dataRow.getIndexOf("firstLoaded") //NBN
     this.lastModifiedTime = dataRow.getIndexOf("lastModifiedTime") //not _p
     this.lifeStage = dataRow.getIndexOf("lifeStage")
+    this.habitatTaxon = dataRow.getIndexOf("habitatTaxon")
+    this.scientificNameAuthorship = dataRow.getIndexOf("scientificNameAuthorship")
+    this.nomenclaturalStatus = dataRow.getIndexOf("nomenclaturalStatus")
 
     val isUsed: Array[Boolean] = new Array[Boolean](dataRow.getNumberOfFields())
     val columnNames: Array[String] = new Array[String](dataRow.getNumberOfFields())
@@ -1918,6 +1921,9 @@ class ColumnOrder {
   var lifeStage: Int = -1
   var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
   var lastModifiedTime: Int = -1
+  var habitatTaxon: Int = -1
+  var scientificNameAuthorship: Int = -1
+  var nomenclaturalStatus: Int = -1
 
   var qualityAssertionColumn: Int = -1
   var miscPropertiesColumn: Int = -1
