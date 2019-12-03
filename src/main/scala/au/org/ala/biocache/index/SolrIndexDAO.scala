@@ -12,7 +12,7 @@ import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.persistence.DataRow
 import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
-import au.org.ala.biocache.vocab.{AssertionCodes, ErrorCode, ErrorCodeCategory, SpeciesGroups}
+import au.org.ala.biocache.vocab.{AssertionCodes, CoordinateUncertaintyCategory, ErrorCode, ErrorCodeCategory, SpeciesGroups}
 import com.datastax.driver.core.{ColumnDefinitions, GettableData, Row}
 import com.google.inject.Inject
 import com.google.inject.name.Named
@@ -1130,6 +1130,8 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
             map.keySet.foreach { key => doc.addField(key, map.getOrElse(key, "")) }
           }
         }
+        var coordinateUncertaintyCategory = CoordinateUncertaintyCategory.getCategory(getArrayValue(columnOrder.coordinateUncertainty, dataRow))
+        doc.addField("coordinate_uncertainty_category",coordinateUncertaintyCategory)
         /** UK NBN **/
 
         // user if userQA = true
@@ -1748,6 +1750,7 @@ class ColumnOrder {
     } else {
       this.gridReferenceWKT = -1
     }
+    this.coordinateUncertainty = dataRow.getIndexOf("coordinateUncertaintyInMeters")
     this.queryAssertionColumn = dataRow.getIndexOf(FullRecordMapper.queryAssertionColumn)
     this.elP = dataRow.getIndexOf("el" + Config.persistenceManager.fieldDelimiter + "p")
     this.clP = dataRow.getIndexOf("cl" + Config.persistenceManager.fieldDelimiter + "p")
@@ -1917,6 +1920,7 @@ class ColumnOrder {
   var gridReference: Int = -1
   var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
   var gridReferenceP: Int = -1
+  var coordinateUncertainty: Int = -1
 
   var lifeStage: Int = -1
   var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
