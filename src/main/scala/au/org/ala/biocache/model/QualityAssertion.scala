@@ -18,8 +18,7 @@ import org.apache.commons.lang.time.DateUtils
 object QualityAssertion {
   import BiocacheConversions._
   def apply(code:Int) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     val errorCode = AssertionCodes.getByCode(code)
     if(errorCode.isEmpty){
       throw new Exception("Unrecognised code: " + code)
@@ -28,53 +27,43 @@ object QualityAssertion {
   }
 
   def apply(errorCode:ErrorCode) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null,errorCode.name,errorCode.code,null,null,0,null,null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode,problemAsserted:Boolean) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null,errorCode.name,errorCode.code,null,null,if(problemAsserted) 0 else 1,null,null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode,problemAsserted:Boolean,comment:String) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null,errorCode.name,errorCode.code,null,null,if(problemAsserted) 0 else 1,comment,null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode,comment:String) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null,errorCode.name,errorCode.code,null,null,0,comment,null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode, qaStatus:Int, comment:String)={
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null, errorCode.name, errorCode.code,null,null, qaStatus, comment, null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode, qaStatus:Int)={
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null, errorCode.name, errorCode.code,null,null, qaStatus, null, null,null,null,null,null,null,null,new Date())
   }
   def apply(assertionCode:Int,problemAsserted:Boolean,comment:String) = {
-//    val uuid = UUID.randomUUID.toString
-    val uuid = ""
+    val uuid = UUID.randomUUID.toString
     new QualityAssertion(uuid,null,null,assertionCode,null,null,if(problemAsserted) 0 else 1,comment,null,null,null,null,null,null,null,new Date())
   }
   def apply(assertionCode:Int, qaStatus:Int, comment:String) ={
-//    val uuid = UUID.randomUUID().toString
-    val uuid = ""
+    val uuid = UUID.randomUUID().toString
     new QualityAssertion(uuid,null, null, assertionCode,null,null,qaStatus,comment,null,null,null,null,null,null,null,new Date())
   }
   def apply(assertionCode:Int, qaStatus:Int) ={
-//    val uuid = UUID.randomUUID().toString
-    val uuid = ""
+    val uuid = UUID.randomUUID().toString
     new QualityAssertion(uuid,null, null, assertionCode,null,null,qaStatus,null,null,null,null,null,null,null,null,new Date())
   }
   def apply(errorCode:ErrorCode, relatedUuid: String, qaStatus:Int) = {
-//    val uuid = UUID.randomUUID().toString
-    val uuid = ""
+    val uuid = UUID.randomUUID().toString
     new QualityAssertion(uuid,null, errorCode.name, errorCode.code,null,relatedUuid,qaStatus,null,null,null,null,null,null,null,null,new Date())
   }
 
