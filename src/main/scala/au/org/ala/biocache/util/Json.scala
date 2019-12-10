@@ -109,7 +109,11 @@ object Json {
    */
   def toIntArray(jsonString:String) : Array[Int] = {
     if (jsonString =="" || jsonString =="[]") return Array()
-    jsonString.replace("[","").replace("]","").split(",").map(x => x.toInt).toArray
+    try {
+      jsonString.replace("[", "").replace("]", "").split(",").map(x => x.toInt).toArray
+    } catch {
+      case e:Exception => Array()
+    }
   }
 
   def toMap(jsonString:String): scala.collection.Map[String,Object]={
