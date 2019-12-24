@@ -459,6 +459,36 @@ class ProcessEventTest extends ConfigFunSuite {
     expectResult("1979-01-02"){ processed.event.eventDateEnd }
   }
 
+  test("if full date range check end is not before start") {
+
+    val raw = new FullRecord("1234")
+    raw.event.eventDate = "1979-01-02/1978-12-31"
+    val processed = raw.clone
+    var qas = (new EventProcessor).process("1234", raw, processed)
+
+    expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+  }
+
+  test("if month date range check end is not before start") {
+
+    val raw = new FullRecord("1234")
+    raw.event.eventDate = "1979-01/1978-12"
+    val processed = raw.clone
+    var qas = (new EventProcessor).process("1234", raw, processed)
+
+    expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+  }
+
+  test("if year date range check end is not before start") {
+
+    val raw = new FullRecord("1234")
+    raw.event.eventDate = "1979/1978"
+    val processed = raw.clone
+    var qas = (new EventProcessor).process("1234", raw, processed)
+
+    expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+  }
+
   test("if verbatimEventDate supplied, verbatimEventDate is used for eventDateEnd") {
 
     val raw = new FullRecord("1234")

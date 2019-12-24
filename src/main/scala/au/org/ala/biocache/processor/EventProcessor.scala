@@ -316,6 +316,32 @@ class EventProcessor extends Processor {
     //validate against date precision
     checkPrecision(raw, processed, assertions)
 
+    //smp+
+    // If we have a date range, then check that the end date is not before the start date;
+    // raising a data quality assertion if it is.
+
+    if ((processed.event.datePrecision == DAY_RANGE_PRECISION) ||
+        (processed.event.datePrecision == MONTH_RANGE_PRECISION) ||
+        (processed.event.datePrecision == YEAR_RANGE_PRECISION)) {
+
+      // note: depending on the precision not all event fields are populated
+      def toIntOr1(s: String): Int = {
+        try {
+          s.toInt
+        } catch {
+          case e: Exception => 1
+        }
+      }
+
+      val rangeStartDate = new Date( toIntOr1(processed.event.year) - 1900, toIntOr1(processed.event.month) - 1, toIntOr1(processed.event.day) )
+      val rangeEndDate = new Date( toIntOr1(processed.event.endYear) - 1900, toIntOr1(processed.event.endMonth) - 1, toIntOr1(processed.event.endDay) )
+
+      if (rangeStartDate.after( rangeEndDate )) {
+        assertions += QualityAssertion( INVALID_COLLECTION_DATE, "End date is before start date" )
+      }
+    }
+    //smp-
+
     assertions.toArray
   }
 
