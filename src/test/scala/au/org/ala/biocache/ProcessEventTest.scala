@@ -467,6 +467,7 @@ class ProcessEventTest extends ConfigFunSuite {
     var qas = (new EventProcessor).process("1234", raw, processed)
 
     expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+    expectResult(0){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INCOMPLETE_COLLECTION_DATE.code).get.getQaStatus}
   }
 
   test("if month date range check end is not before start") {
@@ -477,6 +478,7 @@ class ProcessEventTest extends ConfigFunSuite {
     var qas = (new EventProcessor).process("1234", raw, processed)
 
     expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+    expectResult(0){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INCOMPLETE_COLLECTION_DATE.code).get.getQaStatus}
   }
 
   test("if year date range check end is not before start") {
@@ -487,6 +489,7 @@ class ProcessEventTest extends ConfigFunSuite {
     var qas = (new EventProcessor).process("1234", raw, processed)
 
     expectResult(1){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INVALID_COLLECTION_DATE.code).get.getQaStatus}
+    expectResult(0){qas.find(_.code ==au.org.ala.biocache.vocab.AssertionCodes.INCOMPLETE_COLLECTION_DATE.code).get.getQaStatus}
   }
 
   test("if verbatimEventDate supplied, verbatimEventDate is used for eventDateEnd") {
