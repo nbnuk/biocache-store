@@ -135,7 +135,7 @@ class ProcessLocalRecords {
 
     // +smp
     val slowDownMax = 5                                     // maximum number of accumulated slow downs before we abort
-    val rpsMin = 500f                                      // records per second processing limit under which we consider we are running too slowly
+    val rpsMin = 100f                                      // records per second processing limit under which we consider we are running too slowly
     var cleanAbort = new AtomicBoolean(false)   // flag to indicate we are aborting because we are running too slowly
     var slowDownCount = new AtomicInteger( 0 )  // accumulated count of slow down detected
     // -smp
