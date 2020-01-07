@@ -1130,7 +1130,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
             map.keySet.foreach { key => doc.addField(key, map.getOrElse(key, "")) }
           }
         }
-        var coordinateUncertaintyCategory = CoordinateUncertaintyCategory.getCategory(getArrayValue(columnOrder.coordinateUncertainty, dataRow))
+        var coordinateUncertaintyCategory = CoordinateUncertaintyCategory.getCategory(getArrayValue(columnOrder.coordinateUncertaintyP, dataRow))
         doc.addField("coordinate_uncertainty_category",coordinateUncertaintyCategory)
         /** UK NBN **/
 
@@ -1751,6 +1751,7 @@ class ColumnOrder {
       this.gridReferenceWKT = -1
     }
     this.coordinateUncertainty = dataRow.getIndexOf("coordinateUncertaintyInMeters")
+    this.coordinateUncertaintyP = dataRow.getIndexOf("coordinateUncertaintyInMeters"+ Config.persistenceManager.fieldDelimiter + "p")
     this.queryAssertionColumn = dataRow.getIndexOf(FullRecordMapper.queryAssertionColumn)
     this.elP = dataRow.getIndexOf("el" + Config.persistenceManager.fieldDelimiter + "p")
     this.clP = dataRow.getIndexOf("cl" + Config.persistenceManager.fieldDelimiter + "p")
@@ -1921,6 +1922,7 @@ class ColumnOrder {
   var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
   var gridReferenceP: Int = -1
   var coordinateUncertainty: Int = -1
+  var coordinateUncertaintyP: Int = -1
 
   var lifeStage: Int = -1
   var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
