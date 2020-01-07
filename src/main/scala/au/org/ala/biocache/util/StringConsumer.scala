@@ -12,9 +12,10 @@ class StringConsumer(q: BlockingQueue[String], id: Int, proc: String => Unit) ex
   protected val logger = LoggerFactory.getLogger("StringConsumer")
 
   var shouldStop = false
+  var forceStop = false
 
   override def run() {
-    while (!shouldStop || q.size() > 0) {
+    while (!forceStop && (!shouldStop || q.size() > 0)) {
       try {
         //wait 1 second before assuming that the queue is empty
         val guid = q.poll(1, java.util.concurrent.TimeUnit.SECONDS)
@@ -23,6 +24,10 @@ class StringConsumer(q: BlockingQueue[String], id: Int, proc: String => Unit) ex
           proc(guid)
         }
       } catch {
+        case e: RuntimeException => {                     // 'break' out of loop for code running in 'proc' above
+          logger.debug( "forced stopping task: " + id )
+          forceStop = true
+        };
         case e: Exception => e.printStackTrace()
       }
     }

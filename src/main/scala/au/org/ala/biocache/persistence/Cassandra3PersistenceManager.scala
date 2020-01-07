@@ -963,6 +963,12 @@ class Cassandra3PersistenceManager  @Inject() (
                           s"records per sec: $recordsPerSec  Time taken: $totalTimeInSec seconds, $currentRowkey")
                       }
                     }
+
+                    val exitEarly = java.util.Objects.equals( System.getProperty("slowDownCleanAbort"), "true" );
+                    if (exitEarly) {
+                      logger.info( "clean abort requested, exiting early from worker thread")
+                      continuePaging.set( false )
+                    }
                   }
                 }
               }
@@ -977,7 +983,10 @@ class Cassandra3PersistenceManager  @Inject() (
                 }
                 val fw = new FileWriter(tokenRangeCheckPointFile, true)
                 try {
-                  fw.write(tokenRangeIdx + "," + counter + "\n")
+                  // only checkpoint processed counts
+                  if (counter > 0) {
+                    fw.write(tokenRangeIdx + "," + counter + "\n")
+                  }
                 }
                 finally fw.close()
               } catch {
