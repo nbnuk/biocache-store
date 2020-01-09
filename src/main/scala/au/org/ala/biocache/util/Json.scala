@@ -9,10 +9,14 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.`type`.TypeFactory
 import com.fasterxml.jackson.databind.{DeserializationConfig, ObjectMapper}
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import org.slf4j.LoggerFactory
+
 
 object Json {
 
   import scala.collection.JavaConverters._
+
+  val logger = LoggerFactory.getLogger("Json")
 
   //object mapper is thread safe
   val mapper = new ObjectMapper
@@ -69,13 +73,20 @@ object Json {
    * Converts a string to the supplied array type
    */
   def toStringArray(jsonString:String) : Array[String] = {
-    if(jsonString != null && jsonString != ""){
-      val valueType = TypeFactory.defaultInstance().constructArrayType(classOf[java.lang.String])
-      mapper.readValue[Array[String]](jsonString, valueType)
-    } else {
-      Array()
+    try {
+      if (jsonString != null && jsonString != "") {
+        val valueType = TypeFactory.defaultInstance().constructArrayType(classOf[java.lang.String])
+        mapper.readValue[Array[String]](jsonString, valueType)
+      } else {
+        Array()
+      }
+    } catch {
+      case e:Exception => {
+        logger.error( "failed to convert Json.toStringArray for string '" + jsonString + "'")
+        Array()
+      }
     }
-  }
+}
 
   /**
    * Converts a string to the supplied array type
@@ -109,7 +120,11 @@ object Json {
    */
   def toIntArray(jsonString:String) : Array[Int] = {
     if (jsonString =="" || jsonString =="[]") return Array()
-    jsonString.replace("[","").replace("]","").split(",").map(x => x.toInt).toArray
+    try {
+      jsonString.replace("[", "").replace("]", "").split(",").map(x => x.toInt).toArray
+    } catch {
+      case e:Exception => Array()
+    }
   }
 
   def toMap(jsonString:String): scala.collection.Map[String,Object]={

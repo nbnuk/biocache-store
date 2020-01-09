@@ -200,7 +200,7 @@ class LocationProcessor extends Processor {
     */
   private def processAltitudeAndDepth(guid: String, raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
     //check that the values are numeric
-    processVerbatimDepth(raw, processed, assertions)
+    // processVerbatimDepth(raw, processed, assertions)     turn off this processing as per Sophie NBN request
     processVerbatimElevation(raw, processed, assertions)
     processMinMaxDepth(raw, processed, assertions)
   }
@@ -583,7 +583,7 @@ class LocationProcessor extends Processor {
             value = raw.location.coordinatePrecision.dropRight(1).toFloatWithOption
           }
         }
-        if (!value.isEmpty && value.get > 0) {
+        if (!value.isEmpty && value.get > 1) {
           processed.location.coordinateUncertaintyInMeters = value.get.toInt.toString
           val comment = "Supplied precision, " + raw.location.coordinatePrecision + ", is assumed to be uncertainty in metres";
           assertions += QualityAssertion(UNCERTAINTY_IN_PRECISION, comment)

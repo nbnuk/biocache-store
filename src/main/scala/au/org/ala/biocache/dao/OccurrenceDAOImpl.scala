@@ -50,6 +50,54 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     "outlierForLayers_p"
   )
 
+  // Quality assertions we no longer wish to store (as a map for quick and easy lookup).
+  // note, just being in this table means we no longer wish to store this assertion (not what the individual value is set to in the map!)
+  // note, names are those used in AssertionCodes.scala and must match the assertion
+  // note, remove from map and re process records to turn back on
+
+  val assertionsToRemove = Map(
+    ("zeroCoordinates", true),
+    ("recordedByUnparsable", true),
+    ("invalidScientificName", true),
+    ("nameNotInNationalChecklists", true),
+    ("invertedCoordinates", true ),
+    ("zeroLongitude", true),
+    ("missingCoordinatePrecision", true),
+    ("coordinatesCentreOfStateProvince", true),
+    ("coordinatesCentreOfCountry", true),
+    ("missingGeoreferenceVerificationStatus", true),
+    ("missingIdentificationQualifier", true),
+    ("missingIdentificationReferences", true),
+    ("missingDateIdentified", true),
+    ("missingTaxonRank", true),
+    ("missingGeorefencedBy", true),
+    ("missingGeoreferenceProtocol", true),
+    ("missingGeoreferenceDate", true),
+    ("habitatMismatch", true),
+    ("altitudeInFeet", true),
+    ("occCultivatedEscapee", true),
+    ("negatedLongitude", true),
+    ("altitudeNonNumeric", true),
+    ("depthInFeet", true),
+    ("dayMonthTransposed", true),
+    ("decimalLatLongCalculatedFromVerbatim", true),
+    ("negatedLatitude", true),
+    ("depthNonNumeric", true),
+    ("altitudeOutOfRange", true),
+    ("unknownKingdom", true),
+    ("unrecognisedInstitutionCode", true),
+    ("idPreOccurrence", true),
+    ("georefPostDate", true),
+    ("unrecognisedTypeStatus", true),
+    ("depthOutOfRange", true),
+    ("minMaxDepthReversed", true),
+    ("resourceTaxonomicScopeMismatch", true),
+    ("decimalLatLongCalculationFromVerbatimFailed", true),
+    ("coordinatePrecisionMismatch", true),
+    ("coordinatesOutOfRange", true),
+    ("missingGeoreferenceSources", true)
+  )
+
   /**
    * Gets the map for a record based on searching the index for new and old ids
    */
@@ -648,6 +696,17 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     ))
   }
 
+  // return true if we want to keep this assertion (by checking it's not in our list of assertions to remove)
+  def qaRequired( qa : QualityAssertion) : Boolean = {
+    return !assertionsToRemove.contains( qa.name )
+  }
+
+  /* handy when debugging lists of qa's using foreach
+  def qaPrint( qa : QualityAssertion) : Unit = {
+    logger.info( qa.name )
+  }
+   */
+
   /**
    * Update the occurrence with the supplied record, setting the correct version
    */
@@ -705,14 +764,22 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
         //only add  the assertions if they are different OR the properties to persist contain more than the last modified time stamp
         if (
           oldRecord == null ||
-          oldRecord.assertions.toSet != newRecord.assertions.toSet ||
-          propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
+            (oldRecord.assertions.toSet.intersect( assertionsToRemove.keySet ).size > 0) ||  // if oldRecord contains any assertions we want to remove then we should update it
+            oldRecord.assertions.toSet != newRecord.assertions.toSet ||
+            propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
         ) {
           //only add the assertions if they have changed since the last time or the number of records to persist >1
           val checkUserAssertions = oldRecord != null && StringUtils.isNotEmpty(oldRecord.getUserAssertionStatus)
 
           propertiesToPersist ++= convertAssertionsToMap(rowKey, assertions.get, checkUserAssertions)
-          val x = assertions.get.values.filter{!_.isEmpty}.flatten.toList
+          val x:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList.filter( qaRequired )
+
+          /*
+          // if you want to see the lists of 'before' and 'after' the removal of assertions replace the line above with this...
+          val nx:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList
+          // filter assertions we'd like to remove
+          val x:List[QualityAssertion] = nx.filter( qaRequired )
+          */
 
           propertiesToPersist ++= Map(FullRecordMapper.qualityAssertionColumn ->  Json.toJSONWithGeneric(x))
         }
