@@ -78,6 +78,12 @@ class Location extends Cloneable with POSO {
   @BeanProperty var zone: String =_
   @BeanProperty var gridReference: String =_
   @BeanProperty var bbox:String = _ //stored in minX,minY,maxX,maxy format (not in JSON)
+  @BeanProperty var highResolution:String = _
+  @BeanProperty var highResolutionLatitude:String = _
+  @BeanProperty var highResolutionLongitude:String = _
+  @BeanProperty var highResolutionCoordinateUncertainty:String = _
+  @BeanProperty var highResolutionGridReference:String = _
+  @BeanProperty var highResolutionLocality:String = _
 
   //fields that need be hidden from all public API
   //These fields can NOT be @BeanProperty because we need the getter method to have a @JsonIgnore annotation

@@ -343,7 +343,13 @@ trait IndexDAO {
     ("vitality", "vitality", -1, RAW),
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
-    ("habitatTaxon", "habitats_taxon", 4, PARSED)
+    ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("highResolution", "highresolution", -1, RAW),
+    ("highResolutionDecimalLatitude", "highresolution_latitude", -1, RAW),
+    ("highResolutionDecimalLongitude", "highresolution_longitude", -1, RAW),
+    ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, RAW),
+    ("highResolutionGridReference", "highresolution_grid_reference", -1, RAW),
+    ("highResolutionLocality", "highresolution_locality", -1, RAW)
   )
 
   /**
@@ -410,6 +416,8 @@ trait IndexDAO {
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    , "highresolution"
+    , "highresolution_latitude", "highresolution_longitude", "highresolution_coordinate_uncertainty", "highresolution_grid_reference", "highresolution_locality"
   ) ::: Config.additionalFieldsToIndex
 
   /**
@@ -878,7 +886,13 @@ trait IndexDAO {
           getParsedValue("endYear", map),
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
-          sensitiveMap.getOrElse("eventDateEnd", "")
+          sensitiveMap.getOrElse("eventDateEnd", ""),
+          getValue("highResolution", map),
+          getValue( "highResolutionLatitude", map ),
+          getValue( "highResolutionLongitude", map ),
+          getValue( "highResolutionCoordinateUncertainty", map ),
+          getValue( "highResolutionGridReference", map ),
+          getValue( "highResolutionLocality", map )
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -1534,7 +1548,18 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getParsedValue("endYear", map))
         i = i + 1
-
+        addField(doc, header(i), getValue("highResolution", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionLatitude", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionLongitude", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionCoordinateUncertainty", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionGridReference", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionLocality", map))
+        i = i + 1
 
         Config.additionalFieldsToIndex.foreach(field => {
           addField(doc, header(i), getValue(field, map))

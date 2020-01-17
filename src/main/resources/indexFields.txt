@@ -123,6 +123,12 @@ rights	string	rights	F	F		F
 alau_user_id	string	userId	F	F		F
 all_image_url	string	images_p	T	T		F
 dataset_name	string	datasetName	F	F		F
+highresolution  string  highResolution  F   F   F
+highresolution_latitude double  highResolutionLatitude  F   F   F
+highresolution_longitude double  highResolutionLongitude  F   F   F
+highresolution_coordinate_uncertainty double  highResolutionCoordinateUncertainty  F   F   F
+highresolution_grid_reference string  highResolutionGridReference  F   F   F
+highresolution_locality string  highResolutionLocality  F   F   F
 distance_outside_expert_range	double	distanceOutsideExpertRange_p	F	F		F
 	string	acceptedNameUsage	F	F	F	F
 	string	acceptedNameUsageID	F	F	F	F
