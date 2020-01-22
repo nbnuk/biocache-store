@@ -894,9 +894,9 @@ trait IndexDAO {
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", ""),
           getValue("highResolution", map),
-          getValue( "highResolutionLatitude", map ),
-          getValue( "highResolutionLongitude", map ),
-          getValue( "highResolutionCoordinateUncertainty", map ),
+          getValue( "highResolutionDecimalLatitude", map ),
+          getValue( "highResolutionDecimalLongitude", map ),
+          getValue( "highResolutionCoordinateUncertaintyInMeters", map ),
           getValue( "highResolutionGridReference", map ),
           getValue( "highResolutionLocality", map )
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
@@ -1562,11 +1562,11 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getValue("highResolution", map))
         i = i + 1
-        addField(doc, header(i), getValue("highResolutionLatitude", map))
+        addField(doc, header(i), getValue("highResolutionDecimalLatitude", map))
         i = i + 1
-        addField(doc, header(i), getValue("highResolutionLongitude", map))
+        addField(doc, header(i), getValue("highResolutionDecimalLongitude", map))
         i = i + 1
-        addField(doc, header(i), getValue("highResolutionCoordinateUncertainty", map))
+        addField(doc, header(i), getValue("highResolutionCoordinateUncertaintyInMeters", map))
         i = i + 1
         addField(doc, header(i), getValue("highResolutionGridReference", map))
         i = i + 1
