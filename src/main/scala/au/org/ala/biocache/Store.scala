@@ -62,6 +62,9 @@ object Store {
   def getSensitiveByUuid(uuid:java.lang.String, version:Version):FullRecord =
     occurrenceDAO.getByRowKey(uuid, version, true).getOrElse(null)
 
+  def getHighResolutionByUuid(uuid:java.lang.String, version:Version):FullRecord =
+    occurrenceDAO.getByRowKey(uuid, version, false, true).getOrElse(null)
+
   /**
    * A java API friendly version of the getByUuid that doesnt require knowledge of a scala type.
    */
@@ -70,8 +73,8 @@ object Store {
   /**
    * Retrieve all versions of the record with the supplied UUID.
    */
-  def getAllVersionsByUuid(uuid: java.lang.String, includeSensitive:java.lang.Boolean) : Array[FullRecord] =
-    occurrenceDAO.getAllVersionsByRowKey(uuid, includeSensitive).getOrElse(null)
+  def getAllVersionsByUuid(uuid: java.lang.String, includeSensitive:java.lang.Boolean, includeHighResolution:java.lang.Boolean) : Array[FullRecord] =
+    occurrenceDAO.getAllVersionsByRowKey(uuid, includeSensitive, includeHighResolution).getOrElse(null)
 
   /**
    * Get the raw processed comparison based on the uuid for the occurrence.
