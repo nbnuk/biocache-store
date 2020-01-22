@@ -332,6 +332,35 @@ class LocationProcessor extends Processor {
         case None => //do nothing
       }
     }
+
+    // smp+
+    // handle high resolution coordinates
+    // calculate lat/long from grid reference, if required (ie no lat/long supplied)
+
+    if (raw.location.highResolution == "true") {
+      val gisPointOption = processLatLong(
+        raw.location.highResolutionDecimalLatitude,
+        raw.location.highResolutionDecimalLongitude,
+        raw.location.geodeticDatum,     // if one is supplied for non high res coords then assume it's valid for high res too, and use it
+        null,           // raw.location.verbatimLatitude,
+        null,         // raw.location.verbatimLongitude,
+        null,             // raw.location.verbatimSRS,
+        null,                 // raw.location.easting,
+        null,                // raw.location.northing,
+        null,                   // raw.location.zone,
+        raw.location.highResolutionGridReference,
+        assertions)
+
+      gisPointOption match {
+        case Some(gisPoint) => {
+          processed.location.highResolutionDecimalLatitude = gisPoint.latitude
+          processed.location.highResolutionDecimalLongitude = gisPoint.longitude
+          processed.location.highResolutionCoordinateUncertaintyInMeters = gisPoint.coordinateUncertaintyInMeters
+        }
+        case None => //do nothing
+      }
+    }
+    // smp-
   }
 
   /**
@@ -552,6 +581,20 @@ class LocationProcessor extends Processor {
   }
 
   private def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
+
+    // smp+
+    // add very simple check and parsing of high resolution coordinate uncertainty, add more checks if needed
+    if (raw.location.highResolution == "true") {
+      val parsedResult = DistanceRangeParser.parse(raw.location.highResolutionCoordinateUncertaintyInMeters)
+      if (!parsedResult.isEmpty) {
+        val (parsedValue, rawUnit) = parsedResult.get
+        if (parsedValue > 0) {
+          processed.location.highResolutionCoordinateUncertaintyInMeters = parsedValue.toString
+        }
+      }
+    }
+    // smp-
+
     //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
     var checkedPrecision = false
     if (raw.location.coordinateUncertaintyInMeters != null && raw.location.coordinateUncertaintyInMeters.length > 0) {
@@ -636,6 +679,7 @@ class LocationProcessor extends Processor {
 
   /**
     * If coordinates were supplied but no grid reference, populate gridReference from coords
+ *
     * @param raw
     * @param processed
     * @param assertions
@@ -646,27 +690,65 @@ class LocationProcessor extends Processor {
       && processed.location.gridReference == null
       && raw.location.gridReference == null
       && processed.location.coordinateUncertaintyInMeters != null) {
-      val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
-      val niList = List("Northern Ireland") //Irish grid
-      var gridCalc = None: Option[String]
-      var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
-      if (gbList.contains(processed.location.stateProvince)) {
-        gridToUse = "OSGB"
-      } else if (niList.contains(processed.location.stateProvince)) {
-        gridToUse = "Irish"
-      } else if ((processed.location.decimalLongitude.toDouble < -5.0) &&
-          (processed.location.decimalLatitude.toDouble < 57.0 && processed.location.decimalLatitude.toDouble > 48.0)) {
-        gridToUse = "Irish"
+
+      val gridRefOption = getGridRefFromCoordinates(
+        processed.location.decimalLatitude.toDouble,
+        processed.location.decimalLongitude.toDouble,
+        processed.location.coordinateUncertaintyInMeters.toDouble,
+        processed.location.stateProvince)
+
+      gridRefOption match {
+        case Some(calculatedGridRef) => {
+          processed.location.gridReference = calculatedGridRef
+          assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+        }
+        case None => //do nothing
       }
-      gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse)
-      if (gridCalc.isDefined) {
-        processed.location.gridReference = gridCalc.get
-        assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+    }
+
+    if (raw.location.highResolution == "true"
+      && processed.location.highResolutionDecimalLatitude != null
+      && processed.location.highResolutionDecimalLongitude != null
+      && processed.location.highResolutionGridReference == null
+      && raw.location.highResolutionGridReference == null
+      && processed.location.highResolutionCoordinateUncertaintyInMeters != null) {
+
+      val gridRefOption = getGridRefFromCoordinates(
+        processed.location.highResolutionDecimalLatitude.toDouble,
+        processed.location.highResolutionDecimalLongitude.toDouble,
+        processed.location.highResolutionCoordinateUncertaintyInMeters.toDouble,
+        processed.location.stateProvince)
+
+      gridRefOption match {
+        case Some(calculatedGridRef) => {
+          processed.location.highResolutionGridReference = calculatedGridRef
+        }
+        case None => //do nothing
       }
     }
   }
 
-  /**
+
+
+private def getGridRefFromCoordinates( decimalLatitude:Double, decimalLongitude: Double, coordinateUncertaintyInMeters: Double, stateProvince: String ) : Option[String] = {
+    val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
+    val niList = List("Northern Ireland") //Irish grid
+    var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
+    if (gbList.contains(stateProvince)) {
+      gridToUse = "OSGB"
+    } else if (niList.contains(stateProvince)) {
+      gridToUse = "Irish"
+    } else if ((decimalLongitude < -5.0) &&
+      (decimalLatitude < 57.0 && decimalLatitude > 48.0)) {
+      gridToUse = "Irish"
+    }
+
+    GridUtil.latLonToOsGrid(decimalLatitude, decimalLongitude, coordinateUncertaintyInMeters, "WGS84", gridToUse)
+  }
+
+
+
+/**
     * Check the habitats for the taxon profile against the biome associated with the point.
     *
     * @param raw

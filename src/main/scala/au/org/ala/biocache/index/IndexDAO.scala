@@ -345,10 +345,10 @@ trait IndexDAO {
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
     ("highResolution", "highresolution", -1, RAW),
-    ("highResolutionDecimalLatitude", "highresolution_latitude", -1, RAW),
-    ("highResolutionDecimalLongitude", "highresolution_longitude", -1, RAW),
-    ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, RAW),
-    ("highResolutionGridReference", "highresolution_grid_reference", -1, RAW),
+    ("highResolutionDecimalLatitude", "highresolution_latitude", -1, PARSED),
+    ("highResolutionDecimalLongitude", "highresolution_longitude", -1, PARSED),
+    ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, PARSED),
+    ("highResolutionGridReference", "highresolution_grid_reference", -1, PARSED),
     ("highResolutionLocality", "highresolution_locality", -1, RAW)
   )
 
@@ -888,10 +888,10 @@ trait IndexDAO {
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", ""),
           getValue("highResolution", map),
-          getValue( "highResolutionDecimalLatitude", map ),
-          getValue( "highResolutionDecimalLongitude", map ),
-          getValue( "highResolutionCoordinateUncertaintyInMeters", map ),
-          getValue( "highResolutionGridReference", map ),
+          getParsedValue( "highResolutionDecimalLatitude", map ),
+          getParsedValue( "highResolutionDecimalLongitude", map ),
+          getParsedValue( "highResolutionCoordinateUncertaintyInMeters", map ),
+          getParsedValue( "highResolutionGridReference", map ),
           getValue( "highResolutionLocality", map )
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
