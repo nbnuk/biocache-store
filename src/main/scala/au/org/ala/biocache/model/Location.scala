@@ -79,9 +79,9 @@ class Location extends Cloneable with POSO {
   @BeanProperty var gridReference: String =_
   @BeanProperty var bbox:String = _ //stored in minX,minY,maxX,maxy format (not in JSON)
   @BeanProperty var highResolution:String = _
-  @BeanProperty var highResolutionLatitude:String = _
-  @BeanProperty var highResolutionLongitude:String = _
-  @BeanProperty var highResolutionCoordinateUncertainty:String = _
+  @BeanProperty var highResolutionDecimalLatitude:String = _
+  @BeanProperty var highResolutionDecimalLongitude:String = _
+  @BeanProperty var highResolutionCoordinateUncertaintyInMeters:String = _
   @BeanProperty var highResolutionGridReference:String = _
   @BeanProperty var highResolutionLocality:String = _
 
