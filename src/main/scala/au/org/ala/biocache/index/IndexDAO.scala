@@ -344,7 +344,7 @@ trait IndexDAO {
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
-    ("highResolution", "highresolution", -1, RAW),
+    ("highResolution", "highresolution", -1, PARSED),
     ("highResolutionDecimalLatitude", "highresolution_latitude", -1, PARSED),
     ("highResolutionDecimalLongitude", "highresolution_longitude", -1, PARSED),
     ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, PARSED),
