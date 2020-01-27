@@ -34,6 +34,8 @@ class LocationProcessor extends Processor {
     //retrieve the point
     val assertions = new ArrayBuffer[QualityAssertion]
 
+    validateHighResolution(raw, processed, assertions);
+
     //handle the situation where the coordinates have already been sensitised
     setProcessedCoordinates(raw, processed, assertions)
 
@@ -165,6 +167,39 @@ class LocationProcessor extends Processor {
       }
     }
   }
+
+
+  private def validateHighResolution(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+
+    var valid = true;
+
+    if (raw.location.highResolution != null) {
+      if (raw.location.highResolution.toLowerCase() == "true") {
+        processed.location.highResolution = "true";
+
+        // if we have highResolution then we need either lat/long or a grid reference
+        // uncertainty and locality are optional
+
+        if (raw.location.highResolutionGridReference == null &&
+          (raw.location.highResolutionDecimalLongitude == null ||
+          raw.location.highResolutionDecimalLatitude == null)) {
+          valid = false;
+        }
+      }
+    }
+
+    // We fail the high resolution data validation check if
+    // a record is marked as having high resolution data but
+    // does not have either a grid reference or both a lat and long
+    // otherwise we pass.
+
+    if (valid) {
+      assertions += QualityAssertion(HIGHRESOLUTION_DATA_LOCATION, PASSED)
+    } else {
+      assertions += QualityAssertion(HIGHRESOLUTION_DATA_LOCATION, FAILED)
+    }
+  }
+
 
   /**
     * Validation checks
@@ -337,7 +372,7 @@ class LocationProcessor extends Processor {
     // handle high resolution coordinates
     // calculate lat/long from grid reference, if required (ie no lat/long supplied)
 
-    if (raw.location.highResolution == "true") {
+    if (processed.location.highResolution != null && processed.location.highResolution == "true") {
       val gisPointOption = processLatLong(
         raw.location.highResolutionDecimalLatitude,
         raw.location.highResolutionDecimalLongitude,
@@ -584,7 +619,7 @@ class LocationProcessor extends Processor {
 
     // smp+
     // add very simple check and parsing of high resolution coordinate uncertainty, add more checks if needed
-    if (raw.location.highResolution == "true") {
+    if (processed.location.highResolution != null && processed.location.highResolution == "true") {
       val parsedResult = DistanceRangeParser.parse(raw.location.highResolutionCoordinateUncertaintyInMeters)
       if (!parsedResult.isEmpty) {
         val (parsedValue, rawUnit) = parsedResult.get
@@ -706,7 +741,7 @@ class LocationProcessor extends Processor {
       }
     }
 
-    if (raw.location.highResolution == "true"
+    if (processed.location.highResolution != null && processed.location.highResolution == "true"
       && processed.location.highResolutionDecimalLatitude != null
       && processed.location.highResolutionDecimalLongitude != null
       && processed.location.highResolutionGridReference == null
