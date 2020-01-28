@@ -186,6 +186,14 @@ class LocationProcessor extends Processor {
       if (raw.location.highResolution.toLowerCase() == "true") {
         processed.location.highResolution = "true";
 
+        // copy set of raw values to processed as a default (for downloads)
+        // these may be overwritten by later processing
+        processed.location.highResolutionDecimalLatitude = raw.location.highResolutionDecimalLatitude
+        processed.location.highResolutionDecimalLongitude = raw.location.highResolutionDecimalLongitude
+        processed.location.highResolutionGridReference = raw.location.highResolutionGridReference
+        processed.location.highResolutionCoordinateUncertaintyInMeters = raw.location.highResolutionCoordinateUncertaintyInMeters
+        processed.location.highResolutionLocality = raw.location.highResolutionLocality
+
         // if we have highResolution then we need either lat/long or a grid reference
         // uncertainty and locality are optional
 
