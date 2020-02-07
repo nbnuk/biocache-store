@@ -887,7 +887,7 @@ trait IndexDAO {
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", ""),
-          getValue("highResolution", map),
+          getParsedValue("highResolution", map),
           getParsedValue( "highResolutionDecimalLatitude", map ),
           getParsedValue( "highResolutionDecimalLongitude", map ),
           getParsedValue( "highResolutionCoordinateUncertaintyInMeters", map ),
