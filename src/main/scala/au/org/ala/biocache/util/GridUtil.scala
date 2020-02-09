@@ -29,6 +29,7 @@ object GridUtil {
   //deal with the 2k OS grid ref separately
   val osGridRefNoEastingNorthing = ("""([A-Z]{2})""").r
   val osGridRefRegex1Number = """([A-Z]{2})\s*([0-9]+)$""".r
+  val osGridRef50kRegex = """([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""".r
   val osGridRef2kRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
   val osGridRefRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)$""".r
   val osGridRefWithQuadRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([NW|NE|SW|SE]{2})$""".r
@@ -373,7 +374,7 @@ object GridUtil {
 
     //deal with the 2k OS grid ref separately
     val osGridRefNoEastingNorthing = ("""([A-Z]{2})""").r
-    val osGridRef50kRegex = ("""([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""").r
+    val osGridRef50kRegex = """([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""".r
     val osGridRefRegex1Number = """([A-Z]{2})\s*([0-9]+)$""".r
     val osGridRef2kRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
     val osGridRefRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)$""".r
@@ -405,7 +406,7 @@ object GridUtil {
       case _ => return None
     }
 
-    // get numeric values of letter references, mapping A->0, B->1, C->2, etc:
+    // get numeric values of letter references, mapping A->0, B->1, C->2, etc: (skipping I)
     val l1 = {
       val value = Character.codePointAt(gridletters, 0) - Character.codePointAt("A", 0)
       if(value > 7){
@@ -484,20 +485,20 @@ object GridUtil {
       if(cellSize > 0) {
         quadRef match {
           case "NW" => {
-            e = e + (cellSize / 2)
-            n = n + (cellSize + cellSize / 2)
+            e = e //+ (cellSize / 2)
+            n = n + (cellSize) // + cellSize / 2)
           }
           case "NE" => {
-            e = e + (cellSize + cellSize / 2)
-            n = n + (cellSize + cellSize / 2)
+            e = e + (cellSize) // + cellSize / 2)
+            n = n + (cellSize) // + cellSize / 2)
           }
           case "SW" => {
-            e = e + (cellSize / 2)
-            n = n + (cellSize / 2)
+            e = e //+ (cellSize / 2)
+            n = n //+ (cellSize / 2)
           }
           case "SE" => {
-            e = e + (cellSize + cellSize / 2)
-            n = n + (cellSize / 2)
+            e = e + (cellSize) // + cellSize / 2)
+            n = n //+ (cellSize / 2)
           }
           case _ => return None
         }
