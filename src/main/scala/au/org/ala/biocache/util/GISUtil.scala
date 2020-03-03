@@ -126,10 +126,10 @@ object GISUtil {
       val ρ = a * F0 * (1 - e2) / Math.pow(1 - e2 * sinφ * sinφ, 1.5) // rho = meridional radius of curvature
       val η2 = ν / ρ - 1 // eta = ?
 
-      val Ma = (1 + n + (5 / 4) * n2 + (5 / 4) * n3) * (φ - φ0)
-      val Mb = (3 * n + 3 * n * n + (21 / 8) * n3) * Math.sin(φ - φ0) * Math.cos(φ + φ0)
-      val Mc = ((15 / 8) * n2 + (15 / 8) * n3) * Math.sin(2 * (φ - φ0)) * Math.cos(2 * (φ + φ0))
-      val Md = (35 / 24) * n3 * Math.sin(3 * (φ - φ0)) * Math.cos(3 * (φ + φ0))
+      val Ma = (1 + n + (5.0 / 4.0) * n2 + (5.0 / 4.0) * n3) * (φ - φ0)
+      val Mb = (3 * n + 3 * n * n + (21.0 / 8.0) * n3) * Math.sin(φ - φ0) * Math.cos(φ + φ0)
+      val Mc = ((15.0 / 8.0) * n2 + (15.0 / 8.0) * n3) * Math.sin(2 * (φ - φ0)) * Math.cos(2 * (φ + φ0))
+      val Md = (35.0 / 24.0) * n3 * Math.sin(3 * (φ - φ0)) * Math.cos(3 * (φ + φ0))
       val M = b * F0 * (Ma - Mb + Mc - Md) // meridional arc
 
       val cos3φ = cosφ * cosφ * cosφ
@@ -226,10 +226,10 @@ object GISUtil {
   }
 
   def Marc(bf0: Double, n: Double, phi0: Double, phi: Double): Double = {
-    val MarcVal = bf0 * (((1 + n + ((5 / 4) * (n * n)) + ((5 / 4) * (n * n * n))) * (phi - phi0))
-      - (((3 * n) + (3 * (n * n)) + ((21 / 8) * (n * n * n))) * (Math.sin(phi - phi0)) * (Math.cos(phi + phi0)))
-      + ((((15 / 8) * (n * n)) + ((15 / 8) * (n * n * n))) * (Math.sin(2 * (phi - phi0))) * (Math.cos(2 * (phi + phi0))))
-      - (((35 / 24) * (n * n * n)) * (Math.sin(3 * (phi - phi0))) * (Math.cos(3 * (phi + phi0)))))
+    val MarcVal = bf0 * (((1 + n + ((5.0 / 4.0) * (n * n)) + ((5.0 / 4.0) * (n * n * n))) * (phi - phi0))
+      - (((3 * n) + (3 * (n * n)) + ((21.0 / 8.0) * (n * n * n))) * (Math.sin(phi - phi0)) * (Math.cos(phi + phi0)))
+      + ((((15.0 / 8.0) * (n * n)) + ((15.0 / 8.0) * (n * n * n))) * (Math.sin(2 * (phi - phi0))) * (Math.cos(2 * (phi + phi0))))
+      - (((35.0 / 24.0) * (n * n * n)) * (Math.sin(3 * (phi - phi0))) * (Math.cos(3 * (phi + phi0)))))
     MarcVal
   }
 }

@@ -263,11 +263,19 @@ class GridReferenceTest extends FunSuite {
         }
       }
     }
-    //at 1m precision this test fails: Expected "TG514091317[7]", but got "TG514091317[8]"
+
     GridUtil.latLonToOsGrid(52.65757, 1.71791, 10, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
         expectResult("TG51401317") {
           gr
+        }
+      }
+
+      GridUtil.latLonToOsGrid(52.65757, 1.71791, 1, "EPSG:27700", "OSGB") match {
+        case Some(gr) => {
+          expectResult("TG5140913177") {
+            gr
+          }
         }
       }
     }
