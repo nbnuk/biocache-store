@@ -66,6 +66,8 @@ class Cassandra3PersistenceManager  @Inject() (
 
   val updateThreadPool = Executors.newFixedThreadPool(noOfUpdateThreads.toInt).asInstanceOf[ThreadPoolExecutor]
 
+  val executor = MoreExecutors.getExitingExecutorService(updateThreadPool)
+
   def getCacheSize = map.size()
 
   private def getPreparedStmt(query: String, table: String): PreparedStatement = {
@@ -436,7 +438,7 @@ class Cassandra3PersistenceManager  @Inject() (
   def putAsync(rowkey: String, entityName: String, keyValuePairs: Map[String, String], newRecord: Boolean, removeNullFields: Boolean) = {
 
     try {
-      val executor = MoreExecutors.getExitingExecutorService(updateThreadPool)
+
       val stmt: BoundStatement = createPutStatement(rowkey, entityName, keyValuePairs)
       val future = session.executeAsync(stmt)
       Futures.addCallback(future, new IngestCallback, executor)
