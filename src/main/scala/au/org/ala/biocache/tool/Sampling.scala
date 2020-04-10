@@ -208,7 +208,11 @@ object Sampling extends Tool with IncrementalTool with Counter {
               false,
               false
             )
+          } else {
+            logger.info(s"[Loading sampling] Missing sampled values for $guid, with $lat, $lon")
           }
+        } else {
+          logger.info(s"[Loading sampling] Could not retrieve " + guid + " to update")
         }
         if (counter % 1000 == 0) {
           finishTime = System.currentTimeMillis
