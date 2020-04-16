@@ -26,47 +26,77 @@ object DwCACreator extends Tool {
 
   val defaultFields = List(
     "rowkey",
-    "dataResourceUid",
-    "catalogNumber",
-    "collectionCode",
-    "institutionCode",
-    "scientificName_p",
-    "recordedBy",
-    "taxonConceptID_p",
-    "taxonRank_p",
-    "kingdom_p",
-    "phylum_p",
-    "classs_p",
-    "order_p",
-    "family_p",
-    "genus_p",
-    "decimalLatitude_p",
-    "decimalLongitude_p",
-    "coordinateUncertaintyInMeters_p",
-    "maximumElevationInMeters",
-    "minimumElevationInMeters",
-    "minimumDepthInMeters",
-    "maximumDepthInMeters",
-    "geodeticDatum_p",
+    "basisofrecord_p",
+    "behavior",
+    "catalognumber",
+    "class_p",
+    "collectioncode",
+    "coordinateuncertaintyinmeters_p",
     "country_p",
-    "stateProvince_p",
-    "locality",
-    "occurrenceStatus_p",
-    "year_p",
-    "month_p",
+    "datageneralizations_p",
     "day_p",
-    "eventDate_p",
-    "eventDateEnd_p",
-    "basisOfRecord_p",
-    "identifiedBy",
-    "occurrenceRemarks",
-    "locationRemarks",
-    "recordNumber",
-    "vernacularName_p",
-    "individualCount",
-    "eventID",
-    "dataGeneralizations_p"
+    "decimallatitude_p",
+    "decimallongitude_p",
+    "dynamicproperties",
+    "eventdate_p",
+    "eventid",
+    "eventremarks",
+    "family_p",
+    "fieldnotes",
+    // "footprintwkt",
+    "genus_p",
+    "geodeticdatum_p",
+    "georeferenceverificationstatus",
+    "habitat_p",
+    "highergeography",
+    "identificationverificationstatus_p",
+    "identifiedby",
+    "individualcount",
+    "infomationwitheld_p",
+    "institutioncode",
+    "kingdom_p",
+    "license_p",
+    "lifestage",
+    "locality",
+    "locationremarks",
+    "maximumdepthinmeters",
+    "maximumelevationinmeters",
+    "measurementmethod",
+    "measurementtype",
+    "measurementunit",
+    "measurementvalue",
+    "minimumdepthinmeters",
+    "minimumelevationinmeters",
+    "month_p",
+    "nomenclaturalstatus_p",
+    "occurrenceid",
+    "occurrenceremarks",
+    "occurrencestatus_p",
+    "order_p",
+    "organismquantity",
+    "organismquantitytype",
+    "organismremarks",
+    "organismscope",
+    "phylum_p",
+    "recordedby_p",
+    "recordnumber",
+    "rightsholder",
+    "samplesizeunit",
+    "samplesizevalue",
+    "samplingeffort",
+    "samplingprotocol",
+    "scientificname_p",
+    "scientificnameauthorship_p",
+    "sex",
+    "stateprovince_p",
+    "taxonconceptid_p",
+    "taxonid",
+    "taxonrank_p",
+    "verbatimdepth",
+    "vernacularname_p",
+    "year_p"
   )
+
 
   def main(args: Array[String]): Unit = {
 
@@ -114,6 +144,79 @@ object DwCACreator extends Tool {
                     }
                     csv.writeNext(Array(
                       cleanValue(map.getOrElse("rowkey", "")),
+                      cleanValue(map.getOrElse("occurrenceid", "")),
+                      cleanValue(map.getOrElse("basisofrecord_p", "")),
+                      cleanValue(map.getOrElse("behavior", "")),
+                      cleanValue(map.getOrElse("catalognumber", "")),
+                      cleanValue(map.getOrElse("classs_p", "")),
+                      cleanValue(map.getOrElse("collectioncode", "")),
+                      cleanValue(map.getOrElse("coordinateuncertaintyinmeters_p", "")),
+                      cleanValue(map.getOrElse("country_p", "")),
+                      cleanValue(map.getOrElse("datageneralizations_p", "")),
+                      cleanValue(map.getOrElse("day_p", "")),
+                      cleanValue(map.getOrElse("decimallatitude_p", "")),
+                      cleanValue(map.getOrElse("decimallongitude_p", "")),
+                      cleanValue(map.getOrElse("dynamicproperties", "")),
+                      cleanValue(eventDate),
+                      cleanValue(map.getOrElse("eventid", "")),
+                      cleanValue(map.getOrElse("eventremarks", "")),
+                      cleanValue(map.getOrElse("family_p", "")),
+                      cleanValue(map.getOrElse("fieldnotes", "")),
+                      "",                       // cleanValue(map.getOrElse("footprintwkt", "")),
+                      cleanValue(map.getOrElse("genus_p", "")),
+                      cleanValue(map.getOrElse("geodeticdatum_p", "")),
+                      cleanValue(map.getOrElse("georeferenceverificationstatus", "")),
+                      cleanValue(map.getOrElse("habitat_p", "")),
+                      cleanValue(map.getOrElse("highergeography", "")),
+                      cleanValue(map.getOrElse("identificationverificationstatus_p", "")),
+                      cleanValue(map.getOrElse("identifiedby", "")),
+                      cleanValue(map.getOrElse("individualcount", "")),
+                      cleanValue(map.getOrElse("infomationwitheld_p", "")),
+                      cleanValue(map.getOrElse("institutioncode", "")),
+                      cleanValue(map.getOrElse("kingdom_p", "")),
+                      cleanValue( licenseToUrlLicense( map.getOrElse("license_p", "") )),
+                      cleanValue(map.getOrElse("lifestage", "")),
+                      cleanValue(map.getOrElse("locality", "")),
+                      cleanValue(map.getOrElse("locationremarks", "")),
+                      cleanValue(map.getOrElse("maximumdepthinmeters", "")),
+                      cleanValue(map.getOrElse("maximumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("measurementmethod", "")),
+                      cleanValue(map.getOrElse("measurementtype", "")),
+                      cleanValue(map.getOrElse("measurementunit", "")),
+                      cleanValue(map.getOrElse("measurementvalue", "")),
+                      cleanValue(map.getOrElse("minimumdepthinmeters", "")),
+                      cleanValue(map.getOrElse("minimumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("month_p", "")),
+                      cleanValue(map.getOrElse("nomenclaturalstatus_p", "")),
+                      cleanValue(map.getOrElse("occurrenceremarks", "")),
+                      cleanValue(map.getOrElse("occurrencestatus_p", "")),
+                      cleanValue(map.getOrElse("order_p", "")),
+                      cleanValue(map.getOrElse("organismquantity", "")),
+                      cleanValue(map.getOrElse("organismquantitytype", "")),
+                      cleanValue(map.getOrElse("organismremarks", "")),
+                      cleanValue(map.getOrElse("organismscope", "")),
+                      cleanValue(map.getOrElse("phylum_p", "")),
+                      cleanValue(map.getOrElse("recordedby_p", "")),
+                      cleanValue(map.getOrElse("recordnumber", "")),
+                      cleanValue(map.getOrElse("rightsholder", "")),
+                      cleanValue(map.getOrElse("samplesizeunit", "")),
+                      cleanValue(map.getOrElse("samplesizevalue", "")),
+                      cleanValue(map.getOrElse("samplingeffort", "")),
+                      cleanValue(map.getOrElse("samplingprotocol", "")),
+                      cleanValue(map.getOrElse("scientificname_p", "")),
+                      cleanValue(map.getOrElse("scientificnameauthorship_p", "")),
+                      cleanValue(map.getOrElse("sex", "")),
+                      cleanValue(map.getOrElse("stateprovince_p", "")),
+                      cleanValue(map.getOrElse("taxonconceptid_p", "")),
+                      cleanValue(map.getOrElse("taxonid", "")),
+                      cleanValue(map.getOrElse("taxonrank_p", "")),
+                      cleanValue(map.getOrElse("verbatimdepth", "")),
+                      cleanValue(map.getOrElse("vernacularname_p", "")),
+                      cleanValue(map.getOrElse("year_p", ""))
+
+                    /* original exported values pre 2/4/20
+
+                      cleanValue(map.getOrElse("rowkey", "")),
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "catalogNumber" else "catalognumber", "")),
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "collectionCode" else "collectioncode", "")),
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "institutionCode" else "institutioncode", "")),
@@ -152,6 +255,8 @@ object DwCACreator extends Tool {
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "identifiedBy" else "identifiedby", "")),
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "occurrenceRemarks" else "occurrenceremarks", "")),
                       cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "dataGeneralizations_p" else "datageneralizations_p", ""))
+
+                     */
                     ))
                     csv.flush()
                   }
@@ -179,6 +284,17 @@ object DwCACreator extends Tool {
   }
 
   def cleanValue(input:String) = if(input == null) "" else input.replaceAll("[\\t\\n\\r]", " ").trim
+
+  def licenseToUrlLicense( license : String ) : String = {
+    if (license == "CC0")
+      "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+    else if (license == "CC-BY")
+      "https://creativecommons.org/licenses/by/4.0/legalcode"
+    else if (license == "CC-BY-NC")
+      "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+    else
+      ""
+  }
 
   // pattern to extract a data resource uid from a filter query , because the label show i18n value
   val dataResourcePattern = "(?:[\"]*)?(?:[a-z_]*_uid:\")([a-z0-9]*)(?:[\"]*)?".r
@@ -257,46 +373,79 @@ class DwCACreator {
       <files>
             <location>occurrence.csv</location>
       </files>
-            <id index="0"/>
-            <field index="0"  term="http://rs.tdwg.org/dwc/terms/occurrenceID" />
-            <field index="1"  term="http://rs.tdwg.org/dwc/terms/catalogNumber" />
-            <field index="2"  term="http://rs.tdwg.org/dwc/terms/collectionCode" />
-            <field index="3"  term="http://rs.tdwg.org/dwc/terms/institutionCode" />
-            <field index="4"  term="http://rs.tdwg.org/dwc/terms/recordNumber" />
-            <field index="5"  term="http://rs.tdwg.org/dwc/terms/basisOfRecord" default="HumanObservation" />
-            <field index="6"  term="http://rs.tdwg.org/dwc/terms/recordedBy" />
-            <field index="7"  term="http://rs.tdwg.org/dwc/terms/occurrenceStatus" />
-            <field index="8"  term="http://rs.tdwg.org/dwc/terms/individualCount" />
-            <field index="9"  term="http://rs.tdwg.org/dwc/terms/scientificName" />
-            <field index="10" term="http://rs.tdwg.org/dwc/terms/taxonConceptID" />
-            <field index="11" term="http://rs.tdwg.org/dwc/terms/taxonRank" />
-            <field index="12" term="http://rs.tdwg.org/dwc/terms/kingdom" />
-            <field index="13" term="http://rs.tdwg.org/dwc/terms/phylum" />
-            <field index="14" term="http://rs.tdwg.org/dwc/terms/class" />
-            <field index="15" term="http://rs.tdwg.org/dwc/terms/order" />
-            <field index="16" term="http://rs.tdwg.org/dwc/terms/family" />
-            <field index="17" term="http://rs.tdwg.org/dwc/terms/genus" />
-            <field index="18" term="http://rs.tdwg.org/dwc/terms/vernacularName" />
-            <field index="19" term="http://rs.tdwg.org/dwc/terms/decimalLatitude" />
-            <field index="20" term="http://rs.tdwg.org/dwc/terms/decimalLongitude" />
-            <field index="21" term="http://rs.tdwg.org/dwc/terms/geodeticDatum" />
-            <field index="22" term="http://rs.tdwg.org/dwc/terms/coordinateUncertaintyInMeters" />
-            <field index="23" term="http://rs.tdwg.org/dwc/terms/maximumElevationInMeters" />
-            <field index="24" term="http://rs.tdwg.org/dwc/terms/minimumElevationInMeters" />
-            <field index="25" term="http://rs.tdwg.org/dwc/terms/minimumDepthInMeters" />
-            <field index="26" term="http://rs.tdwg.org/dwc/terms/maximumDepthInMeters" />
-            <field index="27" term="http://rs.tdwg.org/dwc/terms/country" />
-            <field index="28" term="http://rs.tdwg.org/dwc/terms/stateProvince" />
-            <field index="29" term="http://rs.tdwg.org/dwc/terms/locality" />
-            <field index="30" term="http://rs.tdwg.org/dwc/terms/locationRemarks" />
-            <field index="31" term="http://rs.tdwg.org/dwc/terms/year" />
-            <field index="32" term="http://rs.tdwg.org/dwc/terms/month" />
-            <field index="33" term="http://rs.tdwg.org/dwc/terms/day" />
-            <field index="34" term="http://rs.tdwg.org/dwc/terms/eventDate" />
-            <field index="35" term="http://rs.tdwg.org/dwc/terms/eventID" />
-            <field index="36" term="http://rs.tdwg.org/dwc/terms/identifiedBy" />
-            <field index="37" term="http://rs.tdwg.org/dwc/terms/occurrenceRemarks" />
-            <field index="38" term="http://rs.tdwg.org/dwc/terms/dataGeneralizations" />
+
+        <id index="0"/>
+        <field index="1"  term="http://rs.tdwg.org/dwc/terms/occurrenceID" />
+        <field index="2"  term="http://rs.tdwg.org/dwc/terms/basisOfRecord" default="HumanObservation"/>
+        <field index="3"  term="http://rs.tdwg.org/dwc/terms/behavior" />
+        <field index="4"  term="http://rs.tdwg.org/dwc/terms/catalogNumber"/>
+        <field index="5"  term="http://rs.tdwg.org/dwc/terms/class"/>
+        <field index="6"  term="http://rs.tdwg.org/dwc/terms/collectionCode"/>
+        <field index="7"  term="http://rs.tdwg.org/dwc/terms/coordinateUncertaintyInMeters"/>
+        <field index="8"  term="http://rs.tdwg.org/dwc/terms/country"/>
+        <field index="9"  term="http://rs.tdwg.org/dwc/terms/dataGeneralizations"/>
+        <field index="10"  term="http://rs.tdwg.org/dwc/terms/day"/>
+        <field index="11"  term="http://rs.tdwg.org/dwc/terms/decimalLatitude"/>
+        <field index="12"  term="http://rs.tdwg.org/dwc/terms/decimalLongitude"/>
+        <field index="13"  term="http://rs.tdwg.org/dwc/terms/dynamicProperties"/>
+        <field index="14"  term="http://rs.tdwg.org/dwc/terms/eventDate"/>
+        <field index="15"  term="http://rs.tdwg.org/dwc/terms/eventID"/>
+        <field index="16"  term="http://rs.tdwg.org/dwc/terms/eventRemarks"/>
+        <field index="17"  term="http://rs.tdwg.org/dwc/terms/family"/>
+        <field index="18"  term="http://rs.tdwg.org/dwc/terms/fieldNotes"/>
+        <field index="19"  term="http://rs.tdwg.org/dwc/terms/footprintWKT"/>
+        <field index="20"  term="http://rs.tdwg.org/dwc/terms/genus"/>
+        <field index="21"  term="http://rs.tdwg.org/dwc/terms/geodeticDatum"/>
+        <field index="22"  term="http://rs.tdwg.org/dwc/terms/georeferenceVerificationStatus"/>
+        <field index="23"  term="http://rs.tdwg.org/dwc/terms/habitat"/>
+        <field index="24"  term="http://rs.tdwg.org/dwc/terms/higherGeography"/>
+        <field index="25"  term="http://rs.tdwg.org/dwc/terms/identificationRemarks"/>
+        <field index="26"  term="http://rs.tdwg.org/dwc/terms/identificationVerificationStatus"/>
+        <field index="27"  term="http://rs.tdwg.org/dwc/terms/identifiedBy"/>
+        <field index="28"  term="http://rs.tdwg.org/dwc/terms/individualCount"/>
+        <field index="29"  term="http://rs.tdwg.org/dwc/terms/informationWithheld"/>
+        <field index="30"  term="http://rs.tdwg.org/dwc/terms/institutionCode"/>
+        <field index="31"  term="http://rs.tdwg.org/dwc/terms/kingdom"/>
+        <field index="32"  term="http://rs.tdwg.org/dwc/terms/license"/>
+        <field index="33"  term="http://rs.tdwg.org/dwc/terms/lifeStage"/>
+        <field index="34"  term="http://rs.tdwg.org/dwc/terms/locality"/>
+        <field index="35"  term="http://rs.tdwg.org/dwc/terms/locationRemarks"/>
+        <field index="36"  term="http://rs.tdwg.org/dwc/terms/maximumDepthInMeters"/>
+        <field index="37"  term="http://rs.tdwg.org/dwc/terms/maximumElevationInMeters"/>
+        <field index="38"  term="http://rs.tdwg.org/dwc/terms/measurementMethod"/>
+        <field index="39"  term="http://rs.tdwg.org/dwc/terms/measurementType"/>
+        <field index="40"  term="http://rs.tdwg.org/dwc/terms/measurementUnit"/>
+        <field index="41"  term="http://rs.tdwg.org/dwc/terms/measurementValue"/>
+        <field index="42"  term="http://rs.tdwg.org/dwc/terms/minimumDepthInMeters"/>
+        <field index="43"  term="http://rs.tdwg.org/dwc/terms/minimumElevationInMeters"/>
+        <field index="44"  term="http://rs.tdwg.org/dwc/terms/month"/>
+        <field index="45"  term="http://rs.tdwg.org/dwc/terms/nomenclaturalStatus"/>
+        <field index="46"  term="http://rs.tdwg.org/dwc/terms/occurrenceRemarks"/>
+        <field index="47"  term="http://rs.tdwg.org/dwc/terms/occurrenceStatus"/>
+        <field index="48"  term="http://rs.tdwg.org/dwc/terms/order"/>
+        <field index="49"  term="http://rs.tdwg.org/dwc/terms/organismQuantity"/>
+        <field index="50"  term="http://rs.tdwg.org/dwc/terms/organismQuantityType"/>
+        <field index="51"  term="http://rs.tdwg.org/dwc/terms/organismQuantityRemarks"/>
+        <field index="52"  term="http://rs.tdwg.org/dwc/terms/organismScope"/>
+        <field index="53"  term="http://rs.tdwg.org/dwc/terms/phylum"/>
+        <field index="54"  term="http://rs.tdwg.org/dwc/terms/recordedBy"/>
+        <field index="55"  term="http://rs.tdwg.org/dwc/terms/recordNumber"/>
+        <field index="56"  term="http://rs.tdwg.org/dwc/terms/rightsHolder"/>
+        <field index="57"  term="http://rs.tdwg.org/dwc/terms/sampleSizeUnit"/>
+        <field index="58"  term="http://rs.tdwg.org/dwc/terms/sampleSizeValue"/>
+        <field index="59"  term="http://rs.tdwg.org/dwc/terms/samplingEffort"/>
+        <field index="60"  term="http://rs.tdwg.org/dwc/terms/samplingProtocol"/>
+        <field index="61"  term="http://rs.tdwg.org/dwc/terms/scientificName"/>
+        <field index="62"  term="http://rs.tdwg.org/dwc/terms/scientificNameAuthorship"/>
+        <field index="63"  term="http://rs.tdwg.org/dwc/terms/sex"/>
+        <field index="64"  term="http://rs.tdwg.org/dwc/terms/stateProvince"/>
+        <field index="65"  term="http://rs.tdwg.org/dwc/terms/taxonConceptID"/>
+        <field index="66"  term="http://rs.tdwg.org/dwc/terms/taxonID"/>
+        <field index="67"  term="http://rs.tdwg.org/dwc/terms/taxonRank"/>
+        <field index="68"  term="http://rs.tdwg.org/dwc/terms/verbatimDepth"/>
+        <field index="69"  term="http://rs.tdwg.org/dwc/terms/vernacularName"/>
+        <field index="70"  term="http://rs.tdwg.org/dwc/terms/year"/>
+
       </core>
     </archive>
     //add the XML
@@ -307,3 +456,4 @@ class DwCACreator {
     zop.closeEntry
   }
 }
+
