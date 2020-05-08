@@ -343,7 +343,12 @@ trait IndexDAO {
     ("vitality", "vitality", -1, RAW),
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
-    ("habitatTaxon", "habitats_taxon", 4, PARSED)
+    ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("taxonId", "raw_taxon_id", -1, RAW),
+    ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
+    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
+    ("scientificNameAuthorship", "raw_taxon_name_authorship", -1, RAW),
+    ("scientificNameAddendum", "raw_taxon_name_addendum", -1, RAW)
   )
 
   /**
@@ -356,7 +361,6 @@ trait IndexDAO {
     ("verbatimDepth", "raw_verbatim_depth", -1, RAW), // NEW   - this is causing an error
     ("taxonRank", "raw_rank", -1, RAW), // NEW
     ("stateProvince", "raw_state", -1, RAW), // NEW
-    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
     ("phylum", "raw_phylum", -1, RAW), // NEW
     ("order", "raw_order", -1, RAW), // NEW
     ("month", "raw_month", -1, RAW), // NEW
@@ -409,6 +413,7 @@ trait IndexDAO {
     , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "coordinate_uncertainty_category"
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
+    , "raw_taxon_id", "raw_sampling_protocol", "raw_taxon_name_authorship", "raw_taxon_name_addendum"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
   ) ::: Config.additionalFieldsToIndex
 
@@ -876,6 +881,10 @@ trait IndexDAO {
           getParsedValue("endDay", map),
           getParsedValue("endMonth", map),
           getParsedValue("endYear", map),
+          getValue("taxonId", map),
+          getValue("samplingProtocol", map),
+          getValue("scientificNameAuthorship", map),
+          getValue("scientificNameAddendum", map),
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", "")
@@ -1534,7 +1543,14 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getParsedValue("endYear", map))
         i = i + 1
-
+        addField(doc, header(i), getValue("taxonId", map))
+        i = i + 1
+        addField(doc, header(i), getValue("samplingProtocol", map))
+        i = i + 1
+        addField(doc, header(i), getValue("scientificNameAuthorship", map))
+        i = i + 1
+        addField(doc, header(i), getValue("scientificNameAddendum", map))
+        i = i + 1
 
         Config.additionalFieldsToIndex.foreach(field => {
           addField(doc, header(i), getValue(field, map))
