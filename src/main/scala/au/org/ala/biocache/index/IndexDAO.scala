@@ -346,9 +346,7 @@ trait IndexDAO {
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
     ("taxonId", "raw_taxon_id", -1, RAW),
     ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
-    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
-    ("scientificNameAuthorship", "raw_taxon_name_authorship", -1, RAW),
-    ("scientificNameAddendum", "raw_taxon_name_addendum", -1, RAW)
+    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
   )
 
   /**
@@ -413,7 +411,7 @@ trait IndexDAO {
     , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "coordinate_uncertainty_category"
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
-    , "raw_taxon_id", "raw_sampling_protocol", "raw_taxon_name_authorship", "raw_taxon_name_addendum"
+    , "raw_taxon_id", "raw_sampling_protocol"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
   ) ::: Config.additionalFieldsToIndex
 
@@ -883,8 +881,6 @@ trait IndexDAO {
           getParsedValue("endYear", map),
           getValue("taxonId", map),
           getValue("samplingProtocol", map),
-          getValue("scientificNameAuthorship", map),
-          getValue("scientificNameAddendum", map),
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", "")
@@ -1546,10 +1542,6 @@ trait IndexDAO {
         addField(doc, header(i), getValue("taxonId", map))
         i = i + 1
         addField(doc, header(i), getValue("samplingProtocol", map))
-        i = i + 1
-        addField(doc, header(i), getValue("scientificNameAuthorship", map))
-        i = i + 1
-        addField(doc, header(i), getValue("scientificNameAddendum", map))
         i = i + 1
 
         Config.additionalFieldsToIndex.foreach(field => {
