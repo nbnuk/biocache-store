@@ -141,6 +141,28 @@ class LayersStore ( layersStoreUrl: String) {
   }
 
   /**
+    * returns list of valid enabled layers for sampling
+    */
+  def getLayerIds() : util.ArrayList[String] = {
+    val response = Source.fromURL(layersStoreUrl + "/layers", "UTF-8")
+    val responseBody = if(!response.isEmpty){
+      response.mkString
+    } else {
+      "[]"
+    }
+
+    val layers: util.ArrayList[String] = new util.ArrayList[String]()
+    val ja: JSONArray = JSONArray.fromObject(responseBody)
+    for (j <- 0 until ja.size()) {
+      if (ja.getJSONObject(j).getBoolean("enabled")) { //only include enabled layers: the WS call actually only returns enabled layers, but ensure this
+        layers.add("cl" + ja.getJSONObject(j).getString("uid"))
+      }
+    }
+
+    (layers)
+  }
+
+  /**
    * Returns map of valid fieldIds for sampling
    * key = fieldId
    * value = display name

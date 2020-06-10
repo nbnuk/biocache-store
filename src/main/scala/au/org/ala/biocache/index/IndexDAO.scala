@@ -1459,7 +1459,7 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getParsedValue("maximumElevationInMeters", map))
         i = i + 1
-        addField(doc, header(i), getParsedValueIfAvailable("verbatimDepth", map))
+        addField(doc, header(i), getParsedValueIfAvailable("verbatimDepth", map, ""))
         i = i + 1
         addField(doc, header(i), getParsedValue("minimumDepthInMeters", map))
         i = i + 1

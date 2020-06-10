@@ -161,7 +161,7 @@ object Config {
 
       if (str == null || str.trim == "") {
         val dbfields = try {
-          new LayersStore(Config.layersServiceUrl).getFieldIds()
+          new LayersStore(Config.layersServiceUrl).getLayerIds() //was getFieldIds() but this does not respect layers enabled/disabled
         } catch {
           case e: Exception => {
             logger.error("Problem loading layers to intersect: " + e.getMessage, e)
@@ -169,7 +169,7 @@ object Config {
           }
         }
 
-        logger.info("Number of fields to sample: " + dbfields.size())
+        logger.info("Number of layers to sample: " + dbfields.size())
 
         val fields: Array[String] = if (!dbfields.isEmpty) {
           Array.ofDim(dbfields.size())
@@ -182,13 +182,13 @@ object Config {
             fields(a) = dbfields.get(a)
           }
         }
-        logger.info("Fields to sample: " + fields.mkString(","))
+        logger.info("Layers to sample: " + fields.mkString(","))
         fieldsToSampleCached = fields
       } else if (str == "none") {
         fieldsToSampleCached = Array[String]()
       } else {
         val fields = str.split(",").map(x => x.trim).toArray
-        logger.info("Fields to sample: " + fields.mkString(","))
+        logger.info("Layers to sample: " + fields.mkString(","))
         fieldsToSampleCached = fields
       }
     }
