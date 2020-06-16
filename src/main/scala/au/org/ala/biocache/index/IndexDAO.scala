@@ -344,6 +344,7 @@ trait IndexDAO {
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("gridSizeInMeters", "grid_size", 4, PARSED),
     ("taxonId", "raw_taxon_id", -1, RAW),
     ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
     ("scientificName", "raw_taxon_name", -1, RAW) // NEW
@@ -1525,6 +1526,8 @@ trait IndexDAO {
         addField(doc, header(i), getValue("scientificNameAuthorship", map))
         i = i + 1
         addField(doc, header(i), getValue("nomenclaturalStatus", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValueIfAvailable("gridSizeInMeters", map, ""))
         i = i + 1
 
         addField(doc, header(i), getValue("nameParseType", map))
