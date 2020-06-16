@@ -289,6 +289,8 @@ CREATE TABLE occ.occ (
     "gridReference_p" text,
     "gridReferenceWKT" text,
     "gridReferenceWKT_p" text,
+    "gridSizeInMeters" text,
+    "gridSizeInMeters_p" text,
     habitat text,
     habitat_p text,
     "habitatTaxon_p" text,

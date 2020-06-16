@@ -110,6 +110,8 @@ class LocationProcessor extends Processor {
       processGridWKT(raw, processed)
     }
 
+    addGridSize(raw, processed, assertions)
+
 
     //return the assertions created by this processor
     assertions.toArray
@@ -570,6 +572,19 @@ class LocationProcessor extends Processor {
   }
 
   /**
+    * Set gridSizeInMeters, using the processed gridReference
+   */
+  private def addGridSize(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+    if (processed.location.gridReference != null) {
+      processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(processed.location.gridReference).getOrElse("").toString()
+    } else if (raw.location.gridReference != null) {
+      processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(raw.location.gridReference).getOrElse("").toString()
+    } else {
+      processed.location.gridSizeInMeters = ""
+    }
+  }
+
+  /**
     * Get the number of decimal places in a double value in string form
     *
     * @param decimalAsString
@@ -664,6 +679,25 @@ class LocationProcessor extends Processor {
       assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, "Uncertainty was not supplied")
     } else {
       assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, PASSED)
+    }
+
+    //if grid and no lat/long
+    //or if grid and lat/long, and lat/long is centroid
+    //or if grid and lat/long and no coordinate uncertainty provided
+    //then amend coordinate uncertainty to radius of circle through corners of grid
+    var recalcCoordUncertainty = false
+    if (raw.location.gridReference != null) {
+      if (raw.location.decimalLongitude == null || raw.location.originalDecimalLatitude == null) {
+        recalcCoordUncertainty = true
+      } else if (GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble,raw.location.gridReference)) {
+        recalcCoordUncertainty = true
+      } else if (raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) {
+        recalcCoordUncertainty = true
+      }
+    }
+    if (recalcCoordUncertainty) {
+      val cornerDistFromCentre = processed.location.coordinateUncertaintyInMeters.toDouble / math.sqrt(2.0) //centre to corner
+      processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
     }
   }
 
