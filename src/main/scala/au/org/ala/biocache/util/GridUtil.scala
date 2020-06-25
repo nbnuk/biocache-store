@@ -570,7 +570,7 @@ object GridUtil {
   * @param geodeticDatum geodeticDatum (if empty assume WGS84)
   * @return gridRef
   */
-  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String, gridType:String): Option[String] = {
+  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String, gridType:String, knownGridSize: Int = -1): Option[String] = {
     val datum = lookupEpsgCode(geodeticDatum)
 
     var N = 0.0
@@ -597,8 +597,13 @@ object GridUtil {
       }
     }
 
-    val gridSize = coordinateUncertaintyInMeters * math.sqrt(2.0) * 0.995 //old coordinateUncertaintyInMeters was understood as the linear dimension of a grid cell - convert back to this from a centre to corner distance
-    //ad-hoc multiplication by 0.995 to avoid rounding errors pushing grid size up to next category for marginal cases.
+    val gridSize =
+      if (knownGridSize >= 0) {
+        knownGridSize
+      } else {
+        coordinateUncertaintyInMeters * math.sqrt(2.0) //old coordinateUncertaintyInMeters was understood as the linear dimension of a grid cell - convert back to this from a centre to corner distance
+        //danger here is rounding error from floating point arithmetic
+      }
     val digits = gridSize match {
       case x if (x < 10)                    => 10
       case x if (10 <= x && x < 100)        => 8
