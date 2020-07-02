@@ -48,6 +48,7 @@ object AssertionCodes {
   val MISSING_GEOREFERENCESOURCES = ErrorCode("missingGeoreferenceSources",33,false,"GeoreferenceSources not supplied with the record", Missing)
   val MISSING_GEOREFERENCEVERIFICATIONSTATUS = ErrorCode("missingGeoreferenceVerificationStatus",34, false,"GeoreferenceVerificationStatus not supplied with the record", Missing)
   val INVALID_GEODETICDATUM = ErrorCode("invalidGeodeticDatum", 35, false,"The geodetic datum is not valid", Error)
+  val COORDINATES_NOT_CENTRE_OF_GRID = ErrorCode("coordinatesNotCentreOfGrid",36, false, "Coordinates not centre of grid square", Warning)
 
   val MISSING_GEOREFERENCE_DATE = ErrorCode("missingGeoreferenceDate",42,false, "GeoreferenceDate not supplied with the record", Missing)
   val LOCATION_NOT_SUPPLIED = ErrorCode("locationNotSupplied", 43, false, "No location information has been provided with the record", Missing)
