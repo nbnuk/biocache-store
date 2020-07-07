@@ -347,7 +347,7 @@ trait IndexDAO {
     ("gridSizeInMeters", "grid_size", 4, PARSED),
     ("taxonId", "raw_taxon_id", -1, RAW),
     ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
-    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
+    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
     ("highResolution", "highresolution", -1, PARSED),
     ("highResolutionDecimalLatitude", "highresolution_latitude", -1, PARSED),
