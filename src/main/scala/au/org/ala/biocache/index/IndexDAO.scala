@@ -344,17 +344,17 @@ trait IndexDAO {
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("gridSizeInMeters", "grid_size", 4, PARSED),
+    ("taxonId", "raw_taxon_id", -1, RAW),
+    ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
+    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
+    ("habitatTaxon", "habitats_taxon", 4, PARSED),
     ("highResolution", "highresolution", -1, PARSED),
     ("highResolutionDecimalLatitude", "highresolution_latitude", -1, PARSED),
     ("highResolutionDecimalLongitude", "highresolution_longitude", -1, PARSED),
     ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, PARSED),
     ("highResolutionGridReference", "highresolution_grid_reference", -1, PARSED),
     ("highResolutionLocality", "highresolution_locality", -1, RAW)
-    ("habitatTaxon", "habitats_taxon", 4, PARSED),
-    ("gridSizeInMeters", "grid_size", 4, PARSED),
-    ("taxonId", "raw_taxon_id", -1, RAW),
-    ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
-    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
   )
 
   /**
