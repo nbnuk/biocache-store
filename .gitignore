@@ -14,3 +14,4 @@ target
 src/test/resources/solr/biocache/merged_0
 src/test/resources/solr/biocache/solr-create
 **/.DS_Store
+src/test/resources/au/org/ala/load/test-dwca/export.csv-lock
