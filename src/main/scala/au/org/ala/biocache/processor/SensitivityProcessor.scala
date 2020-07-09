@@ -100,7 +100,7 @@ class SensitivityProcessor extends Processor {
     //these should override the processed versions
     //NBN: but, won't these overwrite updated values in a record that has been reloaded?
 
-    if(raw.occurrence.originalSensitiveValues != null){
+    if (raw.occurrence.originalSensitiveValues != null) {
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
         case (key, value) => {
@@ -213,7 +213,7 @@ class SensitivityProcessor extends Processor {
 
     logger.debug("SDS outcome: " + outcome)
 
-    /************** SDS check end ************/
+    /** ************ SDS check end ************/
 
     if (outcome != null && outcome.isValid && outcome.isSensitive) {
 
@@ -292,17 +292,17 @@ class SensitivityProcessor extends Processor {
             if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
               rawPropertiesToUpdate.put("gridReference", "")
             } else {
-                if (currentUncertainty >= java.lang.Integer.parseInt(generalisationToApplyInMetres.get)) {
-                  //raw coordinate uncertainty is already cruder than the SDS-derived generalisation
-                  processed.location.coordinateUncertaintyInMeters =currentUncertainty.toString
-                  processed.location.decimalLatitude = rawMap("decimalLatitude")
-                  processed.location.decimalLongitude = rawMap("decimalLongitude")
-                  rawPropertiesToUpdate("decimalLatitude") = rawMap("decimalLatitude")
-                  rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
-                  rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
-                } else {
-                  processed.location.coordinateUncertaintyInMeters = generalisationToApplyInMetres.get
-                }
+              if (currentUncertainty >= java.lang.Integer.parseInt(generalisationToApplyInMetres.get)) {
+                //raw coordinate uncertainty is already cruder than the SDS-derived generalisation
+                processed.location.coordinateUncertaintyInMeters = currentUncertainty.toString
+                processed.location.decimalLatitude = rawMap("decimalLatitude")
+                processed.location.decimalLongitude = rawMap("decimalLongitude")
+                rawPropertiesToUpdate("decimalLatitude") = rawMap("decimalLatitude")
+                rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
+                rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
+              } else {
+                processed.location.coordinateUncertaintyInMeters = generalisationToApplyInMetres.get
+              }
 
               val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetres.get)
               if (generalisedRef.isDefined) {
@@ -439,11 +439,24 @@ class SensitivityProcessor extends Processor {
       }
 
       // recalculate footprint and informationWithheld annotation using generalised grid
-      if (raw.location.gridReference != null) {
-        raw.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
-        processed.location.gridReferenceWKT = raw.location.gridReferenceWKT
-        processed.occurrence.informationWithheld = GridUtil.getGridAsTextWithAnnotation( raw.location.gridReference );
-        // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
+      if (raw.location.gridReference != null || processed.location.gridReference != null) {
+        var computed = false
+        if (processed.location.gridReference != null) {
+          processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
+          computed = true
+        } else if (raw.location.gridReference != null) {
+          processed.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
+          computed = true
+        }
+        if (computed) {
+          if (processed.occurrence.informationWithheld == null)
+            processed.occurrence.informationWithheld = ""
+          else
+            processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " "
+
+          processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation(raw.location.gridReference)
+          // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
+        }
       }
 
     } else {

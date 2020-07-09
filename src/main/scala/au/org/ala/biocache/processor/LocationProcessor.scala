@@ -104,11 +104,9 @@ class LocationProcessor extends Processor {
     //check marine/non-marine
     checkForBiomeMismatch(raw, processed, assertions)
 
-    //NBN Cassandra WKT ***
+
     //requires gridreferencewkt, gridreferencewkt_p field in DB
-    if (Config.gridRefIndexingPolyReadFromCassandra) {
-      processGridWKT(raw, processed)
-    }
+    processGridWKT(raw, processed)
 
 
     //return the assertions created by this processor
@@ -552,18 +550,24 @@ class LocationProcessor extends Processor {
   // NBN ***
   private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
 
-    if (raw.location.gridReference != null) {
-      raw.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
-      processed.location.gridReferenceWKT = raw.location.gridReferenceWKT
+    if (processed.location.gridReferenceWKT == null) {
+      var computed = false
+      if (processed.location.gridReference != null) {
+        processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
+        computed = true
+      } else if (raw.location.gridReference != null) {
+        processed.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
+        computed = true
+      }
+      if (computed) {
+        if (processed.occurrence.informationWithheld == null)
+          processed.occurrence.informationWithheld = ""
+        else
+          processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " "
 
-      if (processed.occurrence.informationWithheld == null)
-        processed.occurrence.informationWithheld = ""
-      else
-        processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " ";
-
-      processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation( raw.location.gridReference );
-      // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
-
+        processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation(raw.location.gridReference)
+        // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
+      }
     } else {
       //use point if no grid reference?
     }
