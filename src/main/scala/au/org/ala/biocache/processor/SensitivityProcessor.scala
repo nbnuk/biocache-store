@@ -4,7 +4,7 @@ import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.{LocationDAO, SensitivityDAO, SpatialLayerDAO}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion, Versions}
-import au.org.ala.biocache.util.{GridUtil, Json}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.vocab.StateProvinces
 import au.org.ala.sds.SensitiveDataService
 import org.apache.commons.lang.StringUtils
@@ -281,6 +281,7 @@ class SensitivityProcessor extends Processor {
           processed.location.northing = ""
           processed.location.easting = ""
           processed.location.bbox = ""
+          processed.location.geodeticDatum = GISUtil.WGS84_EPSG_Code //since we know the coordinates have already been reprojected as necessary
           rawPropertiesToUpdate -= "generalisationInMetres"
         }
 
@@ -297,6 +298,7 @@ class SensitivityProcessor extends Processor {
                 processed.location.coordinateUncertaintyInMeters = currentUncertainty.toString
                 processed.location.decimalLatitude = rawMap("decimalLatitude")
                 processed.location.decimalLongitude = rawMap("decimalLongitude")
+                processed.location.geodeticDatum = GISUtil.WGS84_EPSG_Code //since we know the coordinates have already been reprojected as necessary
                 rawPropertiesToUpdate("decimalLatitude") = rawMap("decimalLatitude")
                 rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
                 rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
@@ -513,6 +515,7 @@ class SensitivityProcessor extends Processor {
       processed.location.coordinateUncertaintyInMeters = lastProcessed.get.location.coordinateUncertaintyInMeters
       processed.location.decimalLatitude = lastProcessed.get.location.decimalLatitude
       processed.location.decimalLongitude = lastProcessed.get.location.decimalLatitude
+      processed.location.geodeticDatum = lastProcessed.get.location.geodeticDatum
       processed.location.northing = lastProcessed.get.location.northing
       processed.location.easting = lastProcessed.get.location.easting
       processed.location.bbox = lastProcessed.get.location.bbox

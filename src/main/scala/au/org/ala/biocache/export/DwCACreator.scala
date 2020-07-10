@@ -149,7 +149,7 @@ object DwCACreator extends Tool {
                       cleanValue(map.getOrElse("behavior", "")),
                       cleanValue(map.getOrElse("catalognumber", "")),
                       cleanValue(map.getOrElse("classs_p", "")),
-                      cleanValue(map.getOrElse("collectioncode", "")),
+                      cleanValue(map.getOrElse("collectioncode", map.getOrElse("collectioncode_p", ""))), //_p? [either can be populated]
                       cleanValue(map.getOrElse("coordinateuncertaintyinmeters_p", "")),
                       cleanValue(map.getOrElse("country_p", "")),
                       cleanValue(map.getOrElse("datageneralizations_p", "")),
@@ -165,27 +165,28 @@ object DwCACreator extends Tool {
                       cleanValue(map.getOrElse("gridreferencewkt_p", "")),
                       cleanValue(map.getOrElse("genus_p", "")),
                       cleanValue(map.getOrElse("geodeticdatum_p", "")),
-                      cleanValue(map.getOrElse("georeferenceverificationstatus", "")),
+                      cleanValue(map.getOrElse("georeferenceverificationstatus_p", "")),
                       cleanValue(map.getOrElse("habitat_p", "")),
                       cleanValue(map.getOrElse("highergeography", "")),
+                      cleanValue(map.getOrElse("identificationremarks", "")),
                       cleanValue(map.getOrElse("identificationverificationstatus_p", "")),
                       cleanValue(map.getOrElse("identifiedby", "")),
                       cleanValue(map.getOrElse("individualcount", "")),
                       cleanValue(map.getOrElse("informationwithheld_p", "")),
-                      cleanValue(map.getOrElse("institutioncode", "")),
+                      cleanValue(map.getOrElse("institutioncode", map.getOrElse("institutioncode_p", ""))), //_p is sometimes populated and raw is blank (if supplied in defaultDarwinCoreValues for e.g. https://registry.nbnatlas.org/ws/dataResource/dr1817 , but data manager to fix before loading)
                       cleanValue(map.getOrElse("kingdom_p", "")),
                       cleanValue( licenseToUrlLicense( map.getOrElse("license_p", "") )),
                       cleanValue(map.getOrElse("lifestage", "")),
-                      cleanValue(map.getOrElse("locality", "")),
+                      cleanValue(map.getOrElse("locality", "")), // [_p is not populated]
                       cleanValue(map.getOrElse("locationremarks", "")),
-                      cleanValue(map.getOrElse("maximumdepthinmeters", "")),
-                      cleanValue(map.getOrElse("maximumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("maximumdepthinmeters", "")), // [_p is populated if raw is parseable]
+                      cleanValue(map.getOrElse("maximumelevationinmeters", "")), // [_p is populated if raw is parseable]
                       cleanValue(map.getOrElse("measurementmethod", "")),
                       cleanValue(map.getOrElse("measurementtype", "")),
                       cleanValue(map.getOrElse("measurementunit", "")),
                       cleanValue(map.getOrElse("measurementvalue", "")),
-                      cleanValue(map.getOrElse("minimumdepthinmeters", "")),
-                      cleanValue(map.getOrElse("minimumelevationinmeters", "")),
+                      cleanValue(map.getOrElse("minimumdepthinmeters", "")), // [_p is populated if raw is parseable]
+                      cleanValue(map.getOrElse("minimumelevationinmeters", "")), // [_p is populated if raw is parseable]
                       cleanValue(map.getOrElse("month_p", "")),
                       cleanValue(map.getOrElse("nomenclaturalstatus_p", "")),
                       cleanValue(map.getOrElse("occurrenceremarks", "")),
@@ -425,7 +426,7 @@ class DwCACreator {
         <field index="48"  term="http://rs.tdwg.org/dwc/terms/order"/>
         <field index="49"  term="http://rs.tdwg.org/dwc/terms/organismQuantity"/>
         <field index="50"  term="http://rs.tdwg.org/dwc/terms/organismQuantityType"/>
-        <field index="51"  term="http://rs.tdwg.org/dwc/terms/organismQuantityRemarks"/>
+        <field index="51"  term="http://rs.tdwg.org/dwc/terms/organismRemarks"/>
         <field index="52"  term="http://rs.tdwg.org/dwc/terms/organismScope"/>
         <field index="53"  term="http://rs.tdwg.org/dwc/terms/phylum"/>
         <field index="54"  term="http://rs.tdwg.org/dwc/terms/recordedBy"/>
