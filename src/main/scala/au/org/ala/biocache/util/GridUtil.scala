@@ -689,7 +689,7 @@ object GridUtil {
   // get grid reference as human readable text with an annotation to say if it's a OSGB or OSI grid
   def getGridAsTextWithAnnotation(gridReference: String = "") = {
     var text = ""
-    if (gridReference != "") {
+    if (gridReference != "" && gridReference != null) {
       // see if it's OSGB
       val result = GridUtil.osGridReferenceToEastingNorthing( gridReference )
       if(!result.isEmpty){

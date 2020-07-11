@@ -550,7 +550,7 @@ class LocationProcessor extends Processor {
   // NBN ***
   private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
 
-    if (processed.location.gridReferenceWKT == null) {
+    if (processed.location.gridReferenceWKT == null && raw.location.gridReference != null) { //TODO: use isGridRecord
       var computed = false
       if (processed.location.gridReference != null) {
         processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
