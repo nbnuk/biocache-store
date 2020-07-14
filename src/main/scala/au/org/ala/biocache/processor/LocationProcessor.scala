@@ -541,16 +541,17 @@ class LocationProcessor extends Processor {
   }
 
   /**
-    * If gridreference supplied, convert to WKT
+    * If gridreference supplied without coordinates, convert to WKT. Note: if both gridref and coordinates supplied then WKT is not set
     *
     * @param raw
     * @param processed
 
     */
-  // NBN ***
   private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
 
-    if (processed.location.gridReferenceWKT == null && raw.location.gridReference != null) { //TODO: use isGridRecord
+    if (processed.location.gridReferenceWKT == null &&
+       raw.location.gridReference != null && !raw.location.gridReference.isEmpty &&
+      (raw.location.decimalLatitude == null || raw.location.decimalLongitude == null || raw.location.decimalLatitude.toFloatWithOption.isEmpty || raw.location.decimalLongitude.toFloatWithOption.isEmpty)) {
       var computed = false
       if (processed.location.gridReference != null) {
         processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
@@ -569,7 +570,7 @@ class LocationProcessor extends Processor {
         // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
       }
     } else {
-      //use point if no grid reference?
+      //no gridReferenceWKT if it was a coordinate-based record
     }
   }
 

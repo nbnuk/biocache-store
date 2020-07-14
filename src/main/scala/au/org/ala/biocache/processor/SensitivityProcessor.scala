@@ -4,7 +4,7 @@ import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.{LocationDAO, SensitivityDAO, SpatialLayerDAO}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion, Versions}
-import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json, StringHelper}
 import au.org.ala.biocache.vocab.StateProvinces
 import au.org.ala.sds.SensitiveDataService
 import org.apache.commons.lang.StringUtils
@@ -22,6 +22,7 @@ class SensitivityProcessor extends Processor {
   val logger = LoggerFactory.getLogger("SensitivityProcessor")
 
   import JavaConversions._
+  import StringHelper._
 
   def getName = "sensitive"
 
@@ -441,12 +442,13 @@ class SensitivityProcessor extends Processor {
       }
 
       // recalculate footprint and informationWithheld annotation using generalised grid
-      if (raw.location.gridReference != null || processed.location.gridReference != null) {
+      if (raw.location.gridReference != null && !raw.location.gridReference.isEmpty) {
+        //TODO: sensitive records have raw.location.decimallatitude etc. populated during the generalisation process, even if the actual data file did not have these values. This means we can't check these as a proxy for a grid- or coordinate-based record.
         var computed = false
-        if (processed.location.gridReference != null) {
+        if (processed.location.gridReference != null && !processed.location.gridReference.isEmpty) {
           processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
           computed = true
-        } else if (raw.location.gridReference != null) {
+        } else if (raw.location.gridReference != null && !raw.location.gridReference.isEmpty) {
           processed.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
           computed = true
         }
