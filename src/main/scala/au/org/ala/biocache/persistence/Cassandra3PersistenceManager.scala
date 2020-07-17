@@ -1175,13 +1175,15 @@ class Cassandra3PersistenceManager  @Inject() (
             val rows = future.getUninterruptibly()
             val row = rows.one()
             val mapBuilder = collection.mutable.Map[String, String]()
-            if (Config.caseSensitiveCassandra) {
-              fields.foreach { field =>
-                mapBuilder.put(field, row.getString(field))
-              }
-            } else {
-              fields.foreach { field =>
-                mapBuilder.put(field, row.getString(field.toLowerCase))
+            if (row != null) {
+              if (Config.caseSensitiveCassandra) {
+                fields.foreach { field =>
+                  mapBuilder.put(field, row.getString(field))
+                }
+              } else {
+                fields.foreach { field =>
+                  mapBuilder.put(field, row.getString(field.toLowerCase))
+                }
               }
             }
             proc(mapBuilder.toMap)
