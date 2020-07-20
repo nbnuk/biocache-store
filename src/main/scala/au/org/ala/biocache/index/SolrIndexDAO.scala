@@ -65,7 +65,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   var cloudServer: CloudSolrClient = _
   var solrConfigPath: String = ""
   var httpClient: CloseableHttpClient = _
-  var connectionPoolManager: HttpClientConnectionManager = _  
+  var connectionPoolManager: HttpClientConnectionManager = _
 
   @Inject
   var occurrenceDAO: OccurrenceDAO = _
@@ -107,19 +107,19 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         poolingConnectionPoolManager.setDefaultMaxPerRoute(Config.solrConnectionMaxPerRoute)
         connectionPoolManager = poolingConnectionPoolManager
         val cacheConfig = CacheConfig.custom()
-                                     .setMaxCacheEntries(Config.solrConnectionCacheEntries)
-                                     .setMaxObjectSize(Config.solrConnectionCacheObjectSize)
-                                     .setSharedCache(false).build()
+          .setMaxCacheEntries(Config.solrConnectionCacheEntries)
+          .setMaxObjectSize(Config.solrConnectionCacheObjectSize)
+          .setSharedCache(false).build()
         val requestConfig = RequestConfig.custom()
-                                         .setConnectTimeout(Config.solrConnectionConnectTimeout)
-                                         .setConnectionRequestTimeout(Config.solrConnectionRequestTimeout)
-                                         .setSocketTimeout(Config.solrConnectionSocketTimeout).build()
+          .setConnectTimeout(Config.solrConnectionConnectTimeout)
+          .setConnectionRequestTimeout(Config.solrConnectionRequestTimeout)
+          .setSocketTimeout(Config.solrConnectionSocketTimeout).build()
         httpClient = CachingHttpClientBuilder.create()
-                                .setCacheConfig(cacheConfig)
-                                .setDefaultRequestConfig(requestConfig)
-                                .setConnectionManager(connectionPoolManager)
-                                .setUserAgent(Config.userAgent)
-                                .useSystemProperties().build()
+          .setCacheConfig(cacheConfig)
+          .setDefaultRequestConfig(requestConfig)
+          .setConnectionManager(connectionPoolManager)
+          .setUserAgent(Config.userAgent)
+          .useSystemProperties().build()
 
         if (!solrHome.startsWith("http://")) {
           if (solrHome.contains(":")) {
@@ -461,7 +461,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   }
 
   val multifields = Array("duplicate_inst", "establishment_means", "species_group", "assertions", "data_hub_uid", "interactions", "outlier_layer",
-    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage", "habitats_taxon")
+    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage", "habitats_taxon", "cl")
 
   val typeNotSuitableForModelling = Array("invalid", "historic", "vagrant", "irruptive")
 
@@ -793,10 +793,15 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         }
         val cls = Json.toStringMap(getParsedValue("cl", map))
         cls.foreach {
-          case (key, value) => doc.addField(key, value)
+          case (key, value) => {
+            val values_separate = value.split('|').map(_.trim)
+            values_separate.foreach {
+              doc.addField(key, _)
+            }
+          }
         }
-        
-        
+
+
         //Species groups - index the additional species information - ie species groups
         val lft = getParsedValue("left", map)
         val rgt = getParsedValue("right", map)
@@ -869,7 +874,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
   /**
     * New indexing implementation
-    * 
+    *
     * @param guid
     * @param map
     * @param batch
@@ -978,7 +983,17 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
         //index the available el and cl's - more efficient to use the supplied map than using the old way
         addJsonMapToDoc(doc, getParsedValue("el", map))
-        addJsonMapToDoc(doc, getParsedValue("cl", map))
+        //addJsonMapToDoc(doc, getParsedValue("cl", map))
+        //since cls can be multi-value now, easiest to do it this way
+        val cls = Json.toStringMap(getParsedValue("cl", map))
+        cls.foreach {
+          case (key, value) => {
+            val values_separate = value.split('|').map(_.trim)
+            values_separate.foreach {
+              doc.addField(key, _)
+            }
+          }
+        }
 
         //index the additional species information - ie species groups
         val lft = getParsedValue("left", map)
@@ -1148,13 +1163,22 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
         //index the available el and cl's - more efficient to use the supplied map than using the old way
 
-//        addJsonMapToDoc(doc, getArrayValue(columnOrder.elP, array))
+        //        addJsonMapToDoc(doc, getArrayValue(columnOrder.elP, array))
         val els = Json.toJavaMap(getArrayValue(columnOrder.elP, dataRow))
         els.foreach {
           case (key, value) => doc.addField(key, value)
         }
 
-        addJsonMapToDoc(doc, getArrayValue(columnOrder.clP, dataRow))
+        //addJsonMapToDoc(doc, getArrayValue(columnOrder.clP, dataRow))
+        val cls = Json.toJavaMap(getArrayValue(columnOrder.clP, dataRow))
+        cls.foreach {
+          case (key, value) => {
+            val values_separate = value.toString().split('|').map(_.trim)
+            values_separate.foreach {
+              doc.addField(key, _)
+            }
+          }
+        }
 
         //index the additional species information - ie species groups
 

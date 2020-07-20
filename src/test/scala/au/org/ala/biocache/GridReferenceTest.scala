@@ -331,4 +331,25 @@ class GridReferenceTest extends FunSuite {
 
   }
 
+
+  test("Grid centroid tests") {
+
+    expectResult(true) { GridUtil.isCentroid(-2.809, 52.2824,"SO46") }
+    expectResult(false) { GridUtil.isCentroid(-2.7888, 52.2971,"SO46") }
+
+    expectResult(true) { GridUtil.isCentroid(-2.78593, 52.294,"SO4666") }
+    expectResult(false) { GridUtil.isCentroid(-2.78593, 52.29494,"SO4666") }
+
+    expectResult(true) { GridUtil.isCentroid(-2.7877410, 52.2964728,"SO46376677") }
+    expectResult(false) { GridUtil.isCentroid(-2.7877547, 52.2964728,"SO46376677") }
+
+    expectResult(true) { GridUtil.isCentroid(-6.79750, 54.99451,"C71T") }
+    expectResult(false) { GridUtil.isCentroid(-6.80109, 54.99451,"C71T") }
+
+    expectResult(false) { GridUtil.isCentroid(-6.80109, 54.99451,"XXXX") }
+
+    expectResult(false) { GridUtil.isCentroid(-5.80109, 51.99451,"C71T") }
+
+  }
+
 }

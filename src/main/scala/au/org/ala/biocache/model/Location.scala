@@ -78,6 +78,7 @@ class Location extends Cloneable with POSO {
   @BeanProperty var zone: String =_
   @BeanProperty var gridReference: String =_
   @BeanProperty var gridReferenceWKT: String =_ // NBN **** RR
+  @BeanProperty var gridSizeInMeters: String=_
   @BeanProperty var bbox:String = _ //stored in minX,minY,maxX,maxy format (not in JSON)
 
   //fields that need be hidden from all public API

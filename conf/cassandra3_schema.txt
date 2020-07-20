@@ -279,6 +279,8 @@ CREATE TABLE occ (
     gridreference_p text,
     gridreferencewkt text,
     gridreferencewkt_p text,
+    gridsizeinmeters text,
+    gridsizeinmeters_p text,
     group text,
     habitat text,
     habitat_p text,

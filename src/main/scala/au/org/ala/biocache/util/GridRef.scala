@@ -7,7 +7,7 @@ case class GridRef(
   val gridLetters:String,
   var easting:Int,  //centroid easting
   var northing:Int,  //centroid northing
-  var coordinateUncertainty:Option[Int],
+  var gridSize:Option[Int],
   var minEasting:Int,
   var minNorthing:Int,
   var maxEasting:Int,

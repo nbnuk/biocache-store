@@ -11,7 +11,7 @@ import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.persistence.DataRow
 import au.org.ala.biocache.util.Json
-import au.org.ala.biocache.vocab.{AssertionStatus, CoordinateUncertaintyCategory}
+import au.org.ala.biocache.vocab.{AssertionStatus}
 import com.datastax.driver.core.GettableData
 import org.apache.batik.parser.NumberParser
 import org.apache.commons.lang.StringUtils
@@ -344,6 +344,7 @@ trait IndexDAO {
     ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
     ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
     ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("gridSizeInMeters", "grid_size", 4, PARSED),
     ("taxonId", "raw_taxon_id", -1, RAW),
     ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
     ("scientificName", "raw_taxon_name", -1, RAW) // NEW
@@ -408,7 +409,7 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
     , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
-    , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "coordinate_uncertainty_category"
+    , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "grid_size"
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "raw_taxon_id", "raw_sampling_protocol"
@@ -712,8 +713,6 @@ trait IndexDAO {
           case e: Exception => distanceOutsideExpertRange = ""
         }
 
-        var coordinateUncertaintyCategory = CoordinateUncertaintyCategory.getCategory(getParsedValue("coordinateUncertaintyInMeters", map))
-
         //the returned list needs to match up with the CSV header
         return List[String](
           getValue("rowkey", map),
@@ -873,7 +872,7 @@ trait IndexDAO {
           getParsedValueIfAvailable("scientificNameAuthorship", map, ""),
           getParsedValueIfAvailable("nomenclaturalStatus", map, ""),
           getParsedValueIfAvailable("habitatTaxon", map, ""),
-          coordinateUncertaintyCategory,
+          getParsedValueIfAvailable("gridSizeInMeters", map, ""),
           poly_grid,
           getParsedValue("day", map),
           getParsedValue("endDay", map),
@@ -1527,6 +1526,8 @@ trait IndexDAO {
         addField(doc, header(i), getValue("scientificNameAuthorship", map))
         i = i + 1
         addField(doc, header(i), getValue("nomenclaturalStatus", map))
+        i = i + 1
+        addField(doc, header(i), getParsedValueIfAvailable("gridSizeInMeters", map, ""))
         i = i + 1
 
         addField(doc, header(i), getValue("nameParseType", map))
