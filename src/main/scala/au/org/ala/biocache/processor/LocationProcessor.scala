@@ -698,8 +698,9 @@ class LocationProcessor extends Processor {
     //then amend coordinate uncertainty to radius of circle through corners of grid
 
     var recalcCoordUncertainty = false
-    if (raw.location.gridReference != null) {
-      if (raw.location.decimalLongitude == null || raw.location.originalDecimalLatitude == null) {
+    if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
+      if (raw.location.decimalLongitude == null || raw.location.decimalLatitude == null ||
+        raw.location.decimalLongitude.length == 0 || raw.location.decimalLatitude.length == 0) {
         recalcCoordUncertainty = true
       } else {
         var isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble,raw.location.gridReference)
@@ -714,8 +715,20 @@ class LocationProcessor extends Processor {
       }
     }
     if (recalcCoordUncertainty) {
-      val cornerDistFromCentre = processed.location.coordinateUncertaintyInMeters.toDouble / math.sqrt(2.0) //centre to corner
-      processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
+      val cornerDistFromCentre =
+        if (processed.location.coordinateUncertaintyInMeters == null || processed.location.coordinateUncertaintyInMeters.length == 0) {
+          if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
+            processed.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
+          } else if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
+            raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
+          } else {
+            -1 //give up
+          }
+        } else {
+          processed.location.coordinateUncertaintyInMeters.toDouble / math.sqrt(2.0) //centre to corner
+        }
+      if (cornerDistFromCentre >= 0)
+        processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
     }
   }
 

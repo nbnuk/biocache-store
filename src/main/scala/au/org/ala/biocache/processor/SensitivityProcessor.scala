@@ -286,28 +286,32 @@ class SensitivityProcessor extends Processor {
         }
         var centroidAlreadyGeneralised = false
         if (!uncertainty.isEmpty) {
-          //if centroid provided then don't generalise further if existing grid is bigger than sensitive grid
-          if (currentUncertainty >= java.lang.Float.parseFloat(uncertainty.get.toString)) {
-            val isCentroid =
-              if (processed.location.gridReference != null && processed.location.gridReference.length > 0) {
-                GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, processed.location.gridReference)
-              } else if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
-                GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, raw.location.gridReference)
-              } else {
-                false
+          if (uncertainty.get != null && uncertainty.get != "") {
+            //if centroid provided then don't generalise further if existing grid is bigger than sensitive grid
+            if (currentUncertainty >= java.lang.Float.parseFloat(uncertainty.get.toString)) {
+              val isCentroid =
+                if (processed.location.gridReference != null && processed.location.gridReference.length > 0) {
+                  GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, processed.location.gridReference)
+                } else if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
+                  GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, raw.location.gridReference)
+                } else {
+                  false
+                }
+              if (isCentroid) {
+                centroidAlreadyGeneralised = true
+                rawPropertiesToUpdate -= "decimalLatitude"
+                rawPropertiesToUpdate -= "decimalLongitude"
               }
-            if (isCentroid) {
-              centroidAlreadyGeneralised = true
-              rawPropertiesToUpdate -= "decimalLatitude"
-              rawPropertiesToUpdate -= "decimalLongitude"
             }
           }
         }
         if (!centroidAlreadyGeneralised) {
           if (!uncertainty.isEmpty) {
-            //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
-            val newUncertainty = currentUncertainty + java.lang.Float.parseFloat(uncertainty.get.toString)
-            processed.location.coordinateUncertaintyInMeters = "%.1f".format(newUncertainty)
+            if (uncertainty.get != null && uncertainty.get != "") {
+              //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
+              val newUncertainty = currentUncertainty + java.lang.Float.parseFloat(uncertainty.get.toString)
+              processed.location.coordinateUncertaintyInMeters = "%.1f".format(newUncertainty)
+            }
           }
 
           processed.location.decimalLatitude = rawPropertiesToUpdate.getOrElse("decimalLatitude", "")
