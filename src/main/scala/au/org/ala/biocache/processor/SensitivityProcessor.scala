@@ -348,7 +348,7 @@ class SensitivityProcessor extends Processor {
                 val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetresGrid.get)
                 if (generalisedRef.isDefined) {
                   rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
-                  processed.setProperty("gridSizeInMeters", GridUtil.getGridSizeInMeters(generalisedRef.get).getOrElse("").toString())
+                  processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
                 } else {
                   rawPropertiesToUpdate.put("gridReference", "")
                   processed.setProperty("gridSizeInMeters", "")
@@ -371,7 +371,7 @@ class SensitivityProcessor extends Processor {
                 val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, generalisationToApplyInMetresGrid.get)
                 if (generalisedRef.isDefined) {
                   processed.setProperty("gridReference", generalisedRef.get)
-                  processed.setProperty("gridSizeInMeters", GridUtil.getGridSizeInMeters(generalisedRef.get).getOrElse("").toString())
+                  processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
                 } else {
                   processed.setProperty("gridReference", "")
                   processed.setProperty("gridSizeInMeters", "")

@@ -109,6 +109,7 @@ class LocationProcessor extends Processor {
     processGridWKT(raw, processed)
 
     addGridSize(raw, processed, assertions)
+    possiblyRecalculateCoordinateUncertainty(raw, processed, assertions)
 
 
     //return the assertions created by this processor
@@ -590,6 +591,49 @@ class LocationProcessor extends Processor {
   }
 
   /**
+    *  Sometimes coordinate uncertainty is provided according to the old concept, i.e. as the grid size
+    *  This checks for this and makes sure we use the revised concept, i.e. centre-to-corner distance
+    *  */
+  private def possiblyRecalculateCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+    //if grid and no lat/long
+    //or if grid and lat/long, and lat/long is centroid
+    //or if grid and lat/long and no coordinate uncertainty provided
+    //then amend coordinate uncertainty to radius of circle through corners of grid
+
+    var isCentroid = false
+    var recalcCoordUncertainty = false
+    if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
+      if (raw.location.decimalLongitude == null || raw.location.decimalLatitude == null ||
+        raw.location.decimalLongitude.length == 0 || raw.location.decimalLatitude.length == 0) {
+        recalcCoordUncertainty = true
+      } else {
+        isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble,raw.location.gridReference)
+        if (isCentroid) {
+          recalcCoordUncertainty = true
+        } else if (raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) {
+          recalcCoordUncertainty = true
+        }
+        if (!isCentroid) {
+          assertions += QualityAssertion(COORDINATES_NOT_CENTRE_OF_GRID)
+        }
+      }
+    }
+    if (recalcCoordUncertainty) {
+      val cornerDistFromCentre =
+        if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
+            processed.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
+          } else if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
+            raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
+          } else {
+            -1 //give up
+          }
+
+      if (cornerDistFromCentre >= 0)
+        processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
+    }
+  }
+
+  /**
     * Get the number of decimal places in a double value in string form
     *
     * @param decimalAsString
@@ -692,44 +736,7 @@ class LocationProcessor extends Processor {
       val cornerDistFromCentre = raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0) //centre to corner
       processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
     }
-    //if grid and no lat/long
-    //or if grid and lat/long, and lat/long is centroid
-    //or if grid and lat/long and no coordinate uncertainty provided
-    //then amend coordinate uncertainty to radius of circle through corners of grid
 
-    var recalcCoordUncertainty = false
-    if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
-      if (raw.location.decimalLongitude == null || raw.location.decimalLatitude == null ||
-        raw.location.decimalLongitude.length == 0 || raw.location.decimalLatitude.length == 0) {
-        recalcCoordUncertainty = true
-      } else {
-        var isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble,raw.location.gridReference)
-        if (isCentroid) {
-          recalcCoordUncertainty = true
-        } else if (raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) {
-          recalcCoordUncertainty = true
-        }
-        if (!isCentroid) {
-          assertions += QualityAssertion(COORDINATES_NOT_CENTRE_OF_GRID)
-        }
-      }
-    }
-    if (recalcCoordUncertainty) {
-      val cornerDistFromCentre =
-        if (processed.location.coordinateUncertaintyInMeters == null || processed.location.coordinateUncertaintyInMeters.length == 0) {
-          if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
-            processed.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
-          } else if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
-            raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
-          } else {
-            -1 //give up
-          }
-        } else {
-          processed.location.coordinateUncertaintyInMeters.toDouble / math.sqrt(2.0) //centre to corner
-        }
-      if (cornerDistFromCentre >= 0)
-        processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
-    }
   }
 
   /**
