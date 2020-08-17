@@ -39,6 +39,7 @@ object GridUtil {
   val irishGridlettersFlattened = irishGridletterscodes.mkString
   val irishGridRefNoEastingNorthing = ("""(I?[""" + irishGridlettersFlattened +"""]{1})""").r
   val irishGridRefRegex1Number = """(I?[A-Z]{1})\s*([0-9]+)$""".r
+  val irishGridRef50kRegex = """([A-Z]{1})\s*([NW|NE|SW|SE]{2})$""".r
   val irishGridRef2kRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
   val irishGridRefRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)$""".r
   val irishGridRefWithQuadRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)\s*([NW|NE|SW|SE]{2})$""".r
@@ -323,6 +324,9 @@ object GridUtil {
       case irishGridRefNoEastingNorthing(gridletters) => {
         (gridletters, "0", "0", "",  "", getGridSizeFromGridRef(0,0))
       }
+      case irishGridRef50kRegex(gridletters, quadRef) => {
+        (gridletters, "0", "0", "", quadRef, getGridSizeFromGridRef(0, 2))
+      }
       case _ => return None
     }
 
@@ -368,30 +372,33 @@ object GridUtil {
       }
     } else if(quadRef != ""){
 
-      val cellSize = {
+      var cellSize = {
         if (easting.length == 1) 5000
         else if (easting.length == 2) 500
         else if (easting.length == 3) 50
         else if (easting.length == 4) 5
         else 0
       }
+      if (gridSize.getOrElse(0) == 50000) { //50km grids only
+        cellSize = 50000
+      }
       if(cellSize > 0) {
-        twoKRef match {
+        quadRef match {
           case "NW" => {
-            e = e + (cellSize / 2)
-            n = n + (cellSize + cellSize / 2)
+            e = e //+ (cellSize / 2)
+            n = n + (cellSize) // + cellSize / 2)
           }
           case "NE" => {
-            e = e + (cellSize + cellSize / 2)
-            n = n + (cellSize + cellSize / 2)
+            e = e + (cellSize) // + cellSize / 2)
+            n = n + (cellSize) // + cellSize / 2)
           }
           case "SW" => {
-            e = e + (cellSize / 2)
-            n = n + (cellSize / 2)
+            e = e //+ (cellSize / 2)
+            n = n //+ (cellSize / 2)
           }
           case "SE" => {
-            e = e + (cellSize + cellSize / 2)
-            n = n + (cellSize / 2)
+            e = e + (cellSize) // + cellSize / 2)
+            n = n //+ (cellSize / 2)
           }
           case _ => return None
         }
@@ -601,16 +608,16 @@ object GridUtil {
       if (knownGridSize >= 0) {
         knownGridSize
       } else {
-        coordinateUncertaintyInMeters * math.sqrt(2.0) //old coordinateUncertaintyInMeters was understood as the linear dimension of a grid cell - convert back to this from a centre to corner distance
-        //danger here is rounding error from floating point arithmetic
+        coordinateUncertaintyInMeters * math.sqrt(2.0) -0.001 //old coordinateUncertaintyInMeters was understood as the linear dimension of a grid cell - convert back to this from a centre to corner distance
+        //danger here is rounding error from floating point arithmetic, hence the arbitrary deduction
       }
     val digits = gridSize match {
-      case x if (x < 10)                    => 10
-      case x if (10 <= x && x < 100)        => 8
-      case x if (100 <= x && x < 1000)      => 6
-      case x if (1000 <= x && x < 10000)    => 4
-      case x if (10000 <= x && x < 100000)  => 2
-      case x if (100000 <= x)               => 0
+      case x if (x <= 1)                   => 10
+      case x if (1 < x && x <= 10)         => 8
+      case x if (10 < x && x <= 100)       => 6
+      case x if (100 < x && x <= 1000)     => 4
+      case x if (1000 < x && x <= 10000)   => 2
+      case x if (10000 <= x)               => 0
       case _ => return None
     }
     getOSGridFromNorthingEasting(N, E, digits, gridType)

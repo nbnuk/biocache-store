@@ -731,7 +731,7 @@ class LocationProcessor extends Processor {
     }
 
     //set coordinate uncertainty from gridsizeinmeters if necessary
-    if ((raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) &&
+    if ((raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0 || processed.location.coordinateUncertaintyInMeters.toDouble < 0.000001) &&
       (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0)) {
       val cornerDistFromCentre = raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0) //centre to corner
       processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
@@ -750,7 +750,8 @@ class LocationProcessor extends Processor {
       && processed.location.decimalLongitude != null
       && processed.location.gridReference == null
       && raw.location.gridReference == null
-      && processed.location.coordinateUncertaintyInMeters != null) {
+      && processed.location.coordinateUncertaintyInMeters != null
+      && processed.location.coordinateUncertaintyInMeters.toDouble > 0) {
       val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
       val niList = List("Northern Ireland") //Irish grid
       var gridCalc = None: Option[String]

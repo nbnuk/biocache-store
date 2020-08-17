@@ -309,7 +309,8 @@ class SensitivityProcessor extends Processor {
           if (!uncertainty.isEmpty) {
             if (uncertainty.get != null && uncertainty.get != "") {
               //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
-              val newUncertainty = currentUncertainty + java.lang.Float.parseFloat(uncertainty.get.toString)
+              //for grid records, do not compute new uncertainty additively with original record uncertainty, but simply as SDS uncertainty
+              val newUncertainty = (if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(uncertainty.get.toString)
               processed.location.coordinateUncertaintyInMeters = "%.1f".format(newUncertainty)
             }
           }
@@ -342,7 +343,7 @@ class SensitivityProcessor extends Processor {
                   rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
                   rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
                 } else {
-                  processed.location.coordinateUncertaintyInMeters = "%.1f".format(currentUncertainty.toDouble + java.lang.Float.parseFloat(generalisationToApplyInMetres.get))
+                  processed.location.coordinateUncertaintyInMeters = "%.1f".format(/*currentUncertainty.toDouble + */ java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) //ignore original uncertainty and just use SDS value
                 }
 
                 val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetresGrid.get)
@@ -368,13 +369,21 @@ class SensitivityProcessor extends Processor {
                 processed.setProperty("gridReference", "")
                 processed.setProperty("gridSizeInMeters", "")
               } else {
-                val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, generalisationToApplyInMetresGrid.get)
-                if (generalisedRef.isDefined) {
-                  processed.setProperty("gridReference", generalisedRef.get)
-                  processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
-                } else {
-                  processed.setProperty("gridReference", "")
-                  processed.setProperty("gridSizeInMeters", "")
+                if (currentUncertainty < java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) {
+                  val uncertaintyNewAsGrid = ((if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(generalisationToApplyInMetres.get.toString()) * Math.sqrt(2)).round
+                  val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, uncertaintyNewAsGrid.toString() )
+                  if (generalisedRef.isDefined) {
+                    processed.setProperty("gridReference", generalisedRef.get)
+                    val newGridSizeInMetres = GridUtil.getGridSizeInMeters(generalisedRef.get)
+                    if (newGridSizeInMetres.isDefined) {
+                      processed.setProperty("gridSizeInMeters", newGridSizeInMetres.get.toString())
+                    } else { //some error in calculating grid size
+                      processed.setProperty("gridSizeInMeters", "")
+                    }
+                  } else {
+                    processed.setProperty("gridReference", "")
+                    processed.setProperty("gridSizeInMeters", "")
+                  }
                 }
               }
             } else {
