@@ -488,7 +488,10 @@ class Cassandra3PersistenceManager  @Inject() (
       val values = Array(rowkey, keyValuePairsToUse.values.head).map { x => new String(x.getBytes("UTF-8")) }
       statement.bind(values: _*)
     } else {
-      val values = (Array(rowkey) ++ keyValuePairsToUse.values.toArray[String]).map { x => new String(x.getBytes("UTF-8")) }
+      val values = (Array(rowkey) ++
+        keyValuePairsToUse.values.toArray[String]).map {
+        x => if (x == null) null else new String(x.getBytes("UTF-8"))
+      }
       if (values == null) {
         throw new Exception("keyValuePairsToUse are null...")
       }

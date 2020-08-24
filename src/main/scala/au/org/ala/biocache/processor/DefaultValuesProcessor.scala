@@ -2,10 +2,12 @@ package au.org.ala.biocache.processor
 
 import au.org.ala.biocache.caches.AttributionDAO
 import au.org.ala.biocache.parser.DateParser
-import au.org.ala.biocache.model.{QualityAssertion, FullRecord}
+import au.org.ala.biocache.model.{FullRecord, QualityAssertion}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion}
 import au.org.ala.biocache.parser.DateParser
+import au.org.ala.biocache.util.Json
+import au.org.ala.biocache.vocab.AssertionCodes
 
 /**
  * Maps the default values from the data resource configuration in the
@@ -53,6 +55,24 @@ class DefaultValuesProcessor extends Processor {
 
     if (raw.occurrence.originalSensitiveValues != null && (lastLoadedDate.isEmpty || lastProcessedDate.isEmpty || lastLoadedDate.get.before(lastProcessedDate.get))) {
       FullRecordMapper.mapPropertiesToObject(raw, raw.occurrence.originalSensitiveValues)
+      val jsonQAs: Option[String] = raw.rawFields.get("qualityassertion")
+      if (!jsonQAs.isEmpty) {
+        var qaMap: scala.collection.Map[Int, QualityAssertion] = Map()
+        Json.toListWithGeneric(jsonQAs.get, classOf[QualityAssertion]).asInstanceOf[List[QualityAssertion]].foreach { qa =>
+            qaMap += (qa.code -> qa)
+          }
+        if (qaMap.contains(AssertionCodes.DECIMAL_LAT_LONG_CALCULATED_FROM_GRID_REF.code)) {
+          //remove decimal lat/long from raw
+          raw.location.decimalLatitude = null
+          raw.location.decimalLongitude = null
+        }
+        if (qaMap.contains(AssertionCodes.GRID_REF_CALCULATED_FROM_LAT_LONG.code)) {
+          //remove grid ref from raw
+          raw.location.gridReference = null
+          raw.location.gridReferenceWKT = null
+          raw.location.gridSizeInMeters = null
+        }
+      }
     }
 
     Array()

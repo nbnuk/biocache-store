@@ -99,7 +99,7 @@ class SensitivityProcessor extends Processor {
 
     //does the object have some original sensitive values
     //these should override the processed versions
-    //NBN: but, won't these overwrite updated values in a record that has been reloaded?
+    //NBN: to avoid overwriting updated values in a record that has been reloaded with old sensitive values, use Config.clearOriginalSensitiveValues (see OccurrenceDAOImpl)
 
     if (raw.occurrence.originalSensitiveValues != null) {
       //update the raw object.....

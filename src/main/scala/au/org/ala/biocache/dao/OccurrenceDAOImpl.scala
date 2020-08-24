@@ -592,14 +592,29 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
       properties ++= fr.getRawFields().filter { case (k, v) => !properties.isDefinedAt(k) } map { case (k, v) => (k, null) }
     }
     if (Config.clearOriginalSensitiveValues) {
-      //for consistency these would be set to NULL instead of "" but they will most likely be overwritten by the next processing run as sensitive values
-      //TODO *** what about other sensitive fields? locality, eventdate, eventdatend, gridreference?
-      if (!properties.isDefinedAt("originalSensitiveValues")) properties ++= Map("originalSensitiveValues" -> "")
-      if (!properties.isDefinedAt("decimalLatitude")) properties ++= Map("decimalLatitude" -> "")
-      if (!properties.isDefinedAt("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p" -> "")
-      if (!properties.isDefinedAt("decimalLongitude")) properties ++= Map("decimalLongitude" -> "")
-      if (!properties.isDefinedAt("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p" -> "")
-      if (!properties.isDefinedAt("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p")) properties ++= Map("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p" -> "")
+      val processedSuffix = Config.persistenceManager.fieldDelimiter + "p"
+      val blankedValue = null
+      if (!properties.isDefinedAt("originalSensitiveValues")) properties ++= Map("originalSensitiveValues" -> blankedValue)
+      //also clear any properties that could have been set from originalSensitiveValues
+      if (!properties.isDefinedAt("decimalLatitude")) properties ++= Map("decimalLatitude" -> blankedValue)
+      if (!properties.isDefinedAt("decimalLatitude" + processedSuffix)) properties ++= Map("decimalLatitude" + processedSuffix -> blankedValue)
+      if (!properties.isDefinedAt("decimalLongitude")) properties ++= Map("decimalLongitude" -> blankedValue)
+      if (!properties.isDefinedAt("decimalLongitude" + processedSuffix)) properties ++= Map("decimalLongitude" + processedSuffix -> blankedValue)
+      if (!properties.isDefinedAt("coordinateUncertaintyInMeters" + processedSuffix)) properties ++= Map("coordinateUncertaintyInMeters" + processedSuffix -> blankedValue)
+      if (!properties.isDefinedAt("gridReference")) properties ++= Map("gridReference" -> blankedValue)
+      if (!properties.isDefinedAt("gridReference" + processedSuffix)) properties ++= Map("gridReference" + processedSuffix -> blankedValue)
+      if (!properties.isDefinedAt("eventID")) properties ++= Map("eventID" -> blankedValue)
+      if (!properties.isDefinedAt("locality")) properties ++= Map("locality" -> blankedValue)
+      if (Config.sensitiveDateDay) {
+        if (!properties.isDefinedAt("eventDate")) properties ++= Map("eventDate" -> blankedValue)
+        if (!properties.isDefinedAt("eventDateEnd")) properties ++= Map("eventDateEnd" -> blankedValue)
+        if (!properties.isDefinedAt("eventTime")) properties ++= Map("eventTime" -> blankedValue)
+        if (!properties.isDefinedAt("day")) properties ++= Map("day" -> blankedValue)
+        if (!properties.isDefinedAt("month")) properties ++= Map("month" -> blankedValue)
+        if (!properties.isDefinedAt("endDay")) properties ++= Map("endDay" -> blankedValue)
+        if (!properties.isDefinedAt("endMonth")) properties ++= Map("endMonth" -> blankedValue)
+        if (!properties.isDefinedAt("verbatimEventDate")) properties ++= Map("verbatimEventDate" -> blankedValue)
+      }
     }
 
     persistenceManager.put(fr.rowKey, entityName, properties.toMap, true, deleteIfNullValue)
