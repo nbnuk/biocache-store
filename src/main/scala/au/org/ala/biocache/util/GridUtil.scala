@@ -588,15 +588,15 @@ object GridUtil {
     } else {
       if (datum == Some("EPSG:27700")) {
         //in OSGB36
-        val northingsEastings = GISUtil.coordinatesOSGB36toNorthingEasting(lat, lon, 3)
+        val northingsEastings = GISUtil.coordinatesOSGB36toNorthingEasting(lat, lon, 4)
         val (northings, eastings) = northingsEastings.get
         N = northings.toDouble
         E = eastings.toDouble
       } else { //assume WGS84
         val reprojectedNorthingsEastings = gridType match {
-          case "OSGB" => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
-          case "Irish" => GISUtil.reprojectCoordinatesWGS84ToOSNI(lat, lon, 3)
-          case _ => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 3)
+          case "OSGB" => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 4)
+          case "Irish" => GISUtil.reprojectCoordinatesWGS84ToOSNI(lat, lon, 4)
+          case _ => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 4)
         }
         val (northings, eastings) = reprojectedNorthingsEastings.get
         N = northings.toDouble
@@ -620,10 +620,54 @@ object GridUtil {
       case x if (10000 <= x)               => 0
       case _ => return None
     }
-    getOSGridFromNorthingEasting(N, E, digits, gridType)
+    if (gridSize == 2000) {
+      //FIXME: sort out getOSGridFromNorthingEasting to handle 2km, 50km grids properly
+      var onekmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 4, gridType)
+      //now convert 1km grid to containing 2km grid
+      if (onekmGrid.isDefined) {
+        var onekmGridFound = onekmGrid.getOrElse("") : String
+        val gridPrefix = if (gridType.equals("Irish")) {
+          onekmGridFound.substring(0, 1)
+        } else {
+          onekmGridFound.substring(0, 2)
+        }
+        if (gridType.equals("Irish")) {
+          onekmGridFound = "_".concat(onekmGridFound)
+        }
+        val long10km = onekmGridFound.substring(2, 3)
+        val lat10km = onekmGridFound.substring(4, 5)
+        val long2km = onekmGridFound.substring(3, 4).toInt
+        val lat2km = onekmGridFound.substring(5, 6).toInt
+        val twoKmLetter = get2kmLetterFrom1kmLatLongDigits(lat2km, long2km)
+        val TwoKmGrid = gridPrefix + long10km + lat10km + twoKmLetter.get
+        Option(TwoKmGrid)
+      } else {
+        None
+      }
+    } else {
+      getOSGridFromNorthingEasting(Math.round(N), Math.round(E), digits, gridType)
+    }
 
   }
 
+  def get2kmLetterFrom1kmLatLongDigits(lat:Int, lon:Int): Option[String] = {
+    val letterOffset = Math.floor(lon/2) * 5 + Math.floor(lat/2)
+    val letterOffsetSkipO = if (letterOffset > 13) { letterOffset + 1} else { letterOffset }
+    if (letterOffsetSkipO >= 0 && letterOffsetSkipO <= 25) {
+      return Option((letterOffsetSkipO + 65).asInstanceOf[Char].toString)
+    } else {
+      return None
+    }
+  }
+
+  /**
+    *
+    * @param n : north
+    * @param e : east
+    * @param digits : digits
+    * @param gridType : gridType (Irish or OSGB)
+    * @return
+    */
   def getOSGridFromNorthingEasting(n:Double, e:Double, digits:Int, gridType: String): Option[String] = {
     if ((digits % 2 != 0) || digits > 16) {
       return None
@@ -686,12 +730,12 @@ object GridUtil {
           0
         }
 
-        val coords = GISUtil.reprojectCoordinatesToWGS84(gr.easting + reposition, gr.northing + reposition, gr.datum, 5)
+        val coords = GISUtil.reprojectCoordinatesToWGS84(gr.easting + reposition, gr.northing + reposition, gr.datum, 6)
 
         //reproject min/max lat/lng
         val bbox = Array(
-          GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
-          GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 6),
+          GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 6)
         )
 
         if(!coords.isEmpty){

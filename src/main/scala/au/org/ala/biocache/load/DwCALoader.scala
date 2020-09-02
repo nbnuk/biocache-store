@@ -212,6 +212,9 @@ class DwCALoader extends DataLoader {
     val iter = archive.iterator()
     val rowKeyWriter = getRowKeyWriter(resourceUid, logRowKeys)
 
+    var removeNullFieldsIncludingSensitive = removeNullFields
+    if (Config.clearOriginalSensitiveValues) removeNullFieldsIncludingSensitive = true
+
     while (iter.hasNext) {
 
       //the newly assigned record UUID
@@ -287,7 +290,7 @@ class DwCALoader extends DataLoader {
         //debug
         if (count % 1000 == 0 && count > 0) {
           if (!testFile) {
-            Config.occurrenceDAO.addRawOccurrenceBatch(currentBatch.toArray, removeNullFields)
+            Config.occurrenceDAO.addRawOccurrenceBatch(currentBatch.toArray, removeNullFieldsIncludingSensitive)
           }
           finishTime = System.currentTimeMillis
           val timeInSecs = 1000 / (((finishTime - startTime).toFloat) / 1000f)
@@ -310,7 +313,7 @@ class DwCALoader extends DataLoader {
     }
 
     //commit the batch
-    Config.occurrenceDAO.addRawOccurrenceBatch(currentBatch.toArray, removeNullFields)
+    Config.occurrenceDAO.addRawOccurrenceBatch(currentBatch.toArray, removeNullFieldsIncludingSensitive)
     logger.info("Finished DwCA loader. Records loaded into the system: " + count + ", records skipped:"  + skipped)
     count
   }

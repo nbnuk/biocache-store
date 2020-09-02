@@ -57,27 +57,27 @@ class GridReferenceTest extends FunSuite {
 
   test("Convert irish grid reference to Northing / Easting") {
     val result1 = GridUtil.processGridReference("J4967")
-    expectResult("54.52944") { result1.get.minLatitude.toString }  //bottom left of the grid
-    expectResult("-5.69914") { result1.get.minLongitude.toString }  //bottom left of the grid
+    expectResult("54.529443") { result1.get.minLatitude.toString }  //bottom left of the grid
+    expectResult("-5.699145") { result1.get.minLongitude.toString }  //bottom left of the grid
 
     val result2 = GridUtil.processGridReference("IJ4967")
-    expectResult("54.52944") { result2.get.minLatitude.toString }  //bottom left of the grid
-    expectResult("-5.69914") { result2.get.minLongitude.toString }  //bottom left of the grid
+    expectResult("54.529443") { result2.get.minLatitude.toString }  //bottom left of the grid
+    expectResult("-5.699145") { result2.get.minLongitude.toString }  //bottom left of the grid
 
     val result3 = GridUtil.processGridReference("H99")
     expectResult("390000") { result3.get.northing.toString }  //bottom left of the grid
     expectResult("290000") { result3.get.easting.toString }  //bottom left of the grid
-    expectResult("-6.5238") { result3.get.longitude.toString }  //bottom left of the grid
-    expectResult("54.79388") { result3.get.latitude.toString }  //bottom left of the grid
+    expectResult("-6.523798") { result3.get.longitude.toString }  //bottom left of the grid
+    expectResult("54.793876") { result3.get.latitude.toString }  //bottom left of the grid
   }
 
   test("Convert OS grid reference to decimal latitude/longitude in WGS84") {
     val result = GridUtil.processGridReference("NM39")
     expectResult(false) { result.isEmpty }
-    expectResult("56.97001") { result.get.latitude.toString }
-    expectResult("-6.36199") { result.get.longitude.toString }
+    expectResult("56.970009") { result.get.latitude.toString }
+    expectResult("-6.361995") { result.get.longitude.toString }
     expectResult("EPSG:4326") { result.get.datum.toString }
-    expectResult("10000") { result.get.coordinateUncertaintyInMeters.toString }
+    expectResult("7071.1") { result.get.coordinateUncertaintyInMeters.toString }
   }
 
   test("NH1234123 at different resolutions") {
@@ -214,28 +214,28 @@ class GridReferenceTest extends FunSuite {
         }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "WGS84", "OSGB") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 5000, "WGS84", "OSGB") match {
       case Some(gr) => {
         expectResult("SJ58") {
           gr
         }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "WGS84", "OSGB") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 500, "WGS84", "OSGB") match {
       case Some(gr) => {
         expectResult("SJ5486") {
           gr
         }
       }
     }
-    GridUtil.latLonToOsGrid(52.00464, -5.081357, 100, "WGS84", "OSGB") match {
+    GridUtil.latLonToOsGrid(52.00464, -5.081357, 70, "WGS84", "OSGB") match {
       case Some(gr) => {
         expectResult("SM886385") {
           gr
         }
       }
     }
-    GridUtil.latLonToOsGrid(52.01419, -5.09049, 100, "WGS84", "OSGB") match {
+    GridUtil.latLonToOsGrid(52.01419, -5.09049, 70, "WGS84", "OSGB") match {
       case Some(gr) => {
         expectResult("SM880395") {
           gr
@@ -249,14 +249,14 @@ class GridReferenceTest extends FunSuite {
         }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 10000, "EPSG:27700", "OSGB") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 7000, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
         expectResult("SJ58") {
           gr
         }
       }
     }
-    GridUtil.latLonToOsGrid(53.36916, -2.69094, 1000, "EPSG:27700", "OSGB") match {
+    GridUtil.latLonToOsGrid(53.36916, -2.69094, 700, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
         expectResult("SJ5486") {
           gr
@@ -264,14 +264,14 @@ class GridReferenceTest extends FunSuite {
       }
     }
 
-    GridUtil.latLonToOsGrid(52.65757, 1.71791, 10, "EPSG:27700", "OSGB") match {
+    GridUtil.latLonToOsGrid(52.65757, 1.71791, 7, "EPSG:27700", "OSGB") match {
       case Some(gr) => {
         expectResult("TG51401317") {
           gr
         }
       }
 
-      GridUtil.latLonToOsGrid(52.65757, 1.71791, 1, "EPSG:27700", "OSGB") match {
+      GridUtil.latLonToOsGrid(52.65757, 1.71791, 0.7, "EPSG:27700", "OSGB") match {
         case Some(gr) => {
           expectResult("TG5140913177") {
             gr
@@ -303,7 +303,7 @@ class GridReferenceTest extends FunSuite {
       }
     } */
 
-    GridUtil.latLonToOsGrid(54.88744, -6.3562, 10, "WGS84", "Irish") match {
+    GridUtil.latLonToOsGrid(54.88744, -6.3562, 7, "WGS84", "Irish") match {
       case Some(gr) => {
         expectResult("D05530565") {
           gr
@@ -311,7 +311,7 @@ class GridReferenceTest extends FunSuite {
       }
     }
 
-    GridUtil.latLonToOsGrid(54.72375, -6.51556, 10, "WGS84", "Irish") match {
+    GridUtil.latLonToOsGrid(54.72375, -6.51556, 7, "WGS84", "Irish") match {
       case Some(gr) => {
         expectResult("H95698720") {
           gr
@@ -321,7 +321,7 @@ class GridReferenceTest extends FunSuite {
 
     //at 1m failing against real data: Expected "H8295[970824]", but got "H8295[870823]"
     //irish.gridreferencefinder.com gives "H 82948 70808" so its all a bit messy to test
-    GridUtil.latLonToOsGrid(54.57889, -6.71781, 10, "WGS84", "Irish") match {
+    GridUtil.latLonToOsGrid(54.57889, -6.71781, 7, "WGS84", "Irish") match {
       case Some(gr) => {
         expectResult("H82957082") {
           gr
@@ -352,4 +352,21 @@ class GridReferenceTest extends FunSuite {
 
   }
 
+  test("2km grid calculations tests") {
+    expectResult("A") {GridUtil.get2kmLetterFrom1kmLatLongDigits(0,0).get }
+    expectResult("Z") {GridUtil.get2kmLetterFrom1kmLatLongDigits(9,9).get }
+    expectResult("E") {GridUtil.get2kmLetterFrom1kmLatLongDigits(8,1).get }
+    expectResult("I") {GridUtil.get2kmLetterFrom1kmLatLongDigits(7,2).get }
+    expectResult("P") {GridUtil.get2kmLetterFrom1kmLatLongDigits(8,5).get }
+  }
+
+  test("1m grid rounding error tests") {
+    expectResult("ND2135464379") {
+      val grid: GridRef = GridUtil.gridReferenceToEastingNorthing("ND2135464379").get
+      GridUtil.getOSGridFromNorthingEasting(grid.northing, grid.easting, 10, "OSGB").get
+    }
+    expectResult("ND2135464379") {
+      GridUtil.latLonToOsGrid(58.56032, -3.35343, 0.7, "WGS84", "OSGB", 1).get
+    }
+  }
 }

@@ -68,10 +68,7 @@ class LocationProcessor extends Processor {
       if (processed.location.stateProvince != null && StringUtils.isNotEmpty(Config.defaultCountry)) {
         processed.location.country = Config.defaultCountry
       }
-
-      //set grid ref if coordinates were supplied
-      setGridRefFromCoordinates(raw, processed, assertions)
-
+      
       //habitat, no standard vocab available
       processed.location.habitat = raw.location.habitat
 
@@ -105,11 +102,16 @@ class LocationProcessor extends Processor {
     checkForBiomeMismatch(raw, processed, assertions)
 
 
+
+    //gridsize is needed for the recalculation of coordinate uncertainty, hence done twice
+    addGridSize(raw, processed, assertions)
+    possiblyRecalculateCoordinateUncertainty(raw, processed, assertions)
+    //set grid ref if coordinates were supplied
+    setGridRefFromCoordinates(raw, processed, assertions)
+    addGridSize(raw, processed, assertions)
     //requires gridreferencewkt, gridreferencewkt_p field in DB
     processGridWKT(raw, processed)
 
-    addGridSize(raw, processed, assertions)
-    possiblyRecalculateCoordinateUncertainty(raw, processed, assertions)
 
 
     //return the assertions created by this processor
@@ -581,12 +583,14 @@ class LocationProcessor extends Processor {
     * Set gridSizeInMeters, using the processed gridReference
    */
   private def addGridSize(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
-    if (processed.location.gridReference != null) {
-      processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(processed.location.gridReference).getOrElse("").toString()
-    } else if (raw.location.gridReference != null) {
-      processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(raw.location.gridReference).getOrElse("").toString()
-    } else {
-      processed.location.gridSizeInMeters = ""
+    if (processed.location.gridSizeInMeters == null || processed.location.gridSizeInMeters == "") {
+      if (processed.location.gridReference != null) {
+        processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(processed.location.gridReference).getOrElse("").toString()
+      } else if (raw.location.gridReference != null) {
+        processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(raw.location.gridReference).getOrElse("").toString()
+      } else {
+        processed.location.gridSizeInMeters = null
+      }
     }
   }
 
@@ -749,7 +753,6 @@ class LocationProcessor extends Processor {
     if (processed.location.decimalLatitude != null
       && processed.location.decimalLongitude != null
       && processed.location.gridReference == null
-      && raw.location.gridReference == null
       && processed.location.coordinateUncertaintyInMeters != null
       && processed.location.coordinateUncertaintyInMeters.toDouble > 0) {
       val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
@@ -764,14 +767,16 @@ class LocationProcessor extends Processor {
           (processed.location.decimalLatitude.toDouble < 57.0 && processed.location.decimalLatitude.toDouble > 48.0)) {
         gridToUse = "Irish"
       }
-      if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
-        gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse, raw.location.gridSizeInMeters.toInt)
+      if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
+        gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse, processed.location.gridSizeInMeters.toInt)
       } else {
         gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse)
       }
       if (gridCalc.isDefined) {
         processed.location.gridReference = gridCalc.get
-        assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+        if (raw.location.gridReference == null || raw.location.gridReference.isEmpty) {
+          assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
+        }
       }
     }
   }

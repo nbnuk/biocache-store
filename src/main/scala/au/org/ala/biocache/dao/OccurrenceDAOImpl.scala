@@ -644,6 +644,9 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           .map {
             case (k, v) => (k, null)
           }
+        if (!properties.isDefinedAt("originalSensitiveValues")) {
+          properties ++= Map("originalSensitiveValues" -> null)
+        }
       }
       batch.put(fr.rowKey, properties.toMap)
     }

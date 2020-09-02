@@ -105,7 +105,7 @@ class SensitivityProcessor extends Processor {
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
         case (key, value) => {
-          raw.setProperty(key, value)
+          raw.setProperty(key, value) //TODO what about _p properties in sensitive values e.g. coordinateuncertaintyinmeters_p
           rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
         }
       }
@@ -301,6 +301,7 @@ class SensitivityProcessor extends Processor {
                 centroidAlreadyGeneralised = true
                 rawPropertiesToUpdate -= "decimalLatitude"
                 rawPropertiesToUpdate -= "decimalLongitude"
+                rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
               }
             }
           }
@@ -344,15 +345,15 @@ class SensitivityProcessor extends Processor {
                   rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
                 } else {
                   processed.location.coordinateUncertaintyInMeters = "%.1f".format(/*currentUncertainty.toDouble + */ java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) //ignore original uncertainty and just use SDS value
-                }
 
-                val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetresGrid.get)
-                if (generalisedRef.isDefined) {
-                  rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
-                  processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
-                } else {
-                  rawPropertiesToUpdate.put("gridReference", "")
-                  processed.setProperty("gridSizeInMeters", "")
+                  val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetresGrid.get)
+                  if (generalisedRef.isDefined) {
+                    rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
+                    processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
+                  } else {
+                    rawPropertiesToUpdate.put("gridReference", "")
+                    processed.setProperty("gridSizeInMeters", "")
+                  }
                 }
               }
             } else {
