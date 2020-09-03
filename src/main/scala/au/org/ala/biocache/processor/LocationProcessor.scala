@@ -68,7 +68,7 @@ class LocationProcessor extends Processor {
       if (processed.location.stateProvince != null && StringUtils.isNotEmpty(Config.defaultCountry)) {
         processed.location.country = Config.defaultCountry
       }
-      
+
       //habitat, no standard vocab available
       processed.location.habitat = raw.location.habitat
 
@@ -588,6 +588,8 @@ class LocationProcessor extends Processor {
         processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(processed.location.gridReference).getOrElse("").toString()
       } else if (raw.location.gridReference != null) {
         processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(raw.location.gridReference).getOrElse("").toString()
+      } else if (raw.location.gridSizeInMeters != null) {
+        processed.location.gridSizeInMeters = raw.location.gridSizeInMeters
       } else {
         processed.location.gridSizeInMeters = null
       }

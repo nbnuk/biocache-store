@@ -309,10 +309,12 @@ class SensitivityProcessor extends Processor {
         if (!centroidAlreadyGeneralised) {
           if (!uncertainty.isEmpty) {
             if (uncertainty.get != null && uncertainty.get != "") {
-              //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
-              //for grid records, do not compute new uncertainty additively with original record uncertainty, but simply as SDS uncertainty
-              val newUncertainty = (if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(uncertainty.get.toString)
-              processed.location.coordinateUncertaintyInMeters = "%.1f".format(newUncertainty)
+              if (currentUncertainty <= java.lang.Float.parseFloat(uncertainty.get.toString)) {
+                //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
+                //for grid records, do not compute new uncertainty additively with original record uncertainty, but simply as SDS uncertainty
+                //val newUncertainty = (if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(uncertainty.get.toString)
+                processed.location.coordinateUncertaintyInMeters = "%.1f".format(java.lang.Float.parseFloat(uncertainty.get.toString))
+              }
             }
           }
 
@@ -385,6 +387,8 @@ class SensitivityProcessor extends Processor {
                     processed.setProperty("gridReference", "")
                     processed.setProperty("gridSizeInMeters", "")
                   }
+                } else {
+                  rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
                 }
               }
             } else {

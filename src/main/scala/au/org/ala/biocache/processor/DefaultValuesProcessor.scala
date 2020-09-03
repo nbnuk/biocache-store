@@ -70,7 +70,7 @@ class DefaultValuesProcessor extends Processor {
           //remove grid ref from raw
           raw.location.gridReference = null
           raw.location.gridReferenceWKT = null
-          raw.location.gridSizeInMeters = null
+          //raw.location.gridSizeInMeters = null
         }
       }
     }
