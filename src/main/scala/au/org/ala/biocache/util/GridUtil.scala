@@ -622,25 +622,19 @@ object GridUtil {
     }
     if (gridSize == 2000) {
       //FIXME: sort out getOSGridFromNorthingEasting to handle 2km, 50km grids properly
-      var onekmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 4, gridType)
+      val onekmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 4, gridType)
       //now convert 1km grid to containing 2km grid
       if (onekmGrid.isDefined) {
-        var onekmGridFound = onekmGrid.getOrElse("") : String
-        val gridPrefix = if (gridType.equals("Irish")) {
-          onekmGridFound.substring(0, 1)
-        } else {
-          onekmGridFound.substring(0, 2)
-        }
-        if (gridType.equals("Irish")) {
-          onekmGridFound = "_".concat(onekmGridFound)
-        }
-        val long10km = onekmGridFound.substring(2, 3)
-        val lat10km = onekmGridFound.substring(4, 5)
-        val long2km = onekmGridFound.substring(3, 4).toInt
-        val lat2km = onekmGridFound.substring(5, 6).toInt
-        val twoKmLetter = get2kmLetterFrom1kmLatLongDigits(lat2km, long2km)
-        val TwoKmGrid = gridPrefix + long10km + lat10km + twoKmLetter.get
-        Option(TwoKmGrid)
+        convertReferenceToResolution(onekmGrid.get, "2000")
+      } else {
+        None
+      }
+    } else if (gridSize == 50000) {
+      //FIXME: sort out getOSGridFromNorthingEasting to handle 2km, 50km grids properly
+      val tenkmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 2, gridType)
+      //now convert 10km grid to containing 50km grid
+      if (tenkmGrid.isDefined) {
+        convertReferenceToResolution(tenkmGrid.get, "50000")
       } else {
         None
       }
@@ -648,16 +642,6 @@ object GridUtil {
       getOSGridFromNorthingEasting(Math.round(N), Math.round(E), digits, gridType)
     }
 
-  }
-
-  def get2kmLetterFrom1kmLatLongDigits(lat:Int, lon:Int): Option[String] = {
-    val letterOffset = Math.floor(lon/2) * 5 + Math.floor(lat/2)
-    val letterOffsetSkipO = if (letterOffset > 13) { letterOffset + 1} else { letterOffset }
-    if (letterOffsetSkipO >= 0 && letterOffsetSkipO <= 25) {
-      return Option((letterOffsetSkipO + 65).asInstanceOf[Char].toString)
-    } else {
-      return None
-    }
   }
 
   /**

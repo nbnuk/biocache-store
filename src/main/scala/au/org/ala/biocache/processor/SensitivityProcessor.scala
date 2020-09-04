@@ -373,7 +373,7 @@ class SensitivityProcessor extends Processor {
                 processed.setProperty("gridSizeInMeters", "")
               } else {
                 if (currentUncertainty < java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) {
-                  val uncertaintyNewAsGrid = ((if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(generalisationToApplyInMetres.get.toString()) * Math.sqrt(2)).round
+                  val uncertaintyNewAsGrid = (/*(if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) +*/  java.lang.Float.parseFloat(generalisationToApplyInMetres.get.toString()) * Math.sqrt(2)).round
                   val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, uncertaintyNewAsGrid.toString() )
                   if (generalisedRef.isDefined) {
                     processed.setProperty("gridReference", generalisedRef.get)

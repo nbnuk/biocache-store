@@ -352,14 +352,6 @@ class GridReferenceTest extends FunSuite {
 
   }
 
-  test("2km grid calculations tests") {
-    expectResult("A") {GridUtil.get2kmLetterFrom1kmLatLongDigits(0,0).get }
-    expectResult("Z") {GridUtil.get2kmLetterFrom1kmLatLongDigits(9,9).get }
-    expectResult("E") {GridUtil.get2kmLetterFrom1kmLatLongDigits(8,1).get }
-    expectResult("I") {GridUtil.get2kmLetterFrom1kmLatLongDigits(7,2).get }
-    expectResult("P") {GridUtil.get2kmLetterFrom1kmLatLongDigits(8,5).get }
-  }
-
   test("1m grid rounding error tests") {
     expectResult("ND2135464379") {
       val grid: GridRef = GridUtil.gridReferenceToEastingNorthing("ND2135464379").get
