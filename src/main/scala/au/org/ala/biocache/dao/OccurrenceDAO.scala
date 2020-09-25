@@ -22,17 +22,17 @@ trait OccurrenceDAO extends DAO {
 
   def getRowKeyFromUuid(uuid:String) : Option[String]
 
-  def getByRowKey(rowKey: String) : Option[FullRecord] = getByRowKey(rowKey, false)
+  def getByRowKey(rowKey: String) : Option[FullRecord] = getByRowKey(rowKey, false, false)
 
-  def getByRowKey(rowKey: String, includeSensitive:Boolean) : Option[FullRecord]
+  def getByRowKey(rowKey: String, includeSensitive:Boolean, includeHighResolution:Boolean) : Option[FullRecord]
 
-  def getAllVersionsByRowKey(rowKey:String, includeSensitive:Boolean=false) : Option[Array[FullRecord]]
+  def getAllVersionsByRowKey(rowKey:String, includeSensitive:Boolean=false, includeHighResolution:Boolean=false) : Option[Array[FullRecord]]
 
   def getRawProcessedByRowKey(rowKey:String) : Option[Array[FullRecord]]
 
-  def getByUuid(uuid: String, version: Version, includeSensitive:Boolean=false): Option[FullRecord]
+  def getByUuid(uuid: String, version: Version, includeSensitive:Boolean=false, includeHighResolution:Boolean=false): Option[FullRecord]
 
-  def getByRowKey(rowKey: String, version:Version, includeSensitive:Boolean=false): Option[FullRecord]
+  def getByRowKey(rowKey: String, version:Version, includeSensitive:Boolean=false, includeHighResolution:Boolean=false): Option[FullRecord]
 
   def getUUIDForUniqueID(uniqueID: String) : Option[String]
 

@@ -15,7 +15,7 @@ import com.google.inject.Inject
 import org.apache.commons.lang.StringUtils
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConversions
+import scala.collection.{JavaConversions, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
@@ -111,22 +111,40 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
   /**
    * Get an occurrence with rowKey
    */
-  def getByRowKey(rowKey:String, includeSensitive:Boolean): Option[FullRecord] ={
-    getByRowKey(rowKey, Raw, includeSensitive)
+  def getByRowKey(rowKey:String, includeSensitive:Boolean, includeHighResolution:Boolean): Option[FullRecord] ={
+    getByRowKey(rowKey, Raw, includeSensitive, includeHighResolution)
   }
 
  /**
   * Get all the versions based on a row key
   */
-  def getAllVersionsByRowKey(rowKey:String, includeSensitive:Boolean=false): Option[Array[FullRecord]] ={
+  def getAllVersionsByRowKey(rowKey:String, includeSensitive:Boolean=false, includeHighResolution:Boolean=false): Option[Array[FullRecord]] ={
     val map = persistenceManager.get(rowKey, entityName)
     if (map.isEmpty) {
       None
     } else {
       // the versions of the record
-      val raw = FullRecordMapper.createFullRecord(rowKey, map.get, Raw)
-      val processed = FullRecordMapper.createFullRecord(rowKey, map.get, Processed)
-      val consensus = FullRecordMapper.createFullRecord(rowKey, map.get, Consensus)
+      var raw = FullRecordMapper.createFullRecord(rowKey, map.get, Raw)
+      var processed = FullRecordMapper.createFullRecord(rowKey, map.get, Processed)
+      var consensus = FullRecordMapper.createFullRecord(rowKey, map.get, Consensus)
+
+      if (!includeHighResolution) {
+        raw.location.highResolutionDecimalLatitude = null
+        raw.location.highResolutionDecimalLongitude = null
+        raw.location.highResolutionGridReference = null
+        raw.location.highResolutionLocality = null
+
+        processed.location.highResolutionDecimalLatitude = null
+        processed.location.highResolutionDecimalLongitude = null
+        processed.location.highResolutionGridReference = null
+        processed.location.highResolutionLocality = null
+
+        consensus.location.highResolutionDecimalLatitude = null
+        consensus.location.highResolutionDecimalLongitude = null
+        consensus.location.highResolutionGridReference = null
+        consensus.location.highResolutionLocality = null
+      }
+
       if (includeSensitive && raw.occurrence.originalSensitiveValues != null) {
         FullRecordMapper.mapPropertiesToObject(raw, raw.occurrence.originalSensitiveValues)
       }
@@ -150,12 +168,18 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
   /**
     * Get the supplied version based on a rowKey
     */
-  def getByRowKey(rowKey: String, version: Version, includeSensitive: Boolean = false): Option[FullRecord] = {
+  def getByRowKey(rowKey: String, version: Version, includeSensitive: Boolean = false, includeHighResolution: Boolean = false): Option[FullRecord] = {
     val propertyMap = persistenceManager.get(rowKey, entityName)
     if (propertyMap.isEmpty) {
       None
     } else {
-      val record = FullRecordMapper.createFullRecord(rowKey, propertyMap.get, version)
+      var record = FullRecordMapper.createFullRecord(rowKey, propertyMap.get, version)
+      if (!includeHighResolution) {
+        record.location.highResolutionDecimalLatitude = null
+        record.location.highResolutionDecimalLongitude = null
+        record.location.highResolutionGridReference = null
+        record.location.highResolutionLocality = null
+      }
       if (includeSensitive && record.occurrence.originalSensitiveValues != null && version == Versions.RAW)
         FullRecordMapper.mapPropertiesToObject(record, record.occurrence.originalSensitiveValues)
       Some(record)
@@ -165,11 +189,11 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
   /**
     * Get an occurrence, specifying the version of the occurrence.
     */
-  def getByUuid(uuid: String, version: Version, includeSensitive: Boolean = false): Option[FullRecord] = {
+  def getByUuid(uuid: String, version: Version, includeSensitive: Boolean = false, includeHighResolution: Boolean = false): Option[FullRecord] = {
     //get the row key from the supplied uuid
 //    val rowKey = getRowKeyFromUuid(uuid)
 //    if(rowKey.isDefined){
-      getByRowKey(uuid, version,includeSensitive)
+      getByRowKey(uuid, version,includeSensitive,includeHighResolution)
 //    } else {
 //      None
 //    }

@@ -89,6 +89,9 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var naturalOccurrence:String = _ //http://www.chah.org.au/hispid/terms/naturalOccurrence
   //this property is in use in flickr tagging - currently no equivalent in DwC
   @BeanProperty var validDistribution:String = _
+  //two-tier / high-resolution work
+  @BeanProperty var highResolution:String = _
+  @BeanProperty var highResolutionNBNtoBlur:String = _
   //custom fields
   @BeanProperty var images:Array[String] = _
   //custom fields
@@ -116,6 +119,9 @@ class Occurrence extends Cloneable with POSO {
   //Store the original values before the SDS changes
   var originalSensitiveValues:Map[String,String] = _
 
+  //two-tier / high-resolution work
+  var originalBlurredValues:Map[String,String] = _
+
   @BeanProperty var outlierForLayers:Array[String] = _
   @BeanProperty var photographer:String =_
 
@@ -128,4 +134,10 @@ class Occurrence extends Cloneable with POSO {
   def getOriginalSensitiveValues():Map[String,String] = originalSensitiveValues
 
   def setOriginalSensitiveValues(originalSensitiveValues:Map[String,String]) = this.originalSensitiveValues = originalSensitiveValues
+
+  @JsonIgnore
+  def getOriginalBlurredValues():Map[String,String] = originalBlurredValues
+
+  def setOriginalBlurredValues(originalBlurredValues:Map[String,String]) = this.originalBlurredValues = originalBlurredValues
+
 }

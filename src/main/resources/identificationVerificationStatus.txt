@@ -12,3 +12,4 @@ Not Reviewed	Unconfirmed - not reviewed
 Confirmed	Accepted
 confirmed	Accepted
 Unconfirmed but plausible	Unconfirmed - plausible
+unconfirmed but plausible	Unconfirmed - plausible

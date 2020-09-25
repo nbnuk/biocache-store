@@ -12,8 +12,6 @@ import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.persistence.DataRow
 import au.org.ala.biocache.util.Json
 import au.org.ala.biocache.vocab.{AssertionStatus}
-import com.datastax.driver.core.GettableData
-import org.apache.batik.parser.NumberParser
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang.time.{DateFormatUtils, DateUtils}
 import org.slf4j.LoggerFactory
@@ -347,7 +345,15 @@ trait IndexDAO {
     ("gridSizeInMeters", "grid_size", 4, PARSED),
     ("taxonId", "raw_taxon_id", -1, RAW),
     ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
-    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
+    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
+    ("habitatTaxon", "habitats_taxon", 4, PARSED),
+    ("highResolution", "highresolution", -1, PARSED)
+    /*,
+    ("highResolutionDecimalLatitude", "highresolution_latitude", -1, PARSED),
+    ("highResolutionDecimalLongitude", "highresolution_longitude", -1, PARSED),
+    ("highResolutionCoordinateUncertaintyInMeters", "highresolution_coordinate_uncertainty", -1, PARSED),
+    ("highResolutionGridReference", "highresolution_grid_reference", -1, PARSED),
+    ("highResolutionLocality", "highresolution_locality", -1, RAW) */
   )
 
   /**
@@ -414,6 +420,8 @@ trait IndexDAO {
     , "day", "end_day", "end_month", "end_year"
     , "raw_taxon_id", "raw_sampling_protocol"
     , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    , "highresolution"
+    //, "highresolution_latitude", "highresolution_longitude", "highresolution_coordinate_uncertainty", "highresolution_grid_reference", "highresolution_locality"
   ) ::: Config.additionalFieldsToIndex
 
   /**
@@ -882,7 +890,14 @@ trait IndexDAO {
           getValue("samplingProtocol", map),
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
-          sensitiveMap.getOrElse("eventDateEnd", "")
+          sensitiveMap.getOrElse("eventDateEnd", ""),
+          getParsedValue("highResolution", map)
+          /*,
+          getParsedValue( "highResolutionDecimalLatitude", map ),
+          getParsedValue( "highResolutionDecimalLongitude", map ),
+          getParsedValue( "highResolutionCoordinateUncertaintyInMeters", map ),
+          getParsedValue( "highResolutionGridReference", map ),
+          getValue( "highResolutionLocality", map ) */
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -1544,6 +1559,18 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getValue("samplingProtocol", map))
         i = i + 1
+        addField(doc, header(i), getValue("highResolution", map))
+        i = i + 1
+        /*addField(doc, header(i), getValue("highResolutionDecimalLatitude", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionDecimalLongitude", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionCoordinateUncertaintyInMeters", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionGridReference", map))
+        i = i + 1
+        addField(doc, header(i), getValue("highResolutionLocality", map))
+        i = i + 1 */
 
         Config.additionalFieldsToIndex.foreach(field => {
           addField(doc, header(i), getValue(field, map))

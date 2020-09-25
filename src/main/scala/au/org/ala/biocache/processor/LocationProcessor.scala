@@ -35,6 +35,8 @@ class LocationProcessor extends Processor {
     //retrieve the point
     val assertions = new ArrayBuffer[QualityAssertion]
 
+    validateHighResolution(raw, processed, assertions);
+
     //handle the situation where the coordinates have already been sensitised
     setProcessedCoordinates(raw, processed, assertions)
 
@@ -175,6 +177,47 @@ class LocationProcessor extends Processor {
       }
     }
   }
+
+
+  private def validateHighResolution(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+
+    var valid = true;
+
+    if (raw.occurrence.highResolution != null) {
+      if (raw.occurrence.highResolution.toLowerCase() == "true") {
+        processed.occurrence.highResolution = "true";
+
+        // copy set of raw values to processed as a default (for downloads)
+        // these may be overwritten by later processing
+        processed.location.highResolutionDecimalLatitude = raw.location.highResolutionDecimalLatitude
+        processed.location.highResolutionDecimalLongitude = raw.location.highResolutionDecimalLongitude
+        processed.location.highResolutionGridReference = raw.location.highResolutionGridReference
+        processed.location.highResolutionCoordinateUncertaintyInMeters = raw.location.highResolutionCoordinateUncertaintyInMeters
+        processed.location.highResolutionLocality = raw.location.highResolutionLocality
+
+        // if we have highResolution then we need either lat/long or a grid reference
+        // uncertainty and locality are optional
+
+        if (raw.location.highResolutionGridReference == null &&
+          (raw.location.highResolutionDecimalLongitude == null ||
+          raw.location.highResolutionDecimalLatitude == null)) {
+          valid = false;
+        }
+      }
+    }
+
+    // We fail the high resolution data validation check if
+    // a record is marked as having high resolution data but
+    // does not have either a grid reference or both a lat and long
+    // otherwise we pass.
+
+    if (valid) {
+      assertions += QualityAssertion(HIGHRESOLUTION_DATA_LOCATION, PASSED)
+    } else {
+      assertions += QualityAssertion(HIGHRESOLUTION_DATA_LOCATION, FAILED)
+    }
+  }
+
 
   /**
     * Validation checks
@@ -342,6 +385,35 @@ class LocationProcessor extends Processor {
         case None => //do nothing
       }
     }
+
+    // smp+
+    // handle high resolution coordinates
+    // calculate lat/long from grid reference, if required (ie no lat/long supplied)
+
+    if (processed.occurrence.highResolution != null && processed.occurrence.highResolution == "true") {
+      val gisPointOption = processLatLong(
+        raw.location.highResolutionDecimalLatitude,
+        raw.location.highResolutionDecimalLongitude,
+        raw.location.geodeticDatum,     // if one is supplied for non high res coords then assume it's valid for high res too, and use it
+        null,           // raw.location.verbatimLatitude,
+        null,         // raw.location.verbatimLongitude,
+        null,             // raw.location.verbatimSRS,
+        null,                 // raw.location.easting,
+        null,                // raw.location.northing,
+        null,                   // raw.location.zone,
+        raw.location.highResolutionGridReference,
+        assertions)
+
+      gisPointOption match {
+        case Some(gisPoint) => {
+          processed.location.highResolutionDecimalLatitude = gisPoint.latitude
+          processed.location.highResolutionDecimalLongitude = gisPoint.longitude
+          processed.location.highResolutionCoordinateUncertaintyInMeters = gisPoint.coordinateUncertaintyInMeters
+        }
+        case None => //do nothing
+      }
+    }
+    // smp-
   }
 
   /**
@@ -655,6 +727,20 @@ class LocationProcessor extends Processor {
   }
 
   private def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
+
+    // smp+
+    // add very simple check and parsing of high resolution coordinate uncertainty, add more checks if needed
+    if (processed.occurrence.highResolution != null && processed.occurrence.highResolution == "true") {
+      val parsedResult = DistanceRangeParser.parse(raw.location.highResolutionCoordinateUncertaintyInMeters)
+      if (!parsedResult.isEmpty) {
+        val (parsedValue, rawUnit) = parsedResult.get
+        if (parsedValue > 0) {
+          processed.location.highResolutionCoordinateUncertaintyInMeters = parsedValue.toString
+        }
+      }
+    }
+    // smp-
+
     //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
     var checkedPrecision = false
     if (raw.location.coordinateUncertaintyInMeters != null && raw.location.coordinateUncertaintyInMeters.length > 0) {
@@ -747,6 +833,7 @@ class LocationProcessor extends Processor {
 
   /**
     * If coordinates were supplied but no grid reference, populate gridReference from coords
+ *
     * @param raw
     * @param processed
     * @param assertions
@@ -783,7 +870,9 @@ class LocationProcessor extends Processor {
     }
   }
 
-  /**
+
+
+/**
     * Check the habitats for the taxon profile against the biome associated with the point.
     *
     * @param raw

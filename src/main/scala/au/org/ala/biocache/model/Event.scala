@@ -18,6 +18,9 @@ class Event extends Cloneable with POSO {
   @BeanProperty var eventDate:String = _
   @BeanProperty var eventDateEnd:String = _
   @BeanProperty var eventID:String = _
+  //two-tier / high-resolution work
+  @BeanProperty var highResolutionEventID:String = _
+
   @BeanProperty var eventRemarks:String = _
   @BeanProperty var eventTime:String = _
   @BeanProperty var verbatimEventDate:String = _
