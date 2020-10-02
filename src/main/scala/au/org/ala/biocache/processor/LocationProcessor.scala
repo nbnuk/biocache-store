@@ -184,7 +184,7 @@ class LocationProcessor extends Processor {
     var valid = true;
 
     if (raw.occurrence.highResolution != null) {
-      if (raw.occurrence.highResolution.toLowerCase() == "true") {
+      if (raw.occurrence.highResolution.toLowerCase() == "true" || raw.occurrence.highResolution.toLowerCase() == "1" || raw.occurrence.highResolution.toLowerCase() == "t") {
         processed.occurrence.highResolution = "true";
 
         // copy set of raw values to processed as a default (for downloads)
@@ -194,6 +194,7 @@ class LocationProcessor extends Processor {
         processed.location.highResolutionGridReference = raw.location.highResolutionGridReference
         processed.location.highResolutionCoordinateUncertaintyInMeters = raw.location.highResolutionCoordinateUncertaintyInMeters
         processed.location.highResolutionLocality = raw.location.highResolutionLocality
+        //processed.event.highResolutionEventID = raw.event.highResolutionEventID - not needed? there is no processed version of this
 
         // if we have highResolution then we need either lat/long or a grid reference
         // uncertainty and locality are optional
