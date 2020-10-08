@@ -12,7 +12,7 @@ import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
+class TwoTierProcessingTest_notInUse extends ConfigFunSuite with BeforeAndAfterAll {
   val WORK_FILE = new File("src/test/resources/au/org/ala/load/test-twotier/occurrences.csv")
   val DATA_RESOURCE_UID = "dr9999"
   val UNIQUE_FIELDS = Array("occurrenceID")

@@ -34,10 +34,10 @@ class TwoTierLoaderTest extends ConfigFunSuite {
         val occID = Config.persistenceManager.get(rowkey,"occ","occurrenceID")
         expectResult(Some("1")) { occID }
 
-        val rowkeyMap2 = Config.persistenceManager.get("dr9999|24", "occ_uuid")
+        val rowkeyMap2 = Config.persistenceManager.get("dr9999|48", "occ_uuid")
         val rowkey2 = rowkeyMap2.get("value")
         val occID2 = Config.persistenceManager.get(rowkey2,"occ","occurrenceID")
-        expectResult(Some("24")) { occID2 }
+        expectResult(Some("48")) { occID2 }
 
         val rowkeyMap3 = Config.persistenceManager.get("dr9999|18", "occ_uuid")
         val rowkey3 = rowkeyMap3.get("value")

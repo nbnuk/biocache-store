@@ -22,6 +22,7 @@ object Processors {
     "CLASS" -> new ClassificationProcessor,
     "BOR" -> new BasisOfRecordProcessor,
     "EVENT" -> new EventProcessor,
+    "LOC_PRE" -> new LocationTwoTierPreProcessor,
     "LOC" -> new LocationProcessor,
     "SENSITIVE" -> new SensitivityProcessor,
     "TS" -> new TypeStatusProcessor,

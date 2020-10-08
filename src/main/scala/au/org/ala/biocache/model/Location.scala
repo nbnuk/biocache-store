@@ -85,6 +85,7 @@ class Location extends Cloneable with POSO {
   @BeanProperty var highResolutionDecimalLongitude:String = _
   @BeanProperty var highResolutionCoordinateUncertaintyInMeters:String = _
   @BeanProperty var highResolutionGridReference:String = _
+  @BeanProperty var highResolutionGridSizeInMeters: String=_
   @BeanProperty var highResolutionLocality:String = _
 
   //fields that need be hidden from all public API
