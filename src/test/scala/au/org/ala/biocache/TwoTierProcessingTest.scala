@@ -1,15 +1,17 @@
 package au.org.ala.biocache
 
+import java.io.File
+
 import au.org.ala.biocache.caches.{SensitivityDAO, SpatialLayerDAO}
-import au.org.ala.biocache.load.FullRecordMapper
+import au.org.ala.biocache.load.{DwcCSVLoader, FullRecordMapper}
 import au.org.ala.biocache.model.{FullRecord, Versions}
-import au.org.ala.biocache.processor.{EventProcessor, LocationProcessor, LocationTwoTierPreProcessor, SensitivityProcessor}
+import au.org.ala.biocache.processor.{ClassificationProcessor, DefaultValuesProcessor, EventProcessor, LocationProcessor, LocationTwoTierPreProcessor, RecordProcessor, SensitivityProcessor}
 import org.apache.commons.lang.StringUtils
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfterAll
-import au.org.ala.biocache.processor.{EventProcessor, LocationProcessor, SensitivityProcessor}
 import au.org.ala.biocache.model.FullRecord
+import au.org.ala.biocache.tool.ProcessLocalRecords
 import au.org.ala.biocache.util.Json
 
 /**
@@ -18,9 +20,16 @@ import au.org.ala.biocache.util.Json
 @RunWith(classOf[JUnitRunner])
 class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
 
+  val WORK_FILE = new File("src/test/resources/au/org/ala/load/test-twotier/occurrences.csv")
+  val DATA_RESOURCE_UID = "dr9999"
+  val UNIQUE_FIELDS = Array("occurrenceID")
+  val LOG_ROW_KEYS = true
+  val TEST_FILE = false
+
   test("NBNtoBlur - transfer data to high resolution fields"){
     val raw = new FullRecord
     val processed = new FullRecord
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "1"
     raw.occurrence.highResolutionNBNtoBlur = "1"
     raw.location.decimalLatitude = "55.12345"
@@ -61,6 +70,7 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   test("NBNtoBlur - generate blurred data (assuming 1km blurring)"){
     val raw = new FullRecord
     val processed = new FullRecord
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "t"
     raw.occurrence.highResolutionNBNtoBlur = "t"
     raw.location.decimalLatitude = "55.12345"
@@ -123,6 +133,7 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     val raw = new FullRecord
     val processed = new FullRecord
 
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "t"
     raw.occurrence.highResolutionNBNtoBlur = "t"
     raw.classification.taxonID = "NBNSYS0000000136"
@@ -184,6 +195,7 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   test("Store high res data into originalSensitiveValues") {
     val raw = new FullRecord
     val processed = new FullRecord
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "t"
     raw.location.highResolutionDecimalLatitude = "55.12345"
     raw.location.highResolutionDecimalLongitude = "-1.23456"
@@ -223,6 +235,7 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   test("Process location info") {
     val raw = new FullRecord
     val processed = new FullRecord
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "1"
     raw.occurrence.highResolutionNBNtoBlur = "1"
     raw.location.decimalLatitude = "55.12345"
@@ -262,6 +275,7 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   test("Sensitive processing - leaves non-sensitive record unchanged") {
     val raw = new FullRecord
     val processed = new FullRecord
+    raw.rowKey = "1"
     raw.occurrence.highResolution = "1"
     raw.occurrence.highResolutionNBNtoBlur = "1"
     raw.location.decimalLatitude = "55.12345"
@@ -275,6 +289,29 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     raw.classification.scientificName = "Vulpes vulpes"
     raw.classification.taxonID = "NHMSYS0000080188"
 
+    //note that this is done in a clumsy way below, because
+    /* this does not set the processed values for some reason
+    val loader = new DwcCSVLoader
+    //new DeleteLocalDataResource().delete("occ", 1, Array(DATA_RESOURCE_UID), 0)
+    loader.deleteOldRowKeys(DATA_RESOURCE_UID)
+    loader.loadFile(
+      WORK_FILE,
+      DATA_RESOURCE_UID,
+      UNIQUE_FIELDS,
+      Map(),
+      false,
+      LOG_ROW_KEYS,
+      TEST_FILE
+    )
+
+    val checkpointFile = Config.tmpWorkDir + "/process-local-records-checkpoints.txt"
+    val rp = new ProcessLocalRecords
+    rp.processRecords(1, List("dr9999"), List(), 0, checkpointFile)
+    val pm = Config.persistenceManager
+    val rowkeyMap = Config.persistenceManager.get("dr9999|1", "occ_uuid")
+    val rowkey = rowkeyMap.get("value")
+    val occ = Config.persistenceManager.get(rowkey,"occ")
+    */
     (new LocationTwoTierPreProcessor).process("test", raw, processed)
     (new LocationProcessor).process("test", raw, processed)
     (new SensitivityProcessor).process("test", raw, processed)
@@ -307,6 +344,10 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     val raw = new FullRecord
     val processed = new FullRecord
 
+    raw.rowKey = "1"
+    raw.location.country = "United Kingdom"
+    raw.location.stateProvince = "England"
+
     raw.occurrence.highResolution = "t"
     raw.occurrence.highResolutionNBNtoBlur = "t"
     raw.classification.taxonID = "NBNSYS0000000136"
@@ -338,51 +379,68 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
 
   }
 
-  test("Sensitive record is inadequately blurred - blurring applied") {
+  test("Sensitive processing - record must be blurred") {
     val raw = new FullRecord
     val processed = new FullRecord
 
-    raw.classification.taxonID = "NBNSYS0000000136"
-    raw.classification.scientificName = "Anas querquedula"
+    raw.rowKey = "1"
+    //needed for sensitivity processor
+    raw.location.country = "United Kingdom"
+    raw.location.stateProvince = "England"
+
+    raw.occurrence.highResolution = "t"
+    raw.occurrence.highResolutionNBNtoBlur = "t"
+    raw.classification.taxonID = "NHMSYS0021276106" //"NBNSYS0000000136"
+    raw.classification.scientificName = "Spatula querquedula" //Anas querquedula
     raw.location.decimalLatitude = "52.712"
     raw.location.decimalLongitude = "-2.756"
     raw.location.coordinateUncertaintyInMeters = "500"
     raw.location.gridReference = "SJ4913"
+    raw.location.gridSizeInMeters = "1000"
 
     (new LocationTwoTierPreProcessor).process("test", raw, processed)
     (new LocationProcessor).process("test", raw, processed)
     (new SensitivityProcessor).process("test", raw, processed)
 
-    expectResult("500") {
-      raw.occurrence.originalSensitiveValues.get("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.712") {
-      raw.occurrence.originalSensitiveValues.get("decimalLatitude")
-    }
-    expectResult("-2.756") {
-      raw.occurrence.originalSensitiveValues.get("decimalLongitude")
-    }
-    expectResult("SJ4913") {
-      raw.occurrence.originalSensitiveValues.get("gridReference")
-    }
+    val originalBlurredValues = raw.occurrence.originalBlurredValues
+    val originalSensitiveValues = raw.occurrence.originalSensitiveValues
 
     expectResult("500") {
-      raw.occurrence.originalBlurredValues.get("coordinateUncertaintyInMeters")
+      originalSensitiveValues("coordinateUncertaintyInMeters")
     }
     expectResult("52.712") {
-      raw.occurrence.originalBlurredValues.get("decimalLatitude")
+      originalSensitiveValues("decimalLatitude")
     }
     expectResult("-2.756") {
-      raw.occurrence.originalBlurredValues.get("decimalLongitude")
+      originalSensitiveValues("decimalLongitude")
     }
     expectResult("SJ4913") {
-      raw.occurrence.originalBlurredValues.get("gridReference")
+      originalSensitiveValues("gridReference")
+    }
+    expectResult("1000") {
+      originalSensitiveValues("gridSizeInMeters")
     }
 
-    expectResult("52.7") {
+    expectResult("707.1") {
+      originalBlurredValues("coordinateUncertaintyInMeters")
+    }
+    expectResult("52.71679") { //centroid of 1km grid
+       originalBlurredValues("decimalLatitude")
+    }
+    expectResult("-2.74903") { //centroid of 1km grid
+      originalBlurredValues("decimalLongitude")
+    }
+    expectResult("SJ4913") {
+      originalBlurredValues("gridReference")
+    }
+    expectResult("1000") {
+      originalBlurredValues("gridSizeInMeters")
+    }
+
+    expectResult("52.7") { //should really be centroid of 10km grid?
       processed.location.decimalLatitude
     }
-    expectResult("-2.9") {
+    expectResult("-2.7") {
       processed.location.decimalLongitude
     }
     expectResult("7071.1") {
@@ -391,131 +449,10 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     expectResult("SJ41") {
       processed.location.gridReference
     }
-  }
-
-  test("originalBlurred/SensitiveValues are populated") {
-    val raw = new FullRecord
-    val processed = new FullRecord
-
-    raw.classification.taxonID = "NBNSYS0000000136"
-    raw.classification.scientificName = "Anas querquedula"
-    raw.location.decimalLatitude = "52.712"
-    raw.location.decimalLongitude = "-2.756"
-    raw.location.coordinateUncertaintyInMeters = "500"
-    raw.location.gridReference = "SJ4913"
-    
-    raw.location.highResolutionDecimalLatitude = "52.71856"
-    raw.location.highResolutionDecimalLongitude = "-2.75202"
-    raw.location.highResolutionCoordinateUncertaintyInMeters = "50"
-    raw.location.highResolutionGridReference = "SJ493137"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
-    (new SensitivityProcessor).process("test", raw, processed)
-
-    expectResult("50") {
-      raw.occurrence.originalSensitiveValues.get("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.71856") {
-      raw.occurrence.originalSensitiveValues.get("decimalLatitude")
-    }
-    expectResult("-2.75202") {
-      raw.occurrence.originalSensitiveValues.get("decimalLongitude")
-    }
-    expectResult("SJ493137") {
-      raw.occurrence.originalSensitiveValues.get("gridReference")
-    }
-
-    expectResult("500") {
-      raw.occurrence.originalBlurredValues.get("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.712") {
-      raw.occurrence.originalBlurredValues.get("decimalLatitude")
-    }
-    expectResult("-2.756") {
-      raw.occurrence.originalBlurredValues.get("decimalLongitude")
-    }
-    expectResult("SJ4913") {
-      raw.occurrence.originalBlurredValues.get("gridReference")
-    }
-
-    expectResult("52.7") {
-      processed.location.decimalLatitude
-    }
-    expectResult("-2.9") {
-      processed.location.decimalLongitude
-    }
-    expectResult("7071.1") {
-      processed.location.coordinateUncertaintyInMeters
-    }
-    expectResult("SJ41") {
-      processed.location.gridReference
+    expectResult("10000") {
+      processed.location.gridSizeInMeters
     }
   }
 
-  test("originalBlurred/SensitiveValues are not overwritten on repeated processing") {
-    val raw = new FullRecord
-    val processed = new FullRecord
-
-    raw.classification.taxonID = "NBNSYS0000000136"
-    raw.classification.scientificName = "Anas querquedula"
-    raw.location.decimalLatitude = "52.712"
-    raw.location.decimalLongitude = "-2.756"
-    raw.location.coordinateUncertaintyInMeters = "500"
-    raw.location.gridReference = "SJ4913"
-
-    raw.location.highResolutionDecimalLatitude = "52.71856"
-    raw.location.highResolutionDecimalLongitude = "-2.75202"
-    raw.location.highResolutionCoordinateUncertaintyInMeters = "50"
-    raw.location.highResolutionGridReference = "SJ493137"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
-    (new SensitivityProcessor).process("test", raw, processed)
-    val nextRaw = processed.clone
-    val nextProcessed = new FullRecord
-    (new LocationTwoTierPreProcessor).process("test", nextRaw, nextProcessed)
-    (new LocationProcessor).process("test", nextRaw, nextProcessed)
-    (new SensitivityProcessor).process("test", nextRaw, nextProcessed)
-
-    expectResult("50") {
-      nextRaw.occurrence.originalSensitiveValues.get("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.71856") {
-      nextRaw.occurrence.originalSensitiveValues.get("decimalLatitude")
-    }
-    expectResult("-2.75202") {
-      nextRaw.occurrence.originalSensitiveValues.get("decimalLongitude")
-    }
-    expectResult("SJ493137") {
-      nextRaw.occurrence.originalSensitiveValues.get("gridReference")
-    }
-
-    expectResult("500") {
-      nextRaw.occurrence.originalBlurredValues.get("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.712") {
-      nextRaw.occurrence.originalBlurredValues.get("decimalLatitude")
-    }
-    expectResult("-2.756") {
-      nextRaw.occurrence.originalBlurredValues.get("decimalLongitude")
-    }
-    expectResult("SJ4913") {
-      nextRaw.occurrence.originalBlurredValues.get("gridReference")
-    }
-
-    expectResult("52.7") {
-      nextProcessed.location.decimalLatitude
-    }
-    expectResult("-2.9") {
-      nextProcessed.location.decimalLongitude
-    }
-    expectResult("7071.1") {
-      nextProcessed.location.coordinateUncertaintyInMeters
-    }
-    expectResult("SJ41") {
-      nextProcessed.location.gridReference
-    }
-  }
 
 }

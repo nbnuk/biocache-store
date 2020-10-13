@@ -12,7 +12,6 @@ class TwoTierLoaderTest extends ConfigFunSuite {
     val UNIQUE_FIELDS = Array("occurrenceID")
     val LOG_ROW_KEYS = true
     val TEST_FILE = false
-    val TOT_RECS = 24
 
     test("load two-tier CSV dataset") {
         val loader = new DwcCSVLoader

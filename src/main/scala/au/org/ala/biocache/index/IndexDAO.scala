@@ -833,7 +833,7 @@ trait IndexDAO {
           getParsedValue("associatedOccurrences", map),
           dupTypes.mkString("|"),
           //getParsedValue("coordinateUncertaintyInMeters", sensitiveMap), //TODO won't work for non-case-sensitive config
-          sensitiveMap.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""),
+          if (sensitiveMap.getOrElse("coordinateUncertaintyInMeters", "") != "") sensitiveMap.getOrElse("coordinateUncertaintyInMeters", "") else sensitiveMap.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""),
           distanceOutsideExpertRange,
           getParsedValue("verbatimElevation", map),
           getParsedValue("minimumElevationInMeters", map),
@@ -1842,7 +1842,12 @@ trait IndexDAO {
           val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
           addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", "")))
           addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", "")))
-          addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", "")))
+          val coordinateUncertainty = parsed.getOrElse("coordinateUncertaintyInMeters", "")
+          if (coordinateUncertainty != "") {
+            addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(coordinateUncertainty))
+          } else { //try processed version
+            addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", "")))
+          }
           addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", "")))
           if (Config.sensitiveDateDay) {
             addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))

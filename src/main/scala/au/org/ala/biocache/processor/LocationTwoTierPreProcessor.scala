@@ -6,7 +6,7 @@ import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
 import au.org.ala.biocache.parser.{DistanceRangeParser, VerbatimLatLongParser}
 import au.org.ala.biocache.util.GridUtil.{getBestValue, getGridRefAsResolutions, gridReferenceToEastingNorthing, irishGridReferenceToEastingNorthing, logger, osGridReferenceToEastingNorthing}
-import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, StringHelper}
+import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, Json, StringHelper}
 import au.org.ala.biocache.vocab._
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.math3.util.Precision
@@ -37,34 +37,38 @@ class LocationTwoTierPreProcessor extends Processor {
 
     logger.debug(s"Pre-processing NBN Two-tier location for guid: $guid")
 
-    //TODO: what if record provided with (lat, long, gridsize) instead of (lat,long coorduncertainty)?
-    //should convert gridsize to coord uncertainty and then use that (i.e. never save highresolutiongridsize)?
-
     val assertions = new ArrayBuffer[QualityAssertion]
 
     if (raw.occurrence.highResolution != null) {
       if (raw.occurrence.highResolution.toLowerCase() == "true" || raw.occurrence.highResolution.toLowerCase() == "1" || raw.occurrence.highResolution.toLowerCase() == "t") {
+
         if (raw.occurrence.highResolutionNBNtoBlur != null) {
           if (raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "true" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "1" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "t") {
-
+            moveToHighRes(raw, assertions)
             if (raw.occurrence.originalBlurredValues == null || raw.occurrence.originalBlurredValues.isEmpty) {
-              moveHighResAndBlur(raw, assertions)
+              blur(raw, assertions)
+              packOriginalBlurredValues(raw, assertions)
             } else {
               //already stored the first time this record was processed
               unpackOriginalBlurredValues(raw, assertions)
             }
           }
-
         }
+        //do this regardless of whether sensitive values exist, since might need to overwrite oriuginalSensitiveValues for a sensitive record which has now been loaded with high resolution information
+        //if (raw.occurrence.originalSensitiveValues == null || raw.occurrence.originalSensitiveValues.isEmpty) {
+          packOriginalHighResolutionValues(raw, assertions)
+        //}
+
+        val fieldsToUpdate = getFieldsToUpdateMap(raw)
+        Config.persistenceManager.put(raw.rowKey, "occ", fieldsToUpdate, false, false)
       }
-      packOriginalHighResolutionValues(raw, assertions)
     }
 
     //return the assertions created by this processor
     assertions.toArray
   }
 
-  private def moveHighResAndBlur(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+  private def moveToHighRes(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
     raw.location.highResolutionDecimalLatitude = raw.location.decimalLatitude
     raw.location.highResolutionDecimalLongitude = raw.location.decimalLongitude
     raw.location.highResolutionGridReference = raw.location.gridReference
@@ -75,6 +79,9 @@ class LocationTwoTierPreProcessor extends Processor {
     //now overwrite $ values with NBN blurred values
     //the issue is, this requires some sensitivity-processor type calculations that are repeated elsewhere
     //might be an idea to populate originalSensitiveValues with highresolution$ fields and have a call to sensitivity processor with a dummy taxon representing the NBN SDS rule
+  }
+
+  private def blur(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
 
     var crudeGridOrCoordsOnly = true
 
@@ -141,7 +148,7 @@ class LocationTwoTierPreProcessor extends Processor {
             isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble, raw.location.gridReference)
           } else {
             //calc temp grid if gridSize is provided
-            if (raw.location.gridSizeInMeters != null & raw.location.gridSizeInMeters.length > 0) {
+            if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
               val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
               val niList = List("Northern Ireland") //Irish grid
               var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
@@ -153,7 +160,17 @@ class LocationTwoTierPreProcessor extends Processor {
                 (raw.location.decimalLatitude.toDouble < 57.0 && raw.location.decimalLatitude.toDouble > 48.0)) {
                 gridToUse = "Irish"
               }
-              val grid = GridUtil.latLonToOsGrid(lat, lon, 0, raw.location.geodeticDatum, gridToUse, raw.location.gridSizeInMeters.toInt)
+              val datumToUse =
+                if (raw.location.geodeticDatum != null) {
+                  GeodeticDatum.matchTerm(raw.location.geodeticDatum) match {
+                    case Some(term) => term.canonical
+                    case None => raw.location.geodeticDatum
+                  }
+                } else {
+                  //assume WGS84
+                  GISUtil.WGS84_EPSG_Code
+                }
+              val grid = GridUtil.latLonToOsGrid(lat, lon, 0, datumToUse, gridToUse, raw.location.gridSizeInMeters.toInt)
               isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble, grid.get)
             }
           }
@@ -184,6 +201,21 @@ class LocationTwoTierPreProcessor extends Processor {
     }
     raw.location.locality = null
     raw.event.eventID = null
+
+  }
+
+  private def unpackOriginalBlurredValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
+    //TODO: this could be a duplication of what will happen when the originalSensitiveValues are unpacked (and by extension for highres records, the originalBlurredValues)
+    raw.location.decimalLatitude = raw.occurrence.originalBlurredValues.getOrElse("decimalLatitude", null)
+    raw.location.decimalLongitude = raw.occurrence.originalBlurredValues.getOrElse("decimalLongitude", null)
+    raw.location.gridReference = raw.occurrence.originalBlurredValues.getOrElse("gridReference", null)
+    raw.location.gridSizeInMeters = raw.occurrence.originalBlurredValues.getOrElse("gridSizeInMeters", null)
+    raw.location.coordinateUncertaintyInMeters = raw.occurrence.originalBlurredValues.getOrElse("coordinateUncertaintyInMeters", null)
+    raw.location.locality = raw.occurrence.originalBlurredValues.getOrElse("locality", null)
+    raw.event.eventID = raw.occurrence.originalBlurredValues.getOrElse("eventID", null)
+  }
+
+  private def packOriginalBlurredValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
     var originalBlurredValues = scala.collection.mutable.Map[String, String]()
     if (raw.location.decimalLatitude != null && raw.location.decimalLatitude.length > 0) {
       originalBlurredValues += ("decimalLatitude" -> raw.location.decimalLatitude)
@@ -201,17 +233,6 @@ class LocationTwoTierPreProcessor extends Processor {
       originalBlurredValues += ("gridSizeInMeters" -> raw.location.gridSizeInMeters)
     }
     raw.occurrence.originalBlurredValues = originalBlurredValues.toMap
-  }
-
-  private def unpackOriginalBlurredValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
-    //TODO: this could be a duplication of what will happen when the originalSensitiveValues are unpacked (and by extension for highres records, the originalBlurredValues)
-    raw.location.decimalLatitude = raw.occurrence.originalBlurredValues.getOrElse("decimalLatitude", null)
-    raw.location.decimalLongitude = raw.occurrence.originalBlurredValues.getOrElse("decimalLongitude", null)
-    raw.location.gridReference = raw.occurrence.originalBlurredValues.getOrElse("gridReference", null)
-    raw.location.gridSizeInMeters = raw.occurrence.originalBlurredValues.getOrElse("gridSizeInMeters", null)
-    raw.location.coordinateUncertaintyInMeters = raw.occurrence.originalBlurredValues.getOrElse("coordinateUncertaintyInMeters", null)
-    raw.location.locality = raw.occurrence.originalBlurredValues.getOrElse("locality", null)
-    raw.event.eventID = raw.occurrence.originalBlurredValues.getOrElse("eventID", null)
   }
 
   private def packOriginalHighResolutionValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
@@ -241,6 +262,33 @@ class LocationTwoTierPreProcessor extends Processor {
     raw.occurrence.originalSensitiveValues = originalSensitiveValues.toMap
   }
 
+  private def getFieldsToUpdateMap(raw: FullRecord): Map[String, String] = {
+    var fieldsToUpdate = Map[String, String]()
+    fieldsToUpdate += ("decimalLatitude" -> raw.location.decimalLatitude)
+    fieldsToUpdate += ("decimalLongitude" -> raw.location.decimalLongitude)
+    fieldsToUpdate += ("coordinateUncertaintyInMeters" -> raw.location.coordinateUncertaintyInMeters)
+    fieldsToUpdate += ("gridReference" -> raw.location.gridReference)
+    fieldsToUpdate += ("gridSizeInMeters" -> raw.location.gridSizeInMeters)
+    fieldsToUpdate += ("locality" -> raw.location.locality)
+    fieldsToUpdate += ("eventID" -> raw.event.eventID)
+
+    //note, don't save changes to high-res fields since on re-processing need the state of these to be as-originally-loaded
+
+    if (raw.occurrence.originalBlurredValues != null) {
+      val originalBlurredValuesJSON = Json.toJSON(raw.occurrence.originalBlurredValues)
+      fieldsToUpdate += ("originalBlurredValues" -> originalBlurredValuesJSON)
+    } else {
+      fieldsToUpdate += ("originalBlurredValues" -> null)
+    }
+    if (raw.occurrence.originalSensitiveValues != null) {
+      val originalSensitiveValuesJSON = Json.toJSON(raw.occurrence.originalSensitiveValues)
+      fieldsToUpdate += ("originalSensitiveValues" -> originalSensitiveValuesJSON)
+    } else {
+      fieldsToUpdate += ("originalSensitiveValues" -> null)
+    }
+
+    fieldsToUpdate
+  }
 
 
   def skip(guid: String, raw: FullRecord, processed: FullRecord, lastProcessed: Option[FullRecord] = None): Array[QualityAssertion] = {

@@ -101,9 +101,18 @@ class SensitivityProcessor extends Processor {
     //these should override the processed versions
     //NBN: to avoid overwriting updated values in a record that has been reloaded with old sensitive values, use Config.clearOriginalSensitiveValues (see OccurrenceDAOImpl)
 
-    if (raw.occurrence.originalSensitiveValues != null) {
+    if (raw.occurrence.originalSensitiveValues != null && (raw.occurrence.originalBlurredValues == null || raw.occurrence.originalBlurredValues.isEmpty)) {
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
+        case (key, value) => {
+          raw.setProperty(key, value) //TODO what about _p properties in sensitive values e.g. coordinateuncertaintyinmeters_p
+          rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
+        }
+      }
+    }
+    if (raw.occurrence.originalBlurredValues != null) {
+      //use blurred values since these are stipulated, and could be coarser than sensitive values
+      raw.occurrence.originalBlurredValues.foreach {
         case (key, value) => {
           raw.setProperty(key, value) //TODO what about _p properties in sensitive values e.g. coordinateuncertaintyinmeters_p
           rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
@@ -470,6 +479,10 @@ class SensitivityProcessor extends Processor {
           }
         }
         //update the object for downstream processing
+        if (raw.occurrence.originalBlurredValues != null && !raw.occurrence.originalBlurredValues.isEmpty) {
+          //in this case, we don't want original blurred values (which have been unpacked into the record prior to treatment) to be 'backfilled' into originalSensitiveValues
+          rawPropertiesToUpdate -= "originalSensitiveValues"
+        }
         rawPropertiesToUpdate.foreach { case (key, value) => raw.setProperty(key, value) }
 
         //update the raw record, removing properties where necessary
