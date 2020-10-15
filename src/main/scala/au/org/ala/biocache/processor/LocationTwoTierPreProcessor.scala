@@ -1,18 +1,15 @@
 package au.org.ala.biocache.processor
 
 import au.org.ala.biocache._
-import au.org.ala.biocache.caches.{LocationDAO, SpatialLayerDAO, TaxonProfileDAO}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
-import au.org.ala.biocache.parser.{DistanceRangeParser, VerbatimLatLongParser}
-import au.org.ala.biocache.util.GridUtil.{getBestValue, getGridRefAsResolutions, gridReferenceToEastingNorthing, irishGridReferenceToEastingNorthing, logger, osGridReferenceToEastingNorthing}
-import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, Json, StringHelper}
+import au.org.ala.biocache.util.GridUtil.{getGridFromLatLonAndGridSize, getGridRefAsResolutions, getGridSizeInMeters, gridReferenceToEastingNorthing, irishGridReferenceToEastingNorthing, logger, osGridReferenceToEastingNorthing}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json, StringHelper}
 import au.org.ala.biocache.vocab._
-import org.apache.commons.lang.StringUtils
 import org.apache.commons.math3.util.Precision
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConversions.{mapAsJavaMap, mapAsScalaMap}
+import scala.collection.JavaConversions.mapAsScalaMap
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -45,6 +42,7 @@ class LocationTwoTierPreProcessor extends Processor {
         if (raw.occurrence.highResolutionNBNtoBlur != null) {
           if (raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "true" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "1" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "t") {
             moveToHighRes(raw, assertions)
+            fillOutHighResFields(raw, assertions)
             if (raw.occurrence.originalBlurredValues == null || raw.occurrence.originalBlurredValues.isEmpty) {
               blur(raw, assertions)
               packOriginalBlurredValues(raw, assertions)
@@ -53,10 +51,15 @@ class LocationTwoTierPreProcessor extends Processor {
               unpackOriginalBlurredValues(raw, assertions)
             }
           }
+        } else {
+          fillOutHighResFields(raw, assertions)
+          if (raw.occurrence.originalBlurredValues == null || raw.occurrence.originalBlurredValues.isEmpty) {
+            packOriginalBlurredValues(raw, assertions)
+          }
         }
-        //do this regardless of whether sensitive values exist, since might need to overwrite oriuginalSensitiveValues for a sensitive record which has now been loaded with high resolution information
+        //do this regardless of whether sensitive values exist, since might need to overwrite originalSensitiveValues for a sensitive record which has now been loaded with high resolution information
         //if (raw.occurrence.originalSensitiveValues == null || raw.occurrence.originalSensitiveValues.isEmpty) {
-          packOriginalHighResolutionValues(raw, assertions)
+        packOriginalHighResolutionValues(raw, assertions)
         //}
 
         val fieldsToUpdate = getFieldsToUpdateMap(raw)
@@ -79,6 +82,49 @@ class LocationTwoTierPreProcessor extends Processor {
     //now overwrite $ values with NBN blurred values
     //the issue is, this requires some sensitivity-processor type calculations that are repeated elsewhere
     //might be an idea to populate originalSensitiveValues with highresolution$ fields and have a call to sensitivity processor with a dummy taxon representing the NBN SDS rule
+  }
+
+  private def fillOutHighResFields(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+    //populate gridReference, gridSize, coordinateUncertaintyInMeters depending on other values
+
+    if (raw.location.highResolutionGridReference == null || raw.location.highResolutionGridReference.length == 0) {
+      if (raw.location.highResolutionDecimalLatitude != null && raw.location.highResolutionDecimalLatitude.length != 0 &&
+        raw.location.highResolutionDecimalLongitude != null && raw.location.highResolutionDecimalLongitude.length != 0) {
+
+        if (raw.location.highResolutionGridSizeInMeters != null && raw.location.highResolutionGridSizeInMeters.length > 0) {
+          val grid = getGridFromLatLonAndGridSize(raw.location.highResolutionDecimalLatitude.toFloat, raw.location.highResolutionDecimalLongitude.toFloat, raw.location.highResolutionGridSizeInMeters, raw.location.stateProvince, raw.location.geodeticDatum)
+          raw.location.highResolutionGridReference = grid.getOrElse(null)
+        } else if (raw.location.highResolutionCoordinateUncertaintyInMeters != null && raw.location.highResolutionCoordinateUncertaintyInMeters.length > 0) {
+          val gridSizeNonCanonical = (raw.location.highResolutionCoordinateUncertaintyInMeters.toFloat - 0.01) * math.sqrt(2.0)
+          val gridSizeToUse = gridSizeNonCanonical match {
+            case x if x < 1 => "1"
+            case x if x < 10 => "10"
+            case x if x < 100 => "100"
+            case x if x < 1000 => "1000"
+            case x if x < 2000 => "2000"
+            case x if x < 10000 => "10000"
+            case x if x < 50000 => "50000"
+            case x if x < 100000 => "100000"
+            case _ => "0"
+          }
+          if (gridSizeToUse != "0") {
+            val grid = getGridFromLatLonAndGridSize(raw.location.highResolutionDecimalLatitude.toFloat, raw.location.highResolutionDecimalLongitude.toFloat, gridSizeToUse, raw.location.stateProvince, raw.location.geodeticDatum)
+            raw.location.highResolutionGridReference = grid.getOrElse(null)
+          }
+        }
+      }
+    }
+
+    if (raw.location.highResolutionGridSizeInMeters == null || raw.location.highResolutionGridSizeInMeters.length == 0) {
+      raw.location.highResolutionGridSizeInMeters = getGridSizeInMeters(raw.location.highResolutionGridReference).getOrElse(null).toString
+    }
+
+    if (raw.location.highResolutionCoordinateUncertaintyInMeters == null || raw.location.highResolutionCoordinateUncertaintyInMeters.length == 0) {
+      if (raw.location.highResolutionGridSizeInMeters != null && raw.location.highResolutionGridSizeInMeters.length != 0) {
+        raw.location.highResolutionCoordinateUncertaintyInMeters = "%.1f".format(raw.location.highResolutionGridSizeInMeters.toInt / Math.sqrt(2.0))
+      }
+    }
+
   }
 
   private def blur(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
@@ -149,28 +195,7 @@ class LocationTwoTierPreProcessor extends Processor {
           } else {
             //calc temp grid if gridSize is provided
             if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
-              val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
-              val niList = List("Northern Ireland") //Irish grid
-              var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
-              if (gbList.contains(raw.location.stateProvince)) {
-                gridToUse = "OSGB"
-              } else if (niList.contains(raw.location.stateProvince)) {
-                gridToUse = "Irish"
-              } else if ((raw.location.decimalLongitude.toDouble < -5.0) &&
-                (raw.location.decimalLatitude.toDouble < 57.0 && raw.location.decimalLatitude.toDouble > 48.0)) {
-                gridToUse = "Irish"
-              }
-              val datumToUse =
-                if (raw.location.geodeticDatum != null) {
-                  GeodeticDatum.matchTerm(raw.location.geodeticDatum) match {
-                    case Some(term) => term.canonical
-                    case None => raw.location.geodeticDatum
-                  }
-                } else {
-                  //assume WGS84
-                  GISUtil.WGS84_EPSG_Code
-                }
-              val grid = GridUtil.latLonToOsGrid(lat, lon, 0, datumToUse, gridToUse, raw.location.gridSizeInMeters.toInt)
+              val grid = getGridFromLatLonAndGridSize(lat, lon, raw.location.gridSizeInMeters, raw.location.stateProvince, raw.location.geodeticDatum)
               isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble, grid.get)
             }
           }

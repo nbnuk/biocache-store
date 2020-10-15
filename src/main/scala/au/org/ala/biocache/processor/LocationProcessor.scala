@@ -5,7 +5,7 @@ import au.org.ala.biocache.caches.{LocationDAO, SpatialLayerDAO, TaxonProfileDAO
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
 import au.org.ala.biocache.parser.{DistanceRangeParser, VerbatimLatLongParser}
-import au.org.ala.biocache.util.GridUtil.{irishGridReferenceToEastingNorthing, osGridReferenceToEastingNorthing}
+import au.org.ala.biocache.util.GridUtil.{getGridFromLatLonAndGridSize, getGridSizeInMeters, irishGridReferenceToEastingNorthing, osGridReferenceToEastingNorthing}
 import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, StringHelper}
 import au.org.ala.biocache.vocab._
 import org.apache.commons.lang.StringUtils
@@ -39,6 +39,9 @@ class LocationProcessor extends Processor {
 
     //handle the situation where the coordinates have already been sensitised
     setProcessedCoordinates(raw, processed, assertions)
+
+    //TODO: do we want to set raw values for these? Its not what the data provider gave, though it does make code logic simpler
+    //fillOutRawFields(raw, processed, assertions)
 
     //parse altitude and depth values
     processAltitudeAndDepth(guid, raw, processed, assertions)
@@ -121,6 +124,56 @@ class LocationProcessor extends Processor {
   }
 
   /**
+    * Compose lat,long,gridref,gridsize,coordinateUncertainty from other completed values if possible
+    *
+    * @param raw
+    * @param processed
+    * @param assertions
+    * @return
+    */
+  def fillOutRawFields(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]):Unit = {
+      //populate gridReference, gridSize, coordinateUncertaintyInMeters depending on other values
+
+      if (raw.location.gridReference == null || raw.location.gridReference.length == 0) {
+        if (processed.location.decimalLatitude != null && processed.location.decimalLatitude.length != 0 &&
+          processed.location.decimalLongitude != null && processed.location.decimalLongitude.length != 0) {
+
+          if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
+            val grid = getGridFromLatLonAndGridSize(raw.location.decimalLatitude.toFloat, raw.location.decimalLongitude.toFloat, raw.location.highResolutionGridSizeInMeters, raw.location.stateProvince, raw.location.geodeticDatum)
+            raw.location.gridReference = grid.getOrElse(null)
+          } else if (raw.location.coordinateUncertaintyInMeters != null && raw.location.coordinateUncertaintyInMeters.length > 0) {
+            val gridSizeNonCanonical = (raw.location.coordinateUncertaintyInMeters.toFloat - 0.01) * math.sqrt(2.0)
+            val gridSizeToUse = gridSizeNonCanonical match {
+              case x if x < 1 => "1"
+              case x if x < 10 => "10"
+              case x if x < 100 => "100"
+              case x if x < 1000 => "1000"
+              case x if x < 2000 => "2000"
+              case x if x < 10000 => "10000"
+              case x if x < 50000 => "50000"
+              case x if x < 100000 => "100000"
+              case _ => "0"
+            }
+            if (gridSizeToUse != "0") {
+              val grid = getGridFromLatLonAndGridSize(raw.location.decimalLatitude.toFloat, raw.location.decimalLongitude.toFloat, gridSizeToUse, raw.location.stateProvince, raw.location.geodeticDatum)
+              raw.location.gridReference = grid.getOrElse(null)
+            }
+          }
+        }
+      }
+
+      if (raw.location.gridSizeInMeters == null || raw.location.gridSizeInMeters.length == 0) {
+        raw.location.gridSizeInMeters = getGridSizeInMeters(raw.location.gridReference).getOrElse(null).toString
+      }
+
+      if (raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) {
+        if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length != 0) {
+          raw.location.coordinateUncertaintyInMeters = "%.1f".format(raw.location.gridSizeInMeters.toInt / Math.sqrt(2.0))
+        }
+      }
+  }
+
+  /**
     * Create flag if no location info was supplied for this record
     *
     * @param raw
@@ -192,6 +245,7 @@ class LocationProcessor extends Processor {
         processed.location.highResolutionDecimalLatitude = raw.location.highResolutionDecimalLatitude
         processed.location.highResolutionDecimalLongitude = raw.location.highResolutionDecimalLongitude
         processed.location.highResolutionGridReference = raw.location.highResolutionGridReference
+        processed.location.gridSizeInMeters = raw.location.gridSizeInMeters
         processed.location.highResolutionCoordinateUncertaintyInMeters = raw.location.highResolutionCoordinateUncertaintyInMeters
         processed.location.highResolutionLocality = raw.location.highResolutionLocality
         //processed.event.highResolutionEventID = raw.event.highResolutionEventID - not needed? there is no processed version of this

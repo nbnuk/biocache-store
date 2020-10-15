@@ -26,85 +26,139 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   val LOG_ROW_KEYS = true
   val TEST_FILE = false
 
-  test("NBNtoBlur - transfer data to high resolution fields"){
-    val raw = new FullRecord
-    val processed = new FullRecord
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "1"
-    raw.occurrence.highResolutionNBNtoBlur = "1"
-    raw.location.decimalLatitude = "55.12345"
-    raw.location.decimalLongitude = "-1.23456"
-    raw.location.coordinateUncertaintyInMeters = "5"
-    raw.location.gridReference = "NZ4891381275"
-    raw.location.gridSizeInMeters = "10"
-    raw.location.locality = "High res locality"
-    raw.event.eventID = "High res event"
+  val rawSensitive = new FullRecord
+  val processedSensitive = new FullRecord
+  val rawNotSensitive = new FullRecord
+  val processedNotSensitive = new FullRecord
+  val rawSensitiveCrude = new FullRecord
+  val processedSensitiveCrude = new FullRecord
+  val rawSensitiveDataProviderBlurred = new FullRecord
+  val processedSensitiveDataProviderBlurred = new FullRecord
 
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
+
+  override def beforeAll:Unit = {
+    rawSensitive.rowKey = "1"
+    rawSensitive.occurrence.highResolution = "1"
+    rawSensitive.occurrence.highResolutionNBNtoBlur = "1"
+    rawSensitive.location.decimalLatitude = "55.12345"
+    rawSensitive.location.decimalLongitude = "-1.23456"
+    rawSensitive.location.coordinateUncertaintyInMeters = "5"
+    rawSensitive.location.gridReference = "NZ4891381275"
+    rawSensitive.location.gridSizeInMeters = "10"
+    rawSensitive.location.locality = "High res locality"
+    rawSensitive.event.eventID = "High res event"
+    rawSensitive.classification.taxonID = "NBNSYS0000000136"
+    rawSensitive.classification.scientificName = "Anas querquedula"
+
+    (new LocationTwoTierPreProcessor).process("test", rawSensitive, processedSensitive)
+    (new LocationProcessor).process("test", rawSensitive, processedSensitive)
+
+    rawSensitiveCrude.rowKey = "1"
+    rawSensitiveCrude.occurrence.highResolution = "t"
+    rawSensitiveCrude.occurrence.highResolutionNBNtoBlur = "t"
+    rawSensitiveCrude.location.decimalLatitude = "52.7"
+    rawSensitiveCrude.location.decimalLongitude = "-2.9"
+    rawSensitiveCrude.location.coordinateUncertaintyInMeters = "5000"
+    rawSensitiveCrude.location.gridReference = "SJ41"
+    rawSensitiveCrude.location.gridSizeInMeters = "10000"
+    rawSensitiveCrude.location.locality = "High res locality"
+    rawSensitiveCrude.event.eventID = "High res event"
+    rawSensitiveCrude.classification.taxonID = "NBNSYS0000000136"
+    rawSensitiveCrude.classification.scientificName = "Anas querquedula"
+
+    (new LocationTwoTierPreProcessor).process("test", rawSensitiveCrude, processedSensitiveCrude)
+    (new LocationProcessor).process("test", rawSensitiveCrude, processedSensitiveCrude)
+    (new SensitivityProcessor).process("test", rawSensitiveCrude, processedSensitiveCrude)
+
+    rawNotSensitive.rowKey = "1"
+    rawNotSensitive.occurrence.highResolution = "1"
+    rawNotSensitive.occurrence.highResolutionNBNtoBlur = "1"
+    rawNotSensitive.location.decimalLatitude = "55.12345"
+    rawNotSensitive.location.decimalLongitude = "-1.23456"
+    rawNotSensitive.location.coordinateUncertaintyInMeters = "5"
+    rawNotSensitive.location.gridReference = "NZ4891381275"
+    rawNotSensitive.location.gridSizeInMeters = "10"
+    rawNotSensitive.location.locality = "High res locality"
+    rawNotSensitive.event.eventID = "High res event"
+    rawNotSensitive.classification.scientificName = "Vulpes vulpes"
+    rawNotSensitive.classification.taxonID = "NHMSYS0000080188"
+
+    (new LocationTwoTierPreProcessor).process("test", rawNotSensitive, processedNotSensitive)
+    (new LocationProcessor).process("test", rawNotSensitive, processedNotSensitive)
+    (new SensitivityProcessor).process("test", rawNotSensitive, processedNotSensitive)
+
+    rawSensitiveDataProviderBlurred.rowKey = "1"
+    rawSensitiveDataProviderBlurred.occurrence.highResolution = "1"
+    rawSensitiveDataProviderBlurred.location.highResolutionDecimalLatitude = "55.12345"
+    rawSensitiveDataProviderBlurred.location.highResolutionDecimalLongitude = "-1.23456"
+    rawSensitiveDataProviderBlurred.location.highResolutionCoordinateUncertaintyInMeters = "5"
+    rawSensitiveDataProviderBlurred.location.highResolutionGridReference = "NZ4891381275"
+    rawSensitiveDataProviderBlurred.location.highResolutionGridSizeInMeters = "10"
+    rawSensitiveDataProviderBlurred.location.highResolutionLocality = "High res locality"
+    rawSensitiveDataProviderBlurred.event.highResolutionEventID = "High res event"
+    rawSensitiveDataProviderBlurred.classification.taxonID = "NBNSYS0000000136"
+    rawSensitiveDataProviderBlurred.classification.scientificName = "Anas querquedula"
+    rawSensitiveDataProviderBlurred.location.decimalLatitude = "55.12551"
+    rawSensitiveDataProviderBlurred.location.decimalLongitude = "-1.24099"
+    rawSensitiveDataProviderBlurred.location.coordinateUncertaintyInMeters = "707.1"
+    rawSensitiveDataProviderBlurred.location.gridReference = "NZ4881"
+    rawSensitiveDataProviderBlurred.location.gridSizeInMeters = "1000"
+    rawSensitiveDataProviderBlurred.location.locality = null
+    rawSensitiveDataProviderBlurred.event.eventID = null
+
+    (new LocationTwoTierPreProcessor).process("test", rawSensitiveDataProviderBlurred, processedSensitiveDataProviderBlurred)
+    (new LocationProcessor).process("test", rawSensitiveDataProviderBlurred, processedSensitiveDataProviderBlurred)
+  }
+
+  test("NBNtoBlur - transfer data to high resolution fields"){
 
     expectResult("55.12345") {
-      raw.location.highResolutionDecimalLatitude
+      rawSensitive.location.highResolutionDecimalLatitude
     }
     expectResult("-1.23456") {
-      raw.location.highResolutionDecimalLongitude
+      rawSensitive.location.highResolutionDecimalLongitude
     }
     expectResult("5") {
-      raw.location.highResolutionCoordinateUncertaintyInMeters
+      rawSensitive.location.highResolutionCoordinateUncertaintyInMeters
     }
     expectResult("NZ4891381275") {
-      raw.location.highResolutionGridReference
+      rawSensitive.location.highResolutionGridReference
     }
     expectResult("10") {
-      raw.location.highResolutionGridSizeInMeters
+      rawSensitive.location.highResolutionGridSizeInMeters
     }
     expectResult("High res locality") {
-      raw.location.highResolutionLocality
+      rawSensitive.location.highResolutionLocality
     }
     expectResult("High res event") {
-      raw.event.highResolutionEventID
+      rawSensitive.event.highResolutionEventID
     }
   }
 
-
-
   test("NBNtoBlur - generate blurred data (assuming 1km blurring)"){
-    val raw = new FullRecord
-    val processed = new FullRecord
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "t"
-    raw.occurrence.highResolutionNBNtoBlur = "t"
-    raw.location.decimalLatitude = "55.12345"
-    raw.location.decimalLongitude = "-1.23456"
-    raw.location.coordinateUncertaintyInMeters = "5"
-    raw.location.gridReference = "NZ4891381275"
-    raw.location.gridSizeInMeters = "10"
-    raw.location.locality = "High res locality"
-    raw.event.eventID = "High res event"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
 
     expectResult("55.12551") { //centroid, not rounded
-      raw.location.decimalLatitude
+      rawSensitive.location.decimalLatitude
     }
     expectResult("-1.24099") { //centroid, not rounded
-      raw.location.decimalLongitude
+      rawSensitive.location.decimalLongitude
     }
     expectResult("707.1") {
-      raw.location.coordinateUncertaintyInMeters
+      rawSensitive.location.coordinateUncertaintyInMeters
     }
     expectResult("NZ4881") {
-      raw.location.gridReference
+      rawSensitive.location.gridReference
     }
     expectResult("1000") {
-      raw.location.gridSizeInMeters
+      rawSensitive.location.gridSizeInMeters
     }
     expectResult(null) {
-      raw.location.locality
+      rawSensitive.location.locality
     }
     expectResult(null) {
-      raw.event.eventID
+      rawSensitive.event.eventID
     }
-    val originalBlurredValues = raw.occurrence.originalBlurredValues
+    val originalBlurredValues = rawSensitive.occurrence.originalBlurredValues
 
     expectResult("55.12551") {
       originalBlurredValues("decimalLatitude")
@@ -130,44 +184,30 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   }
 
   test("NBNtoBlur - is already adequately blurred - leave unchanged") {
-    val raw = new FullRecord
-    val processed = new FullRecord
 
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "t"
-    raw.occurrence.highResolutionNBNtoBlur = "t"
-    raw.classification.taxonID = "NBNSYS0000000136"
-    raw.classification.scientificName = "Anas querquedula"
-    raw.location.decimalLatitude = "52.7"
-    raw.location.decimalLongitude = "-2.9"
-    raw.location.coordinateUncertaintyInMeters = "5000"
-    raw.location.gridSizeInMeters = "10000"
-    raw.location.gridReference = "SJ41"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
 
     expectResult("52.7") {
-      raw.location.decimalLatitude
+      rawSensitiveCrude.location.decimalLatitude
     }
     expectResult("-2.9") {
-      raw.location.decimalLongitude
+      rawSensitiveCrude.location.decimalLongitude
     }
     expectResult("5000") {
-      raw.location.coordinateUncertaintyInMeters
+      rawSensitiveCrude.location.coordinateUncertaintyInMeters
     }
     expectResult("SJ41") {
-      raw.location.gridReference
+      rawSensitiveCrude.location.gridReference
     }
     expectResult("10000") {
-      raw.location.gridSizeInMeters
+      rawSensitiveCrude.location.gridSizeInMeters
     }
     expectResult(null) {
-      raw.location.locality
+      rawSensitiveCrude.location.locality
     }
     expectResult(null) {
-      raw.event.eventID
+      rawSensitiveCrude.event.eventID
     }
-    val originalBlurredValues = raw.occurrence.originalBlurredValues
+    val originalBlurredValues = rawSensitiveCrude.occurrence.originalBlurredValues
 
     expectResult("52.7") {
       originalBlurredValues("decimalLatitude")
@@ -193,21 +233,9 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   }
 
   test("Store high res data into originalSensitiveValues") {
-    val raw = new FullRecord
-    val processed = new FullRecord
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "t"
-    raw.location.highResolutionDecimalLatitude = "55.12345"
-    raw.location.highResolutionDecimalLongitude = "-1.23456"
-    raw.location.highResolutionCoordinateUncertaintyInMeters = "5"
-    raw.location.highResolutionGridReference = "NZ4891381275"
-    raw.location.highResolutionGridSizeInMeters = "10"
-    raw.location.highResolutionLocality = "High res locality"
-    raw.event.highResolutionEventID = "High res event"
 
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
 
-    val originalSensitiveValues = raw.occurrence.originalSensitiveValues
+    val originalSensitiveValues = rawSensitive.occurrence.originalSensitiveValues
 
     expectResult("55.12345") {
       originalSensitiveValues("decimalLatitude")
@@ -233,61 +261,32 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   }
 
   test("Process location info") {
-    val raw = new FullRecord
-    val processed = new FullRecord
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "1"
-    raw.occurrence.highResolutionNBNtoBlur = "1"
-    raw.location.decimalLatitude = "55.12345"
-    raw.location.decimalLongitude = "-1.23456"
-    raw.location.coordinateUncertaintyInMeters = "5"
-    raw.location.gridReference = "NZ4891381275"
-    raw.location.gridSizeInMeters = "10"
-    raw.location.locality = "High res locality"
-    raw.event.eventID = "High res event"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
 
     expectResult("55.12551") { //centroid, not rounded
-      processed.location.decimalLatitude
+      processedSensitive.location.decimalLatitude
     }
     expectResult("-1.24099") { //centroid, not rounded
-      processed.location.decimalLongitude
+      processedSensitive.location.decimalLongitude
     }
     expectResult("707.1") {
-      processed.location.coordinateUncertaintyInMeters
+      processedSensitive.location.coordinateUncertaintyInMeters
     }
     expectResult("NZ4881") {
-      processed.location.gridReference
+      processedSensitive.location.gridReference
     }
     expectResult("1000") {
-      processed.location.gridSizeInMeters
+      processedSensitive.location.gridSizeInMeters
     }
     expectResult(null) {
-      processed.location.locality
+      processedSensitive.location.locality
     }
     expectResult(null) {
-      processed.event.eventID
+      processedSensitive.event.eventID
     }
   }
 
   test("Sensitive processing - leaves non-sensitive record unchanged") {
-    val raw = new FullRecord
-    val processed = new FullRecord
-    raw.rowKey = "1"
-    raw.occurrence.highResolution = "1"
-    raw.occurrence.highResolutionNBNtoBlur = "1"
-    raw.location.decimalLatitude = "55.12345"
-    raw.location.decimalLongitude = "-1.23456"
-    raw.location.coordinateUncertaintyInMeters = "5"
-    raw.location.gridReference = "NZ4891381275"
-    raw.location.gridSizeInMeters = "10"
-    raw.location.locality = "High res locality"
-    raw.event.eventID = "High res event"
 
-    raw.classification.scientificName = "Vulpes vulpes"
-    raw.classification.taxonID = "NHMSYS0000080188"
 
     //note that this is done in a clumsy way below, because
     /* this does not set the processed values for some reason
@@ -312,145 +311,90 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     val rowkey = rowkeyMap.get("value")
     val occ = Config.persistenceManager.get(rowkey,"occ")
     */
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
-    (new SensitivityProcessor).process("test", raw, processed)
+
 
     expectResult("55.12551") { //centroid, not rounded
-      processed.location.decimalLatitude
+      processedNotSensitive.location.decimalLatitude
     }
     expectResult("-1.24099") { //centroid, not rounded
-      processed.location.decimalLongitude
+      processedNotSensitive.location.decimalLongitude
     }
     expectResult("707.1") {
-      processed.location.coordinateUncertaintyInMeters
+      processedNotSensitive.location.coordinateUncertaintyInMeters
     }
     expectResult("NZ4881") {
-      processed.location.gridReference
+      processedNotSensitive.location.gridReference
     }
     expectResult("1000") {
-      processed.location.gridSizeInMeters
+      processedNotSensitive.location.gridSizeInMeters
     }
     expectResult(null) {
-      processed.location.locality
+      processedNotSensitive.location.locality
     }
     expectResult(null) {
-      processed.event.eventID
+      processedNotSensitive.event.eventID
     }
   }
 
-
   test("Sensitive processing - record is already adequately blurred") {
-    val raw = new FullRecord
-    val processed = new FullRecord
 
-    raw.rowKey = "1"
-    raw.location.country = "United Kingdom"
-    raw.location.stateProvince = "England"
-
-    raw.occurrence.highResolution = "t"
-    raw.occurrence.highResolutionNBNtoBlur = "t"
-    raw.classification.taxonID = "NBNSYS0000000136"
-    raw.classification.scientificName = "Anas querquedula"
-    raw.location.decimalLatitude = "52.7"
-    raw.location.decimalLongitude = "-2.9"
-    raw.location.coordinateUncertaintyInMeters = "5000"
-    raw.location.gridReference = "SJ31"
-
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
-    (new SensitivityProcessor).process("test", raw, processed)
 
     expectResult("52.7") {
-      processed.location.decimalLatitude
+      processedSensitiveCrude.location.decimalLatitude
     }
     expectResult("-2.9") {
-      processed.location.decimalLongitude
+      processedSensitiveCrude.location.decimalLongitude
     }
     expectResult("5000.0") {
-      processed.location.coordinateUncertaintyInMeters
+      processedSensitiveCrude.location.coordinateUncertaintyInMeters
     }
     expectResult("SJ31") {
-      processed.location.gridReference
+      processedSensitiveCrude.location.gridReference
     }
     expectResult("10000") {
-      processed.location.gridSizeInMeters
+      processedSensitiveCrude.location.gridSizeInMeters
     }
 
   }
 
   test("Sensitive processing - record must be blurred") {
-    val raw = new FullRecord
-    val processed = new FullRecord
 
-    raw.rowKey = "1"
-    //needed for sensitivity processor
-    raw.location.country = "United Kingdom"
-    raw.location.stateProvince = "England"
 
-    raw.occurrence.highResolution = "t"
-    raw.occurrence.highResolutionNBNtoBlur = "t"
-    raw.classification.taxonID = "NHMSYS0021276106" //"NBNSYS0000000136"
-    raw.classification.scientificName = "Spatula querquedula" //Anas querquedula
-    raw.location.decimalLatitude = "52.712"
-    raw.location.decimalLongitude = "-2.756"
-    raw.location.coordinateUncertaintyInMeters = "500"
-    raw.location.gridReference = "SJ4913"
-    raw.location.gridSizeInMeters = "1000"
+    (new SensitivityProcessor).process("test", rawSensitive, processedSensitive)
 
-    (new LocationTwoTierPreProcessor).process("test", raw, processed)
-    (new LocationProcessor).process("test", raw, processed)
-    (new SensitivityProcessor).process("test", raw, processed)
-
-    val originalBlurredValues = raw.occurrence.originalBlurredValues
-    val originalSensitiveValues = raw.occurrence.originalSensitiveValues
-
-    expectResult("500") {
-      originalSensitiveValues("coordinateUncertaintyInMeters")
-    }
-    expectResult("52.712") {
-      originalSensitiveValues("decimalLatitude")
-    }
-    expectResult("-2.756") {
-      originalSensitiveValues("decimalLongitude")
-    }
-    expectResult("SJ4913") {
-      originalSensitiveValues("gridReference")
-    }
-    expectResult("1000") {
-      originalSensitiveValues("gridSizeInMeters")
-    }
+    val originalBlurredValues = rawSensitive.occurrence.originalBlurredValues
+    val originalSensitiveValues = rawSensitive.occurrence.originalSensitiveValues
 
     expectResult("707.1") {
       originalBlurredValues("coordinateUncertaintyInMeters")
     }
-    expectResult("52.71679") { //centroid of 1km grid
+    expectResult("55.12551") { //centroid of 1km grid
        originalBlurredValues("decimalLatitude")
     }
-    expectResult("-2.74903") { //centroid of 1km grid
+    expectResult("-1.24099") { //centroid of 1km grid
       originalBlurredValues("decimalLongitude")
     }
-    expectResult("SJ4913") {
+    expectResult("NZ4881") {
       originalBlurredValues("gridReference")
     }
     expectResult("1000") {
       originalBlurredValues("gridSizeInMeters")
     }
 
-    expectResult("52.7") { //should really be centroid of 10km grid?
-      processed.location.decimalLatitude
+    expectResult("55.1") { //should really be centroid of 10km grid?
+      processedSensitive.location.decimalLatitude
     }
-    expectResult("-2.7") {
-      processed.location.decimalLongitude
+    expectResult("-1.2") {
+      processedSensitive.location.decimalLongitude
     }
     expectResult("7071.1") {
-      processed.location.coordinateUncertaintyInMeters
+      processedSensitive.location.coordinateUncertaintyInMeters
     }
-    expectResult("SJ41") {
-      processed.location.gridReference
+    expectResult("NZ48") {
+      processedSensitive.location.gridReference
     }
     expectResult("10000") {
-      processed.location.gridSizeInMeters
+      processedSensitive.location.gridSizeInMeters
     }
   }
 

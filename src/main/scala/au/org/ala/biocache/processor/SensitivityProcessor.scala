@@ -249,6 +249,15 @@ class SensitivityProcessor extends Processor {
               originalSensitiveValues.put("gridReference" + Config.persistenceManager.fieldDelimiter + "p", processed.location.gridReference)
             }
 
+            if (StringUtils.isNotBlank(raw.location.gridSizeInMeters)) {
+              originalSensitiveValues.put("gridSizeInMeters", raw.location.gridSizeInMeters)
+            }
+
+            if (StringUtils.isNotBlank(processed.location.gridSizeInMeters)) {
+              //store processed high-resolution grid size
+              originalSensitiveValues.put("gridSizeInMeters" + Config.persistenceManager.fieldDelimiter + "p", processed.location.gridSizeInMeters)
+            }
+
             originalSensitiveValues.put("eventID", raw.event.eventID)
             if (Config.sensitiveDateDay) {
               originalSensitiveValues.put("eventDate", raw.event.eventDate)
@@ -418,43 +427,43 @@ class SensitivityProcessor extends Processor {
 
         //remove the day from the values if present
         if (Config.sensitiveDateDay) {
-          raw.event.day = ""
-          raw.event.eventDate = ""
-          raw.event.endDay = ""
-          raw.event.eventDateEnd = ""
-          raw.event.eventTime = ""
-          raw.event.verbatimEventDate = ""
+          raw.event.day = null
+          raw.event.eventDate = null
+          raw.event.endDay = null
+          raw.event.eventDateEnd = null
+          raw.event.eventTime = null
+          raw.event.verbatimEventDate = null
         }
-        raw.location.easting = ""
-        raw.location.northing = ""
-        raw.event.eventID = ""
+        raw.location.easting = null
+        raw.location.northing = null
+        raw.event.eventID = null
 
         if (Config.sensitiveDateDay) {
-          processed.event.day = ""
+          processed.event.day = null
           if (processed.event.endDay != null) {
-            processed.event.endDay = ""
+            processed.event.endDay = null
           }
-          processed.event.eventDate = ""
+          processed.event.eventDate = null
           if (processed.event.eventDateEnd != null) {
-            processed.event.eventDateEnd = ""
+            processed.event.eventDateEnd = null
           }
           if (processed.event.eventTime != null) {
-            processed.event.eventTime = ""
+            processed.event.eventTime = null
           }
         }
 
         //remove this field values
         if (Config.sensitiveDateDay) {
-          rawPropertiesToUpdate.put("day", "")
-          rawPropertiesToUpdate.put("endDay", "")
-          rawPropertiesToUpdate.put("eventDate", "")
-          rawPropertiesToUpdate.put("eventDateEnd", "")
-          rawPropertiesToUpdate.put("eventTime", "")
-          rawPropertiesToUpdate.put("verbatimEventDate", "")
+          rawPropertiesToUpdate.put("day", null)
+          rawPropertiesToUpdate.put("endDay", null)
+          rawPropertiesToUpdate.put("eventDate", null)
+          rawPropertiesToUpdate.put("eventDateEnd", null)
+          rawPropertiesToUpdate.put("eventTime", null)
+          rawPropertiesToUpdate.put("verbatimEventDate", null)
         }
-        rawPropertiesToUpdate.put("northing", "")
-        rawPropertiesToUpdate.put("easting", "")
-        rawPropertiesToUpdate.put("eventID", "")
+        rawPropertiesToUpdate.put("northing", null)
+        rawPropertiesToUpdate.put("easting", null)
+        rawPropertiesToUpdate.put("eventID", null)
 
         if (!Config.sensitiveDateDay) {
           if (raw.event.eventDate != null) {

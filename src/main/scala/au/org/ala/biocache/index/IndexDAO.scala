@@ -413,14 +413,14 @@ trait IndexDAO {
     , "geohash_grid" // *** NBN test
     , "day", "end_day", "end_month", "end_year"
     , "raw_taxon_id", "raw_sampling_protocol"
-    , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    , "sensitive_grid_reference", "sensitive_grid_size", "sensitive_event_date", "sensitive_event_date_end"
     , "highresolution"
   ) ::: Config.additionalFieldsToIndex
 
   /**
    * sensitive csv header columns
    */
-  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality", "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end")
+  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality", "sensitive_grid_reference", "sensitive_grid_size", "sensitive_event_date", "sensitive_event_date_end")
 
   /**
    * Constructs a scientific name.
@@ -881,7 +881,8 @@ trait IndexDAO {
           getParsedValue("endYear", map),
           getValue("taxonId", map),
           getValue("samplingProtocol", map),
-          if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
+          if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", ""),
+          if (sensitiveMap.getOrElse("gridSizeInMeters", "") != "") sensitiveMap.getOrElse("gridSizeInMeters", "") else sensitiveMap.getOrElse("gridSizeInMeters_p" + Config.persistenceManager.fieldDelimiter + "p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", ""),
           getParsedValue("highResolution", map)
@@ -1858,6 +1859,12 @@ trait IndexDAO {
           } else {
             //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
             addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
+          }
+          if (parsed.getOrElse("gridSizeInMeters","") != "") {
+            addField(doc, "sensitive_grid_size", String.valueOf(parsed.getOrElse("gridSizeInMeters", "")))
+          } else {
+            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
+            addField(doc, "sensitive_grid_size", String.valueOf(parsed.getOrElse("gridSizeInMeters" + Config.persistenceManager.fieldDelimiter + "p", "")))
           }
         } catch {
           case _: Exception => Map[String, String]()

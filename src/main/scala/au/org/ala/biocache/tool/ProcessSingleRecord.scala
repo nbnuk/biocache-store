@@ -36,7 +36,7 @@ object ProcessSingleRecord extends Tool {
 
   def processRecord(uuid: String) {
     val processor = new RecordProcessor
-    var records = Config.occurrenceDAO.getAllVersionsByRowKey(uuid)
+    var records = Config.occurrenceDAO.getAllVersionsByRowKey(uuid, false, true)
     if (!records.isEmpty) {
       logger.info("Processing record.....")
       processor.processRecord(records.get(0), records.get(1), false, true)

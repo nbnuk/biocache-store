@@ -562,6 +562,7 @@
     <field name="sensitive_event_date" type="string" indexed="false" stored="true" multiValued="false" />
     <field name="sensitive_event_date_end" type="string" indexed="false" stored="true" multiValued="false" />
     <field name="sensitive_grid_reference" type="string" indexed="false" stored="true" multiValued="false" />
+    <field name="sensitive_grid_size" type="string" indexed="false" stored="true" multiValued="false" /> <!-- RR added Oct 2020 -->
 
     <field name="highresolution" type="string" indexed="true" stored="true" multiValued="false" omitNorms="true" />
 

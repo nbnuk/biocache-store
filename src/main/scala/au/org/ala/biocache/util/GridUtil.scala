@@ -3,7 +3,7 @@ package au.org.ala.biocache.util
 import java.util
 
 import au.org.ala.biocache.model.QualityAssertion
-import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus}
+import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, GeodeticDatum}
 import au.org.ala.biocache.vocab.AssertionCodes._
 import au.org.ala.biocache.vocab.AssertionStatus._
 import com.google.common.cache.CacheBuilder
@@ -878,5 +878,42 @@ object GridUtil {
       }
       None
     }
+  }
+
+  /**
+    * Calculates a grid of appropriate size for a pair of coordinates and a grid size in metres
+    *
+    * @param lat
+    * @param lon
+    * @param gridSizeInMeters
+    * @param stateProvince
+    * @param geodeticDatum
+    * @return grid
+    */
+  def getGridFromLatLonAndGridSize(lat: Float, lon: Float, gridSizeInMeters: String, stateProvince: String, geodeticDatum: String): Option[String] = {
+
+    val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
+    val niList = List("Northern Ireland") //Irish grid
+    var gridToUse = "OSGB"
+    if (gbList.contains(stateProvince)) {
+      gridToUse = "OSGB"
+    } else if (niList.contains(stateProvince)) {
+      gridToUse = "Irish"
+    } else if ((lon < -5.0) &&
+      (lat < 57.0 && lat > 48.0)) {
+      gridToUse = "Irish"
+    }
+    val datumToUse =
+      if (geodeticDatum != null) {
+        GeodeticDatum.matchTerm(geodeticDatum) match {
+          case Some(term) => term.canonical
+          case None => geodeticDatum
+        }
+      } else {
+        //assume WGS84
+        GISUtil.WGS84_EPSG_Code
+      }
+    val grid = GridUtil.latLonToOsGrid(lat, lon, 0, datumToUse, gridToUse, gridSizeInMeters.toInt)
+    grid
   }
 }

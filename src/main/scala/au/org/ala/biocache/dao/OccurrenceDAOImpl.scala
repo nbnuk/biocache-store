@@ -133,16 +133,22 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
         raw.location.highResolutionDecimalLongitude = null
         raw.location.highResolutionGridReference = null
         raw.location.highResolutionLocality = null
+        raw.location.highResolutionGridSizeInMeters = null
+        raw.location.highResolutionCoordinateUncertaintyInMeters = null
 
         processed.location.highResolutionDecimalLatitude = null
         processed.location.highResolutionDecimalLongitude = null
         processed.location.highResolutionGridReference = null
         processed.location.highResolutionLocality = null
+        processed.location.highResolutionGridSizeInMeters = null
+        processed.location.highResolutionCoordinateUncertaintyInMeters = null
 
         consensus.location.highResolutionDecimalLatitude = null
         consensus.location.highResolutionDecimalLongitude = null
         consensus.location.highResolutionGridReference = null
         consensus.location.highResolutionLocality = null
+        consensus.location.highResolutionGridSizeInMeters = null
+        consensus.location.highResolutionCoordinateUncertaintyInMeters = null
       }
 
       if (includeSensitive && raw.occurrence.originalSensitiveValues != null) {
