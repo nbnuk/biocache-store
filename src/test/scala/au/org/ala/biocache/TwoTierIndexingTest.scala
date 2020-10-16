@@ -91,12 +91,12 @@ class TwoTierIndexingTest  extends ConfigFunSuite {
     val doc = indexReader.document(0)
 
     indexReader.close
-
-    //previous tests may have added data
+    
     expectResult("true"){ doc.get("highresolution") }
     expectResult("52.7"){ doc.get("latitude") }
     expectResult("52.712"){ doc.get("sensitive_latitude") }
     expectResult("SJ4913"){ doc.get("sensitive_grid_reference") }
+    expectResult("1000"){ doc.get("sensitive_grid_size") }
     expectResult("generalised"){ doc.get("sensitive") }
 
 

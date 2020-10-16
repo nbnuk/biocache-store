@@ -882,7 +882,7 @@ trait IndexDAO {
           getValue("taxonId", map),
           getValue("samplingProtocol", map),
           if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", ""),
-          if (sensitiveMap.getOrElse("gridSizeInMeters", "") != "") sensitiveMap.getOrElse("gridSizeInMeters", "") else sensitiveMap.getOrElse("gridSizeInMeters_p" + Config.persistenceManager.fieldDelimiter + "p", ""),
+          if (sensitiveMap.getOrElse("gridSizeInMeters", "") != "") sensitiveMap.getOrElse("gridSizeInMeters", "") else sensitiveMap.getOrElse("gridSizeInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""),
           sensitiveMap.getOrElse("eventDate", ""),
           sensitiveMap.getOrElse("eventDateEnd", ""),
           getParsedValue("highResolution", map)
