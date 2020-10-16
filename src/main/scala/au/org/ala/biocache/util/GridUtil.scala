@@ -916,4 +916,26 @@ object GridUtil {
     val grid = GridUtil.latLonToOsGrid(lat, lon, 0, datumToUse, gridToUse, gridSizeInMeters.toInt)
     grid
   }
+
+  /**
+    * Convert coordinate uncertainty into grid size, where grid size is defined as linear dimension of square with
+    * centroid to corner distance >= coordinate uncertainty
+    * @param coordinateUncertaintyInMeters
+    * @return gridSizeInMeters
+    */
+  def getGridSizeFromCoordinateUncertainty (coordinateUncertaintyInMeters: Float): Integer = {
+    val gridSizeNonCanonical = (coordinateUncertaintyInMeters.toFloat - 0.01) * math.sqrt(2.0)
+    val gridSizeToUse = gridSizeNonCanonical match {
+      case x if x < 1 => 1
+      case x if x < 10 => 10
+      case x if x < 100 => 100
+      case x if x < 1000 => 1000
+      case x if x < 2000 => 2000
+      case x if x < 10000 => 10000
+      case x if x < 50000 => 50000
+      case x if x < 100000 => 100000
+      case _ => 0
+    }
+    gridSizeToUse
+  }
 }

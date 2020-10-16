@@ -3,7 +3,7 @@ package au.org.ala.biocache.processor
 import au.org.ala.biocache._
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
-import au.org.ala.biocache.util.GridUtil.{getGridFromLatLonAndGridSize, getGridRefAsResolutions, getGridSizeInMeters, gridReferenceToEastingNorthing, irishGridReferenceToEastingNorthing, logger, osGridReferenceToEastingNorthing}
+import au.org.ala.biocache.util.GridUtil.{getGridFromLatLonAndGridSize, getGridRefAsResolutions, getGridSizeFromCoordinateUncertainty, getGridSizeInMeters, gridReferenceToEastingNorthing, irishGridReferenceToEastingNorthing, logger, osGridReferenceToEastingNorthing}
 import au.org.ala.biocache.util.{GISUtil, GridUtil, Json, StringHelper}
 import au.org.ala.biocache.vocab._
 import org.apache.commons.math3.util.Precision
@@ -13,7 +13,9 @@ import scala.collection.JavaConversions.mapAsScalaMap
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Processor of location information.
+  * Pre-processor of two-tier higher resolution location information.
+  * This primarily manages NBN blurring (as opposed to explicitly stated low-resolution values),
+  * and populates the originalSensitiveValues (high-resolution) and originalBlurredValues (low-resolution) fields.
   */
 class LocationTwoTierPreProcessor extends Processor {
 
@@ -24,11 +26,14 @@ class LocationTwoTierPreProcessor extends Processor {
   val logger = LoggerFactory.getLogger("LocationTwoTierPreProcessor")
 
   val locProcessor = new LocationProcessor
+
+  val NBN_BLUR_GRID_SIZE = 1000 //this needs to be a canonical grid size, i.e. 1,10,100,1000,2000,10000,50000,100000
   /**
     * Process highresolutionnbntoblur
     * if this is true then
     *   (a) copy data from $ fields to highresolution$ fields
-    *   (b) apply blurring to
+    *   (b) apply blurring to original $ fields
+    * otherwise the $ field are presumed to be blurred and the highreoslution$ fields are high-resolution
     */
   def process(guid: String, raw: FullRecord, processed: FullRecord, lastProcessed: Option[FullRecord] = None): Array[QualityAssertion] = {
 
@@ -41,7 +46,7 @@ class LocationTwoTierPreProcessor extends Processor {
 
         if (raw.occurrence.highResolutionNBNtoBlur != null) {
           if (raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "true" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "1" || raw.occurrence.highResolutionNBNtoBlur.toLowerCase() == "t") {
-            moveToHighRes(raw, assertions)
+            copyToHighRes(raw, assertions)
             fillOutHighResFields(raw, assertions)
             if (raw.occurrence.originalBlurredValues == null || raw.occurrence.originalBlurredValues.isEmpty) {
               blur(raw, assertions)
@@ -58,9 +63,7 @@ class LocationTwoTierPreProcessor extends Processor {
           }
         }
         //do this regardless of whether sensitive values exist, since might need to overwrite originalSensitiveValues for a sensitive record which has now been loaded with high resolution information
-        //if (raw.occurrence.originalSensitiveValues == null || raw.occurrence.originalSensitiveValues.isEmpty) {
         packOriginalHighResolutionValues(raw, assertions)
-        //}
 
         val fieldsToUpdate = getFieldsToUpdateMap(raw)
         Config.persistenceManager.put(raw.rowKey, "occ", fieldsToUpdate, false, false)
@@ -71,7 +74,12 @@ class LocationTwoTierPreProcessor extends Processor {
     assertions.toArray
   }
 
-  private def moveToHighRes(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+  /**
+    * Copy $ fields to highresolution$ fields
+    * @param raw
+    * @param assertions
+    */
+  private def copyToHighRes(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
     raw.location.highResolutionDecimalLatitude = raw.location.decimalLatitude
     raw.location.highResolutionDecimalLongitude = raw.location.decimalLongitude
     raw.location.highResolutionGridReference = raw.location.gridReference
@@ -79,13 +87,18 @@ class LocationTwoTierPreProcessor extends Processor {
     raw.location.highResolutionCoordinateUncertaintyInMeters = raw.location.coordinateUncertaintyInMeters
     raw.location.highResolutionLocality = raw.location.locality
     raw.event.highResolutionEventID = raw.event.eventID
-    //now overwrite $ values with NBN blurred values
-    //the issue is, this requires some sensitivity-processor type calculations that are repeated elsewhere
-    //might be an idea to populate originalSensitiveValues with highresolution$ fields and have a call to sensitivity processor with a dummy taxon representing the NBN SDS rule
   }
 
+  /**
+    * Populate (high-resolution) gridReference, gridSizeInMeters and/or coordinateUncertaintyInMeters depending on which
+    * other values have been supplied.
+    * @param raw
+    * @param assertions
+    * Note: This is inconsistent with the sensitive data processing, which will populate processed fields but leave the
+    * raw ones null, e.g. gridSizeInMeters_p if the raw gridSizeInMeters is missing. Indexing should use whichever is
+    * populated, so this may not be an issue
+    */
   private def fillOutHighResFields(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
-    //populate gridReference, gridSize, coordinateUncertaintyInMeters depending on other values
 
     if (raw.location.highResolutionGridReference == null || raw.location.highResolutionGridReference.length == 0) {
       if (raw.location.highResolutionDecimalLatitude != null && raw.location.highResolutionDecimalLatitude.length != 0 &&
@@ -95,20 +108,9 @@ class LocationTwoTierPreProcessor extends Processor {
           val grid = getGridFromLatLonAndGridSize(raw.location.highResolutionDecimalLatitude.toFloat, raw.location.highResolutionDecimalLongitude.toFloat, raw.location.highResolutionGridSizeInMeters, raw.location.stateProvince, raw.location.geodeticDatum)
           raw.location.highResolutionGridReference = grid.getOrElse(null)
         } else if (raw.location.highResolutionCoordinateUncertaintyInMeters != null && raw.location.highResolutionCoordinateUncertaintyInMeters.length > 0) {
-          val gridSizeNonCanonical = (raw.location.highResolutionCoordinateUncertaintyInMeters.toFloat - 0.01) * math.sqrt(2.0)
-          val gridSizeToUse = gridSizeNonCanonical match {
-            case x if x < 1 => "1"
-            case x if x < 10 => "10"
-            case x if x < 100 => "100"
-            case x if x < 1000 => "1000"
-            case x if x < 2000 => "2000"
-            case x if x < 10000 => "10000"
-            case x if x < 50000 => "50000"
-            case x if x < 100000 => "100000"
-            case _ => "0"
-          }
-          if (gridSizeToUse != "0") {
-            val grid = getGridFromLatLonAndGridSize(raw.location.highResolutionDecimalLatitude.toFloat, raw.location.highResolutionDecimalLongitude.toFloat, gridSizeToUse, raw.location.stateProvince, raw.location.geodeticDatum)
+          val gridSizeToUse = getGridSizeFromCoordinateUncertainty(raw.location.highResolutionCoordinateUncertaintyInMeters.toFloat)
+          if (gridSizeToUse != 0) {
+            val grid = getGridFromLatLonAndGridSize(raw.location.highResolutionDecimalLatitude.toFloat, raw.location.highResolutionDecimalLongitude.toFloat, gridSizeToUse.toString, raw.location.stateProvince, raw.location.geodeticDatum)
             raw.location.highResolutionGridReference = grid.getOrElse(null)
           }
         }
@@ -127,6 +129,13 @@ class LocationTwoTierPreProcessor extends Processor {
 
   }
 
+  /**
+    * Apply NBN-default (as defined by NBN_BLUR_GRID_SIZE) blurring to $ fields.
+    * @param raw
+    * @param assertions
+    * Note that some spatial processing has to occur to determine if coordinate are simply centroids or are independent
+    * values
+    */
   private def blur(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
 
     var crudeGridOrCoordsOnly = true
@@ -134,7 +143,7 @@ class LocationTwoTierPreProcessor extends Processor {
     if (raw.location.highResolutionGridReference != null && raw.location.highResolutionGridReference != "") {
       try {
         val gridRefs = getGridRefAsResolutions(raw.location.highResolutionGridReference)
-        val blurredGrid = gridRefs.getOrElse("grid_ref_1000", "")
+        val blurredGrid = gridRefs.getOrElse("grid_ref_" + NBN_BLUR_GRID_SIZE.toString, "")
         if (blurredGrid != "") {
           crudeGridOrCoordsOnly = false
           raw.location.gridReference = blurredGrid
@@ -153,8 +162,8 @@ class LocationTwoTierPreProcessor extends Processor {
                 val (gridCentroidLatitude, gridCentroidLongitude) = coordsCentroid.get
                 raw.location.decimalLongitude = gridCentroidLongitude
                 raw.location.decimalLatitude = gridCentroidLatitude
-                raw.location.coordinateUncertaintyInMeters = "707.1" //hardcoded for 1km grid
-                raw.location.gridSizeInMeters = "1000"
+                raw.location.coordinateUncertaintyInMeters = gridToCoordinateUncertaintyString(NBN_BLUR_GRID_SIZE)
+                raw.location.gridSizeInMeters = NBN_BLUR_GRID_SIZE.toString
               }
             }
           }
@@ -205,14 +214,14 @@ class LocationTwoTierPreProcessor extends Processor {
             if ((raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters == "") &&
               (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0)) {
               coordUncert = (raw.location.gridSizeInMeters.toFloat / math.sqrt(2.0)).toFloat
-              //TODO: assertion if coordUncert and gridSize provided and do not agree?
+              //TODO: assertion if coordUncert and gridSize both provided and do not agree?
             }
-            if (coordUncert < 707.1) {
+            if (coordUncert < gridToCoordinateUncertaintyString(NBN_BLUR_GRID_SIZE).toFloat) {
               //and not a low precision record
               raw.location.decimalLatitude = Precision.round(lat, decimalPlacesToRoundTo).toString
               raw.location.decimalLongitude = Precision.round(lon, decimalPlacesToRoundTo).toString
-              raw.location.coordinateUncertaintyInMeters = "707.1" //hardcoded for 1km grid
-              raw.location.gridSizeInMeters = "1000"
+              raw.location.coordinateUncertaintyInMeters = gridToCoordinateUncertaintyString(NBN_BLUR_GRID_SIZE)
+              raw.location.gridSizeInMeters = NBN_BLUR_GRID_SIZE.toString
             }
           }
         }
@@ -229,6 +238,11 @@ class LocationTwoTierPreProcessor extends Processor {
 
   }
 
+  /**
+    * Replace $ fields with originalBlurredValues
+    * @param raw
+    * @param assertions
+    */
   private def unpackOriginalBlurredValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
     //TODO: this could be a duplication of what will happen when the originalSensitiveValues are unpacked (and by extension for highres records, the originalBlurredValues)
     raw.location.decimalLatitude = raw.occurrence.originalBlurredValues.getOrElse("decimalLatitude", null)
@@ -240,6 +254,11 @@ class LocationTwoTierPreProcessor extends Processor {
     raw.event.eventID = raw.occurrence.originalBlurredValues.getOrElse("eventID", null)
   }
 
+  /**
+    * Set originalBlurredValues field from $ fields
+    * @param raw
+    * @param assertions
+    */
   private def packOriginalBlurredValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
     var originalBlurredValues = scala.collection.mutable.Map[String, String]()
     if (raw.location.decimalLatitude != null && raw.location.decimalLatitude.length > 0) {
@@ -260,6 +279,11 @@ class LocationTwoTierPreProcessor extends Processor {
     raw.occurrence.originalBlurredValues = originalBlurredValues.toMap
   }
 
+  /**
+    * set originalSensitiveValues field from highresolution$ fields
+    * @param raw
+    * @param assertions
+    */
   private def packOriginalHighResolutionValues(raw: FullRecord, assertions: ArrayBuffer[QualityAssertion]) = {
     //TODO: this could be a duplication of what will happen when the originalSensitiveValues are packed
     var originalSensitiveValues = scala.collection.mutable.Map[String, String]()
@@ -287,6 +311,11 @@ class LocationTwoTierPreProcessor extends Processor {
     raw.occurrence.originalSensitiveValues = originalSensitiveValues.toMap
   }
 
+  /**
+    * Get list of fields updated during pre-processing to persist
+    * @param raw
+    * @return
+    */
   private def getFieldsToUpdateMap(raw: FullRecord): Map[String, String] = {
     var fieldsToUpdate = Map[String, String]()
     fieldsToUpdate += ("decimalLatitude" -> raw.location.decimalLatitude)
@@ -315,7 +344,23 @@ class LocationTwoTierPreProcessor extends Processor {
     fieldsToUpdate
   }
 
+  /**
+    * Helper function to calculate coordinate uncertainty for a given grid size
+    * @param gridSize
+    * @return
+    */
+  def gridToCoordinateUncertaintyString(gridSize: Integer):String = {
+    "%.1f".format(gridSize / math.sqrt(2.0))
+  }
 
+  /**
+    * As per other processing steps 'skip' functions
+    * @param guid
+    * @param raw
+    * @param processed
+    * @param lastProcessed
+    * @return
+    */
   def skip(guid: String, raw: FullRecord, processed: FullRecord, lastProcessed: Option[FullRecord] = None): Array[QualityAssertion] = {
     var assertions = new ArrayBuffer[QualityAssertion]
     if (lastProcessed.isDefined) {
