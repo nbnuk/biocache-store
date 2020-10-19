@@ -437,6 +437,7 @@ class SensitivityProcessor extends Processor {
         raw.location.easting = null
         raw.location.northing = null
         raw.event.eventID = null
+        raw.location.locality = null
 
         if (Config.sensitiveDateDay) {
           processed.event.day = null
@@ -464,6 +465,7 @@ class SensitivityProcessor extends Processor {
         rawPropertiesToUpdate.put("northing", null)
         rawPropertiesToUpdate.put("easting", null)
         rawPropertiesToUpdate.put("eventID", null)
+        rawPropertiesToUpdate.put("locality", null)
 
         if (!Config.sensitiveDateDay) {
           if (raw.event.eventDate != null) {

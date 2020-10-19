@@ -73,8 +73,8 @@ object Store {
   /**
    * Retrieve all versions of the record with the supplied UUID.
    */
-  def getAllVersionsByUuid(uuid: java.lang.String, includeSensitive:java.lang.Boolean, includeHighResolution:java.lang.Boolean) : Array[FullRecord] =
-    occurrenceDAO.getAllVersionsByRowKey(uuid, includeSensitive, includeHighResolution).getOrElse(null)
+  def getAllVersionsByUuid(uuid: java.lang.String, includeSensitive:java.lang.Boolean) : Array[FullRecord] =
+    occurrenceDAO.getAllVersionsByRowKey(uuid, includeSensitive).getOrElse(null)
 
   /**
    * Get the raw processed comparison based on the uuid for the occurrence.

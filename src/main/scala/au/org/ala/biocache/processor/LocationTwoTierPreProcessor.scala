@@ -52,8 +52,7 @@ class LocationTwoTierPreProcessor extends Processor {
               blur(raw, assertions)
               packOriginalBlurredValues(raw, assertions)
             } else {
-              //already stored the first time this record was processed
-              unpackOriginalBlurredValues(raw, assertions)
+              //do nothing
             }
           }
         } else {
@@ -64,6 +63,9 @@ class LocationTwoTierPreProcessor extends Processor {
         }
         //do this regardless of whether sensitive values exist, since might need to overwrite originalSensitiveValues for a sensitive record which has now been loaded with high resolution information
         packOriginalHighResolutionValues(raw, assertions)
+        if (raw.occurrence.originalBlurredValues != null && !raw.occurrence.originalBlurredValues.isEmpty) {
+          unpackOriginalBlurredValues(raw, assertions)
+        }
 
         val fieldsToUpdate = getFieldsToUpdateMap(raw)
         Config.persistenceManager.put(raw.rowKey, "occ", fieldsToUpdate, false, false)
@@ -275,6 +277,12 @@ class LocationTwoTierPreProcessor extends Processor {
     }
     if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
       originalBlurredValues += ("gridSizeInMeters" -> raw.location.gridSizeInMeters)
+    }
+    if (raw.location.locality != null && raw.location.locality.length > 0) {
+      originalBlurredValues += ("locality" -> raw.location.locality)
+    }
+    if (raw.event.eventID != null && raw.event.eventID.length > 0) {
+      originalBlurredValues += ("eventID" -> raw.event.eventID)
     }
     raw.occurrence.originalBlurredValues = originalBlurredValues.toMap
   }

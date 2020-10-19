@@ -34,6 +34,8 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
   val processedSensitiveCrude = new FullRecord
   val rawSensitiveDataProviderBlurred = new FullRecord
   val processedSensitiveDataProviderBlurred = new FullRecord
+  val rawNotSensitiveDataProviderBlurred = new FullRecord
+  val processedNotSensitiveDataProviderBlurred = new FullRecord
 
 
   override def beforeAll:Unit = {
@@ -108,6 +110,31 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
 
     (new LocationTwoTierPreProcessor).process("test", rawSensitiveDataProviderBlurred, processedSensitiveDataProviderBlurred)
     (new LocationProcessor).process("test", rawSensitiveDataProviderBlurred, processedSensitiveDataProviderBlurred)
+
+    //TODO: use this in a test
+
+    rawNotSensitiveDataProviderBlurred.rowKey = "1"
+    rawNotSensitiveDataProviderBlurred.occurrence.highResolution = "1"
+    rawNotSensitiveDataProviderBlurred.location.highResolutionDecimalLatitude = "52.71856"
+    rawNotSensitiveDataProviderBlurred.location.highResolutionDecimalLongitude = "-2.75202"
+    rawNotSensitiveDataProviderBlurred.location.highResolutionCoordinateUncertaintyInMeters = "50"
+    rawNotSensitiveDataProviderBlurred.location.highResolutionLocality = "High res locality"
+    rawNotSensitiveDataProviderBlurred.event.highResolutionEventID = "High res event"
+    rawNotSensitiveDataProviderBlurred.classification.taxonID = "NHMSYS0000080188"
+    rawNotSensitiveDataProviderBlurred.classification.scientificName = "Vulpes vulpes"
+    rawNotSensitiveDataProviderBlurred.location.decimalLatitude = "52.712"
+    rawNotSensitiveDataProviderBlurred.location.decimalLongitude = "-2.756"
+    rawNotSensitiveDataProviderBlurred.location.coordinateUncertaintyInMeters = "500"
+    rawNotSensitiveDataProviderBlurred.location.locality = "The blurred locality"
+    rawNotSensitiveDataProviderBlurred.event.eventID = "The blurred event ID"
+
+    (new LocationTwoTierPreProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
+    (new LocationProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
+    (new SensitivityProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
+
+    (new LocationTwoTierPreProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
+    (new LocationProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
+    (new SensitivityProcessor).process("test", rawNotSensitiveDataProviderBlurred, processedNotSensitiveDataProviderBlurred)
   }
 
   test("NBNtoBlur - transfer data to high resolution fields"){
@@ -396,6 +423,29 @@ class TwoTierProcessingTest extends ConfigFunSuite with BeforeAndAfterAll {
     expectResult("10000") {
       processedSensitive.location.gridSizeInMeters
     }
+  }
+
+  test("Repeat processing - preserve blurred values") {
+
+    val originalBlurredValues = rawNotSensitiveDataProviderBlurred.occurrence.originalBlurredValues
+
+    expectResult("52.712") {
+      rawNotSensitiveDataProviderBlurred.location.decimalLatitude
+    }
+    expectResult("-2.756") { //centroid of 1km grid
+      rawNotSensitiveDataProviderBlurred.location.decimalLongitude
+    }
+    expectResult("The blurred locality") { //centroid of 1km grid
+      rawNotSensitiveDataProviderBlurred.location.locality
+    }
+    expectResult("52.712") {
+      originalBlurredValues("decimalLatitude")
+    }
+    expectResult("The blurred event ID") {
+      originalBlurredValues("eventID")
+    }
+
+
   }
 
 
