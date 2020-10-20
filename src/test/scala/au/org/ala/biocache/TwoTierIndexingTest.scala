@@ -31,7 +31,7 @@ class TwoTierIndexingTest  extends ConfigFunSuite {
     raw.location.country = "United Kingdom"
     raw.location.stateProvince = "England"
 
-    raw.occurrence.highResolution = "t"
+    raw.occurrence.highResolution = "1"
     raw.occurrence.highResolutionNBNtoBlur = "t"
     raw.classification.taxonID = "NHMSYS0021276106" //"NBNSYS0000000136"
     raw.classification.scientificName = "Spatula querquedula" //Anas querquedula

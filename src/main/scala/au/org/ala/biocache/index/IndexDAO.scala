@@ -1547,7 +1547,7 @@ trait IndexDAO {
         i = i + 1
         addField(doc, header(i), getValue("samplingProtocol", map))
         i = i + 1
-        addField(doc, header(i), getValue("highResolution", map))
+        addField(doc, header(i), getParsedValue("highResolution", map))
         i = i + 1
 
         Config.additionalFieldsToIndex.foreach(field => {
