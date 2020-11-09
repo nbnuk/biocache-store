@@ -1135,9 +1135,9 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           val northing = getArrayValue(columnOrder.northingP, dataRow)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
 
-          var gridRef = getArrayValue(columnOrder.gridReference, dataRow)
+          var gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
           if (gridRef == "") {
-            gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
+            gridRef = getArrayValue(columnOrder.gridReference, dataRow)
           }
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)

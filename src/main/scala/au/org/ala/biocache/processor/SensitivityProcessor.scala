@@ -103,10 +103,22 @@ class SensitivityProcessor extends Processor {
 
     if (raw.occurrence.originalSensitiveValues != null) {
       //update the raw object.....
+      val processedOrCalculatedFields = Array("gridReference", "coordinateUncertaintyInMeters", "gridSizeInMeters", "decimalLatitude", "decimalLongitude")
       raw.occurrence.originalSensitiveValues.foreach {
         case (key, value) => {
           raw.setProperty(key, value) //TODO what about _p properties in sensitive values e.g. coordinateuncertaintyinmeters_p
           rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
+        }
+      }
+      for (fld <- processedOrCalculatedFields) {
+        if ((raw.occurrence.originalSensitiveValues contains fld) &&
+          (raw.occurrence.originalSensitiveValues contains fld + Config.persistenceManager.fieldDelimiter + "p")) {
+          //only keep the raw version.
+          //the issue is these particular fields are doing double duty:
+          // holding normally processed fields (e.g. gridReference was provided, and verified into gridReference_p) and
+          // holding calculated values e.g. if lat+long were provided then gridReference_p is calculated from these, without gridReference (raw) being included
+          // this messiness is making the code more complicated than it should be
+          rawMap -= fld.toLowerCase + Config.persistenceManager.fieldDelimiter + "p"
         }
       }
     }
