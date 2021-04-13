@@ -1839,13 +1839,23 @@ class ColumnOrder {
     }
 
     (0 until headerAttributes.length).foreach { i =>
-      array_header_idx(i) = dataRow.getIndexOf(headerAttributes(i)._1)
-      array_header_parsed_idx(i) = dataRow.getIndexOf(headerAttributes(i)._1 + Config.persistenceManager.fieldDelimiter + "p")
+     if (headerAttributes(i)._4 == 4) { // IndexDAO.IGNORE == 4
+        // set isUsed to true for this SOLR field name so it does not conflict with manually set
+        // SOLR fields using SolrIndexDAO.addField()
+        (0 until columnNames.length).foreach { j =>
+          if (columnNames(j) == headerAttributes(i)._2) {
+            isUsed(j) = true
+          }
+        }
+      } else {
+        array_header_idx(i) = dataRow.getIndexOf(headerAttributes(i)._1)
+        array_header_parsed_idx(i) = dataRow.getIndexOf(headerAttributes(i)._1 + Config.persistenceManager.fieldDelimiter + "p")
 
-      if (array_header_idx(i) >= 0)
-        isUsed(array_header_idx(i)) = true
-      if (array_header_parsed_idx(i) >= 0)
-        isUsed(array_header_parsed_idx(i)) = true
+        if (array_header_idx(i) >= 0)
+          isUsed(array_header_idx(i)) = true
+        if (array_header_parsed_idx(i) >= 0)
+          isUsed(array_header_parsed_idx(i)) = true
+      }
     }
 
     //TODO: remove when headerAttributesFix is not longer required
