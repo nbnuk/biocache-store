@@ -150,6 +150,32 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
     }
   }
 
+  def addFieldToSolr(name: String, fieldType: String, multiValued: Boolean, docValues: Boolean, indexed: Boolean, stored: Boolean): Unit = {
+    init()
+
+    val newField = Map("name" -> name, "type" -> fieldType, "multiValued" -> multiValued, "docValues" -> docValues, "indexed" -> indexed, "stored" -> stored)
+
+    try {
+      val fieldRequest = new SchemaRequest.Field(name)
+      fieldRequest.process(solrServer)
+    } catch {
+      case err: Exception => {
+        // exception is the expected behaviour from SOLR4J API
+        // if the field does not exist, unfortunately
+        logger.info("Field not in schema: " + name)
+        val field = newField.map { case (k, v) => k -> v.asInstanceOf[Object] }.asJava
+        val request = new SchemaRequest.AddField(field)
+        try {
+          logger.info("Adding field: " + name)
+          request.process(solrServer)
+        } catch {
+          case err2: Exception =>
+            logger.error("Failed to add a new field '" + name + "' to SOLR schema", err2)
+        }
+      }
+    }
+  }
+
   def reload = if (cc != null) cc.reload("biocache")
 
   override def shouldIncludeSensitiveValue(dr: String) = !drToExcludeSensitive.contains(dr)
