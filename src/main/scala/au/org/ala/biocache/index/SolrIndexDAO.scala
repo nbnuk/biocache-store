@@ -150,6 +150,64 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
     }
   }
 
+  val solrFieldNames = mutable.Set[String]()
+  val solrDynamicFieldNames = mutable.Set[String]()
+
+  def getSchemaFields(): Unit = {
+    // fetch current schema
+    val currentSchema = new SchemaRequest().process(solrServer)
+
+    val currentFields = currentSchema.getSchemaRepresentation().getFields()
+    val currentDynamicFields = currentSchema.getSchemaRepresentation().getDynamicFields()
+
+    currentFields.foreach(field => {
+      solrFieldNames += field.get("name").toString
+    })
+
+    currentDynamicFields.foreach(field => {
+      solrDynamicFieldNames += "^" + field.get("name").toString.replace("*", ".*") + "$"
+    })
+  }
+
+  def isDynamicField(str: String): Boolean = {
+    var found = false
+    solrDynamicFieldNames.foreach(fieldName => {
+      if (str.matches(fieldName))
+        found = true
+    })
+
+    found
+  }
+
+  def addLayerFieldsToSchema(): Unit = {
+    init()
+
+    // do not add fields when using EmbeddedSolrServer
+    if (solrServer.isInstanceOf[EmbeddedSolrServer]) {
+      return
+    }
+
+    if (solrFieldNames.isEmpty) {
+      getSchemaFields()
+    }
+
+    def layers = Config.fieldsToSample(true)
+
+    if (!layers.isEmpty) {
+      layers.foreach(layer => {
+        if (!solrFieldNames.contains(layer) && !isDynamicField(layer)) {
+          val fieldType = if (layer.startsWith("cl")) {
+            Config.schemaFieldTypeCl
+          } else {
+            Config.schemaFieldTypeEl
+          }
+          addFieldToSolr(layer, fieldType,
+            Config.schemaMultiValuedLayer, Config.schemaDocValuesLayer, Config.schemaIndexedLayer, Config.schemaStoredLayer)
+        }
+      })
+    }
+  }
+
   def addFieldToSolr(name: String, fieldType: String, multiValued: Boolean, docValues: Boolean, indexed: Boolean, stored: Boolean): Unit = {
     init()
 

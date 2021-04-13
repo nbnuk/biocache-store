@@ -60,6 +60,7 @@ class IndexLocalNode {
                    mergeSegments: Int,
                    test: Boolean,
                    writerCount: Int,
+                   testMap: Boolean,
                    maxRecordsToIndex:Int = -1
                   ) : Int = {
 
@@ -81,19 +82,32 @@ class IndexLocalNode {
     }
 
     val counter: Counter = new DefaultCounter()
-
-    new IndexRunner(
-      counter,
-      confDir,
-      pageSize,
-      luceneIndexing,
-      threadsPerProcess,
-      processorBufferSize,
-      singleWriter,
-      test,
-      numThreads,
-      maxRecordsToIndex
-    ).run()
+    if (testMap) {
+      new IndexRunnerMap(
+        counter,
+        confDir,
+        pageSize,
+        luceneIndexing,
+        threadsPerProcess,
+        processorBufferSize,
+        singleWriter,
+        test,
+        numThreads
+      ).run()
+    } else {
+      new IndexRunner(
+        counter,
+        confDir,
+        pageSize,
+        luceneIndexing,
+        threadsPerProcess,
+        processorBufferSize,
+        singleWriter,
+        test,
+        numThreads,
+        maxRecordsToIndex
+      ).run()
+    }
 
     val end = System.currentTimeMillis()
     logger.info("Indexing completed in " + ((end - start).toFloat / 1000f / 60f) + " minutes")

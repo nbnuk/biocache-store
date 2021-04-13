@@ -17,3 +17,4 @@ src/test/resources/solr/biocache/solr-create
 .vscode/
 .metals/
 null/
+*.bak
