@@ -26,6 +26,7 @@ import org.apache.http.impl.client.cache.CachingHttpClientBuilder
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer
 import org.apache.solr.client.solrj.impl.{CloudSolrClient, ConcurrentUpdateSolrClient}
+import org.apache.solr.client.solrj.request.schema.SchemaRequest
 import org.apache.solr.client.solrj.response.FacetField
 import org.apache.solr.client.solrj.{SolrClient, SolrQuery, StreamingResponseCallback}
 import org.apache.solr.common.params.{CursorMarkParams, MapSolrParams, ModifiableSolrParams}
@@ -179,34 +180,34 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
     found
   }
 
-  def addLayerFieldsToSchema(): Unit = {
-    init()
+  // def addLayerFieldsToSchema(): Unit = {
+  //   init()
 
-    // do not add fields when using EmbeddedSolrServer
-    if (solrServer.isInstanceOf[EmbeddedSolrServer]) {
-      return
-    }
+  //   // do not add fields when using EmbeddedSolrServer
+  //   if (solrServer.isInstanceOf[EmbeddedSolrServer]) {
+  //     return
+  //   }
 
-    if (solrFieldNames.isEmpty) {
-      getSchemaFields()
-    }
+  //   if (solrFieldNames.isEmpty) {
+  //     getSchemaFields()
+  //   }
 
-    def layers = Config.fieldsToSample(true)
+  //   def layers = Config.fieldsToSample(true)
 
-    if (!layers.isEmpty) {
-      layers.foreach(layer => {
-        if (!solrFieldNames.contains(layer) && !isDynamicField(layer)) {
-          val fieldType = if (layer.startsWith("cl")) {
-            Config.schemaFieldTypeCl
-          } else {
-            Config.schemaFieldTypeEl
-          }
-          addFieldToSolr(layer, fieldType,
-            Config.schemaMultiValuedLayer, Config.schemaDocValuesLayer, Config.schemaIndexedLayer, Config.schemaStoredLayer)
-        }
-      })
-    }
-  }
+  //   if (!layers.isEmpty) {
+  //     layers.foreach(layer => {
+  //       if (!solrFieldNames.contains(layer) && !isDynamicField(layer)) {
+  //         val fieldType = if (layer.startsWith("cl")) {
+  //           Config.schemaFieldTypeCl
+  //         } else {
+  //           Config.schemaFieldTypeEl
+  //         }
+  //         addFieldToSolr(layer, fieldType,
+  //           Config.schemaMultiValuedLayer, Config.schemaDocValuesLayer, Config.schemaIndexedLayer, Config.schemaStoredLayer)
+  //       }
+  //     })
+  //   }
+  // }
 
   def addFieldToSolr(name: String, fieldType: String, multiValued: Boolean, docValues: Boolean, indexed: Boolean, stored: Boolean): Unit = {
     init()

@@ -297,7 +297,7 @@ class IndexLocalNode {
       if(Config.solrHome.startsWith("http")) {
         // update SOLR schema with any newly sampled fields
         val solrIndexUpdate = new SolrIndexDAO(Config.solrHome, Config.excludeSensitiveValuesFor, Config.extraMiscFields)
-        solrIndexUpdate.addLayerFieldsToSchema()
+        // solrIndexUpdate.addLayerFieldsToSchema()
 
         downloadDirectory(Config.solrHome, null, sourceConfDir.getPath, false)
 
