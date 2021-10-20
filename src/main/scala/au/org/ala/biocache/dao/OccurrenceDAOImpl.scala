@@ -760,6 +760,14 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
             }
           }
         }
+
+        if (Config.fixNullFirstLoaded) {
+          //for the fix, firstLoaded has been given a value (normally it is not)
+          //so if the value has been set, we know its the fix and we must add it to propertiesToPersist
+          if (newRecord.firstLoaded != null && !"".equals(newRecord.firstLoaded)) {
+            propertiesToPersist.put("firstLoaded", newRecord.firstLoaded);
+          }
+        }
         //check for deleted properties
         val deletedProperties = oldproperties.filter {
           case (key, value) => !protectedProperties.contains(key) && !properties.contains(key)

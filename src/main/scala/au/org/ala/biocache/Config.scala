@@ -363,6 +363,8 @@ object Config {
 
   val caseSensitiveCassandra = configModule.properties.getProperty("cassandra.case.sensitive", "true").toBoolean
   val createColumnCassandra = configModule.properties.getProperty("cassandra.column.create", "true").toBoolean
+
+  val fixNullFirstLoaded = configModule.properties.getProperty("temp.fixnullfirstloaded", "false").toBoolean
 }
 
 /**
