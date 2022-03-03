@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="process-uids run" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="au.org.ala.biocache.cmd.CMD2" />
+    <module name="biocache-store" />
+    <option name="PROGRAM_PARAMETERS" value="process-uuids 456b7ff9-0cda-438f-8966-27ed30832e49,a49432c3-f42d-40fc-8ae8-0b56b18e4cb9,b07018bf-341f-4ba8-9ad5-7aa3c2c0c67e" />
+    <option name="VM_PARAMETERS" value="-Xms4g -Xmx4g -Dhostname=NBNs-MBP -XX:+UseG1GC  -Dfile.encoding=UTF8  -Dlog4j.configuration=log4j.xml  -Dactors.corePoolSize=8  -Dactors.maxPoolSize=16  -Dactors.minPoolSize=8  -Djava.util.Arrays.useLegacyMergeSort=true  -Dactors.maxPoolSize=8  -Dapp.name=biocache  -Dapp.pid=23788  -Dapp.repo=$PROJECT_DIR$/biocache-store-2.3.8/repo  -Dapp.home=$PROJECT_DIR$/biocache-store-2.3.8  -Dbasedir=$PROJECT_DIR$/biocache-store-2.3.8" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="au.org.ala.biocache.cmd.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
