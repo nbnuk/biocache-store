@@ -1,24 +1,24 @@
+dist: trusty
 sudo: required
 language: java
 cache:
   directories:
-  - .autoconf
-  - $HOME/.m2
+  - ".autoconf"
+  - "$HOME/.m2"
 jdk:
 - oraclejdk8
 branches:
   only:
   - master
 before_install:
-- mkdir -p ~/.m2; wget -q -O ~/.m2/settings.xml https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/travis_maven_settings.xml
-- sudo mkdir -p /data/lucene; sudo wget -O /data/lucene/namematching.tgz http://biocache.ala.org.au/archives/nameindexes/latest/namematching-20171012-lucene5.tgz
-- cd /data/lucene
-- sudo tar zxvf namematching.tgz
-- ls -laF
+- mkdir -p ~/.m2; wget -q -O ~/.m2/settings.xml https://raw.githubusercontent.com/nbnuk/travis-build-configuration/master/travis_maven_settings.xml
+- #sudo mkdir -p /data/lucene; sudo wget -O /data/lucene/namematching.tgz http://biocache.ala.org.au/archives/nameindexes/latest/namematching-20171012-lucene5.tgz
+- #cd /data/lucene
+- #sudo tar zxvf namematching.tgz
+- #ls -laF
 - cd $TRAVIS_BUILD_DIR
-
-script: "[ \"${TRAVIS_PULL_REQUEST}\" = \"false\" ] && mvn deploy || mvn install"
+script: '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && mvn deploy -Ptravis -Dmaven.test.skip=true || mvn install -Dmaven.test.skip=true -Ptravis'
 env:
   global:
-  - secure: ESKmT8MqCMhcmqlBdnhwv/EJOSuUYSAeTDdA/oXBC9g61k6KrxWZorqylh02LOqamg2r1tUn5i+H+L6vT0tEezdyO1+raFE7gMasbDmlPl/tqAKrwsU0x9YpeqFa2N48xlQlGVw4PfavBoeJ5WCwUovakhvmYauAEhc92rIXr7U=
-  - secure: NK2s4qQH2cAnHCnOLFxE1vwg7rlBEuz/Nww6bACvkXUOT4YKZdP+nyLQjyxcUTBceKPJPnsF9NK0KulE34153DXBZE+0+b8nPERxc73jIPJgeRJ9HloRW3QuFrgs6H8XvvhKuiHtsMnubh9l+C+rjC9J3JkTKL3KITYoHpHl4b0=
+  - secure: kVt6SqolRQ17HoKG2qkzu8b7kscFIYFGHT/dzMfZEWzoxJwqhGODXpY+3L4BxDx4WFYMoRWd75tO93Bc6/CF85atQOO/HZ2hIEqiXrHNCyXFZ1N1Gcqly8lBth6tvyuoEDgJBoRa/6DUuzuX7HZnB66eOHkjCDoRfScv2KayYJbcYfYVev5z+iumUUndd4DxEIrcpxg5BRsik2j0hwi8DQM8QVeP6ePMuUhTujtPb+RM8RpqrojslWrXzwNWimzGAMaW2RJGWTRwHI04jWJH7caFMwbq7JrRIvK2LyVUZM+5Yc+Gvn69U6qWD6hlnj2mGHuMT8h4HsDoUBs+wSnxd2HihVoGIHPFyQLMRSTItZJyLSk0Mlfeke2Cr/FEJxgNx3AOOqX/TimhmENhr4dBfICb10WqQf+UOUzObFlDMa9AYAs9Hh924UiqmvkpCOtnBWTRE4SHARSAqlTFSzfwxzSjDIr6m/4RXvre4YEfqVZhpRA1HWGK7HvA1RR1ZJlEGx40+NNZHAGNOwCg+qYSDutQNb5nu2ls59tLnYHDG9F9QhQV9F6Wv2LzzaCyF0d2tFtemngutUUSDEBWV0QSZFr42ZEpIDPEgcitKtadKJW2cqw88LccuYDS90akDxdXoJ0iXnxd8bVTvg9o5b2+1vP5olugSLVH2wAhUWlaFa0=
+  - secure: mrCHv/wxcXyZY4Wc582foZK3wDulXpguGh+WeRiGDNmhXMmfbpIo1uL+O6j3fcGJ7MOMliE6eJje0EKIe3owsIB2HH5x/9OWBG7KP7GfLJx6t5uZM1FT35b7zZ97UksCcLeZTSeHY5SdubS2ECUCVaXuYemNTPPDcb+A9raHxvrbDqByLopMfUA39tdj8trsoMiziIM7Q269QURcBu+BOPmALQ06T2hgTB++3t6tBtrY4vnVE29KaI3W+GcFTOAeY4ER8ia0gqQ2GxYRrFIqA8WVxiKRxdCHrvCh4GxPSm6AnCZf/2zeFAB3+riYkKLNyHgMwWVM6lxBQ5pLg2JNuuM4RpOC+gAno+qlLXos+gNzJuWu1ENjU8ytBe4AfmPHRWowCbuhm/XdQtV40blSn+a45x4oVI4u/28JgyLISiQZXwHunwE2Ul2OcuVHAjPqdnk31eydVJ6X44oNy36zm+5mS99A1oipi69jTytGbG3wCVBpfYI4YOTcHPqJrklHcG5jXlHuY+L3Iuj6CRW99gSkCR1bYAoNOhEn38ByB4as+j+824Bvt7oaJTR33oAd2k3+9QzhLDQhqwJG4+b38pqZqxeMPWFbGmI2XhrirM+8LUWedBCh7kk6vEGZS6zqWTmDCpF9ChE0+EaACiOLeB7Dk8Jg2EBLIrx7TuSxfo0=
