@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="2.sampledataset - load-dwca test" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="au.org.ala.biocache.cmd.CMD2" />
+    <module name="biocache-store" />
+    <option name="PROGRAM_PARAMETERS" value="load-dwca -l /data/biocache-sample-data/Test_dataset_1 -b true --test drTest_dataset_1" />
+    <option name="VM_PARAMETERS" value="-Xms4g -Xmx4g -Dhostname=NBNs-MBP -XX:+UseG1GC  -Dfile.encoding=UTF8  -Dlog4j.configuration=log4j.xml  -Dactors.corePoolSize=8  -Dactors.maxPoolSize=16  -Dactors.minPoolSize=8  -Djava.util.Arrays.useLegacyMergeSort=true  -Dactors.maxPoolSize=8  -Dapp.name=biocache  -Dapp.pid=23788  -Dapp.repo=$PROJECT_DIR$/biocache-store-2.3.8/repo  -Dapp.home=$PROJECT_DIR$/biocache-store-2.3.8  -Dbasedir=$PROJECT_DIR$/biocache-store-2.3.8" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="au.org.ala.biocache.cmd.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
