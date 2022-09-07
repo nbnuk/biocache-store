@@ -50,53 +50,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     "outlierForLayers_p"
   )
 
-  // Quality assertions we no longer wish to store (as a map for quick and easy lookup).
-  // note, just being in this table means we no longer wish to store this assertion (not what the individual value is set to in the map!)
-  // note, names are those used in AssertionCodes.scala and must match the assertion
-  // note, remove from map and re process records to turn back on
-
-  val assertionsToRemove = Map(
-    ("zeroCoordinates", true),
-    ("recordedByUnparsable", true),
-    ("invalidScientificName", true),
-    ("nameNotInNationalChecklists", true),
-    ("invertedCoordinates", true ),
-    ("zeroLongitude", true),
-    ("missingCoordinatePrecision", true),
-    ("coordinatesCentreOfStateProvince", true),
-    ("coordinatesCentreOfCountry", true),
-    ("missingGeoreferenceVerificationStatus", true),
-    ("missingIdentificationQualifier", true),
-    ("missingIdentificationReferences", true),
-    ("missingDateIdentified", true),
-    ("missingTaxonRank", true),
-    ("missingGeorefencedBy", true),
-    ("missingGeoreferenceProtocol", true),
-    ("missingGeoreferenceDate", true),
-    ("habitatMismatch", true),
-    ("altitudeInFeet", true),
-    ("occCultivatedEscapee", true),
-    ("negatedLongitude", true),
-    ("altitudeNonNumeric", true),
-    ("depthInFeet", true),
-    ("dayMonthTransposed", true),
-    ("decimalLatLongCalculatedFromVerbatim", true),
-    ("negatedLatitude", true),
-    ("depthNonNumeric", true),
-    ("altitudeOutOfRange", true),
-    ("unknownKingdom", true),
-    ("unrecognisedInstitutionCode", true),
-    ("idPreOccurrence", true),
-    ("georefPostDate", true),
-    ("unrecognisedTypeStatus", true),
-    ("depthOutOfRange", true),
-    ("minMaxDepthReversed", true),
-    ("resourceTaxonomicScopeMismatch", true),
-    ("decimalLatLongCalculationFromVerbatimFailed", true),
-    ("coordinatePrecisionMismatch", true),
-    ("coordinatesOutOfRange", true),
-    ("missingGeoreferenceSources", true)
-  )
 
   /**
    * Gets the map for a record based on searching the index for new and old ids
@@ -449,8 +402,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
   }
 
   def getErrorCodes(map: Map[String, String]): Array[Integer] = {
-    //some NBN qa fields have null instead of [], which caused error
-    val array: Array[List[Integer]] = FullRecordMapper.qaFields.filter(field => (if (map.get(field).getOrElse("[]") == null) "[]" else map.get(field).getOrElse("[]")) != "[]").toArray.map(field => {
+    val array: Array[List[Integer]] = FullRecordMapper.qaFields.filter(field => map.get(field).getOrElse("[]") != "[]").toArray.map(field => {
       Json.toListWithGeneric(map.get(field).get, classOf[java.lang.Integer])
     }).asInstanceOf[Array[List[Integer]]]
     if (!array.isEmpty)
@@ -591,31 +543,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     if (deleteIfNullValue) {
       properties ++= fr.getRawFields().filter { case (k, v) => !properties.isDefinedAt(k) } map { case (k, v) => (k, null) }
     }
-    if (Config.clearOriginalSensitiveValues) {
-      val processedSuffix = Config.persistenceManager.fieldDelimiter + "p"
-      val blankedValue = null
-      if (!properties.isDefinedAt("originalSensitiveValues")) properties ++= Map("originalSensitiveValues" -> blankedValue)
-      //also clear any properties that could have been set from originalSensitiveValues
-      if (!properties.isDefinedAt("decimalLatitude")) properties ++= Map("decimalLatitude" -> blankedValue)
-      if (!properties.isDefinedAt("decimalLatitude" + processedSuffix)) properties ++= Map("decimalLatitude" + processedSuffix -> blankedValue)
-      if (!properties.isDefinedAt("decimalLongitude")) properties ++= Map("decimalLongitude" -> blankedValue)
-      if (!properties.isDefinedAt("decimalLongitude" + processedSuffix)) properties ++= Map("decimalLongitude" + processedSuffix -> blankedValue)
-      if (!properties.isDefinedAt("coordinateUncertaintyInMeters" + processedSuffix)) properties ++= Map("coordinateUncertaintyInMeters" + processedSuffix -> blankedValue)
-      if (!properties.isDefinedAt("gridReference")) properties ++= Map("gridReference" -> blankedValue)
-      if (!properties.isDefinedAt("gridReference" + processedSuffix)) properties ++= Map("gridReference" + processedSuffix -> blankedValue)
-      if (!properties.isDefinedAt("eventID")) properties ++= Map("eventID" -> blankedValue)
-      if (!properties.isDefinedAt("locality")) properties ++= Map("locality" -> blankedValue)
-      if (Config.sensitiveDateDay) {
-        if (!properties.isDefinedAt("eventDate")) properties ++= Map("eventDate" -> blankedValue)
-        if (!properties.isDefinedAt("eventDateEnd")) properties ++= Map("eventDateEnd" -> blankedValue)
-        if (!properties.isDefinedAt("eventTime")) properties ++= Map("eventTime" -> blankedValue)
-        if (!properties.isDefinedAt("day")) properties ++= Map("day" -> blankedValue)
-        if (!properties.isDefinedAt("month")) properties ++= Map("month" -> blankedValue)
-        if (!properties.isDefinedAt("endDay")) properties ++= Map("endDay" -> blankedValue)
-        if (!properties.isDefinedAt("endMonth")) properties ++= Map("endMonth" -> blankedValue)
-        if (!properties.isDefinedAt("verbatimEventDate")) properties ++= Map("verbatimEventDate" -> blankedValue)
-      }
-    }
 
     persistenceManager.put(fr.rowKey, entityName, properties.toMap, true, deleteIfNullValue)
   }
@@ -644,9 +571,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           .map {
             case (k, v) => (k, null)
           }
-        if (!properties.isDefinedAt("originalSensitiveValues")) {
-          properties ++= Map("originalSensitiveValues" -> null)
-        }
       }
       batch.put(fr.rowKey, properties.toMap)
     }
@@ -714,10 +638,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     ))
   }
 
-  // return true if we want to keep this assertion (by checking it's not in our list of assertions to remove)
-  def qaRequired( qa : QualityAssertion) : Boolean = {
-    return !assertionsToRemove.contains( qa.name )
-  }
+
 
   /* handy when debugging lists of qa's using foreach
   def qaPrint( qa : QualityAssertion) : Unit = {
@@ -822,7 +743,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     }
   }
 
-  private def initAssertions(processed:FullRecord, assertions:Map[String, Array[QualityAssertion]]){
+  protected def initAssertions(processed:FullRecord, assertions:Map[String, Array[QualityAssertion]]){
     assertions.values.foreach { array =>
       val failedQas = array.filter(_.qaStatus==0).map(_.getName)
       processed.assertions = processed.assertions ++ failedQas
@@ -1075,10 +996,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
 
         persistenceManager.delete(
           Map(
-            "rowkey" -> toBeDeleted.referenceRowKey,
-            (if (Config.caseSensitiveCassandra) "userId" else "userid") -> toBeDeleted.getUserId,
-            "code"   -> toBeDeleted.code.toString,
-            (if (Config.caseSensitiveCassandra) "relatedUuid" else "relateduuid") -> toBeDeleted.getRelatedUuid // new cassandra primary key
+            "userId" -> toBeDeleted.getUserId,
+            "code"   -> toBeDeleted.code.toString
           ),
           qaEntityName
         )
