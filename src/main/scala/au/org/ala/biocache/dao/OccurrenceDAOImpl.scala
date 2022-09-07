@@ -3,7 +3,7 @@ package au.org.ala.biocache.dao
 import java.io.OutputStream
 import java.util.Date
 
-import au.org.ala.biocache.{Config, _}
+import au.org.ala.biocache._
 import au.org.ala.biocache.index.{IndexDAO, IndexFields}
 import au.org.ala.biocache.load.{DownloadMedia, FullRecordMapper}
 import au.org.ala.biocache.model._
@@ -179,7 +179,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     * Writes the supplied field values to the writer.  The Writer specifies the format in which the record is
     * written.
     */
-  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null, explainLicense: String = null): Array[String] = {
+  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null): Array[String] = {
     //get the codes for the qa fields that need to be included in the download
     //TODO fix this in case the value can't be found
     val mfields = fields.toBuffer
@@ -638,14 +638,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     ))
   }
 
-
-
-  /* handy when debugging lists of qa's using foreach
-  def qaPrint( qa : QualityAssertion) : Unit = {
-    logger.info( qa.name )
-  }
-   */
-
   /**
    * Update the occurrence with the supplied record, setting the correct version
    */
@@ -681,14 +673,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
             }
           }
         }
-
-        if (Config.fixNullFirstLoaded) {
-          //for the fix, firstLoaded has been given a value (normally it is not)
-          //so if the value has been set, we know its the fix and we must add it to propertiesToPersist
-          if (newRecord.firstLoaded != null && !"".equals(newRecord.firstLoaded)) {
-            propertiesToPersist.put("firstLoaded", newRecord.firstLoaded);
-          }
-        }
         //check for deleted properties
         val deletedProperties = oldproperties.filter {
           case (key, value) => !protectedProperties.contains(key) && !properties.contains(key)
@@ -711,7 +695,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
         //only add  the assertions if they are different OR the properties to persist contain more than the last modified time stamp
         if (
           oldRecord == null ||
-            (oldRecord.assertions.toSet.intersect( assertionsToRemove.keySet ).size > 0) ||  // if oldRecord contains any assertions we want to remove then we should update it
             oldRecord.assertions.toSet != newRecord.assertions.toSet ||
             propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
         ) {
@@ -719,14 +702,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           val checkUserAssertions = oldRecord != null && StringUtils.isNotEmpty(oldRecord.getUserAssertionStatus)
 
           propertiesToPersist ++= convertAssertionsToMap(rowKey, assertions.get, checkUserAssertions)
-          val x:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList.filter( qaRequired )
-
-          /*
-          // if you want to see the lists of 'before' and 'after' the removal of assertions replace the line above with this...
-          val nx:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList
-          // filter assertions we'd like to remove
-          val x:List[QualityAssertion] = nx.filter( qaRequired )
-          */
+          val x = assertions.get.values.filter{!_.isEmpty}.flatten.toList
 
           propertiesToPersist ++= Map(FullRecordMapper.qualityAssertionColumn ->  Json.toJSONWithGeneric(x))
         }
@@ -996,6 +972,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
 
         persistenceManager.delete(
           Map(
+            "rowkey" -> toBeDeleted.referenceRowKey,
             "userId" -> toBeDeleted.getUserId,
             "code"   -> toBeDeleted.code.toString
           ),
@@ -1031,7 +1008,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     *
     * If Collection Admin verifies the record, currentAssertion will have
     * code: 50000 (AssertionCodes.VERIFIED.code),
-    * qaStatus: AssertionStatus.QA_OPEN_ISSUE, AssertionStatus.QA_VERIFIED, AssertionStatus:QA_CORRECTED, AssertionStatus:QA_TODELETE
+    * qaStatus: AssertionStatus.QA_OPEN_ISSUE, AssertionStatus.QA_VERIFIED, AssertionStatus:QA_CORRECTED
     */
   private def getCombinedUserStatus(bVerified: Boolean, userAssertions: List[QualityAssertion]): (Int, ArrayBuffer[QualityAssertion]) = {
 
