@@ -179,7 +179,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     * Writes the supplied field values to the writer.  The Writer specifies the format in which the record is
     * written.
     */
-  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null): Array[String] = {
+  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null, explainLicense: String = null): Array[String] = {
     //get the codes for the qa fields that need to be included in the download
     //TODO fix this in case the value can't be found
     val mfields = fields.toBuffer
