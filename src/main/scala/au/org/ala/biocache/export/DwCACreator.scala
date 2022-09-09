@@ -26,77 +26,47 @@ object DwCACreator extends Tool {
 
   val defaultFields = List(
     "rowkey",
-    "basisofrecord_p",
-    "behavior",
-    "catalognumber",
-    "class_p",
-    "collectioncode",
-    "coordinateuncertaintyinmeters_p",
-    "country_p",
-    "datageneralizations_p",
-    "day_p",
-    "decimallatitude_p",
-    "decimallongitude_p",
-    "dynamicproperties",
-    "eventdate_p",
-    "eventid",
-    "eventremarks",
-    "family_p",
-    "fieldnotes",
-    "genus_p",
-    "geodeticdatum_p",
-    "georeferenceverificationstatus",
-    "gridreferencewkt_p",
-    "habitat_p",
-    "highergeography",
-    "identificationverificationstatus_p",
-    "identifiedby",
-    "individualcount",
-    "informationwithheld_p",
-    "institutioncode",
+    "dataResourceUid",
+    "catalogNumber",
+    "collectionCode",
+    "institutionCode",
+    "scientificName_p",
+    "recordedBy",
+    "taxonConceptID_p",
+    "taxonRank_p",
     "kingdom_p",
-    "license_p",
-    "lifestage",
-    "locality",
-    "locationremarks",
-    "maximumdepthinmeters",
-    "maximumelevationinmeters",
-    "measurementmethod",
-    "measurementtype",
-    "measurementunit",
-    "measurementvalue",
-    "minimumdepthinmeters",
-    "minimumelevationinmeters",
-    "month_p",
-    "nomenclaturalstatus_p",
-    "occurrenceid",
-    "occurrenceremarks",
-    "occurrencestatus_p",
-    "order_p",
-    "organismquantity",
-    "organismquantitytype",
-    "organismremarks",
-    "organismscope",
     "phylum_p",
-    "recordedby_p",
-    "recordnumber",
-    "rightsholder",
-    "samplesizeunit",
-    "samplesizevalue",
-    "samplingeffort",
-    "samplingprotocol",
-    "scientificname_p",
-    "scientificnameauthorship_p",
-    "sex",
-    "stateprovince_p",
-    "taxonconceptid_p",
-    "taxonid",
-    "taxonrank_p",
-    "verbatimdepth",
-    "vernacularname_p",
-    "year_p"
+    "classs_p",
+    "order_p",
+    "family_p",
+    "genus_p",
+    "decimalLatitude_p",
+    "decimalLongitude_p",
+    "coordinateUncertaintyInMeters_p",
+    "maximumElevationInMeters",
+    "minimumElevationInMeters",
+    "minimumDepthInMeters",
+    "maximumDepthInMeters",
+    "geodeticDatum_p",
+    "country_p",
+    "stateProvince_p",
+    "locality",
+    "occurrenceStatus_p",
+    "year_p",
+    "month_p",
+    "day_p",
+    "eventDate_p",
+    "eventDateEnd_p",
+    "basisOfRecord_p",
+    "identifiedBy",
+    "occurrenceRemarks",
+    "locationRemarks",
+    "recordNumber",
+    "vernacularName_p",
+    "individualCount",
+    "eventID",
+    "dataGeneralizations_p"
   )
-
 
   def main(args: Array[String]): Unit = {
 
@@ -117,150 +87,67 @@ object DwCACreator extends Tool {
     if(parser.parse(args)){
       val dwcc = new DwCACreator
       try {
-        var dataResource2OutputStreams = Map[String, Option[(ZipOutputStream, CSVWriter)]]()
-        if (resourceUid == "" || resourceUid == "all") {
-          dataResource2OutputStreams = getDataResourceUids.map { uid => (uid, dwcc.createOutputForCSV(directory, uid)) }.toMap
-        } else {
-          dataResource2OutputStreams = Map(resourceUid -> dwcc.createOutputForCSV(directory, resourceUid))
-        }
+        val dataResource2OutputStreams = getDataResourceUids.map { uid => (uid, dwcc.createOutputForCSV(directory, uid) ) }.toMap
         Config.persistenceManager.pageOverSelect("occ", (key, map) => {
           synchronized {
-            val dr = map.getOrElse(if (Config.caseSensitiveCassandra) "dataResourceUid" else "dataresourceuid", "")
-            val deletedDate = map.getOrElse(if (Config.caseSensitiveCassandra) "deletedDate" else "deleteddate", "")
+            val dr = map.getOrElse("dataResourceUid", "")
+            val deletedDate = map.getOrElse("deletedDate", "")
             if (dr != "" && deletedDate =="") {
-              if (dataResource2OutputStreams.get(dr) != None) {
-                val dataResourceMap = dataResource2OutputStreams.get(dr)
-                if (!dataResourceMap.isEmpty && !dataResourceMap.get.isEmpty) {
-                  val (zop, csv) = dataResourceMap.get.get
-                  synchronized {
-                    val eventDate = {
-                      val eventDate = map.getOrElse(if (Config.caseSensitiveCassandra) "eventDate_p" else "eventdate_p" , "")
-                      val eventDateEnd = map.getOrElse(if (Config.caseSensitiveCassandra) "eventDateEnd_p" else "eventdateend_p", "")
-                      if (eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd) {
-                        eventDate + "/" + eventDateEnd
-                      } else {
-                        eventDate
-                      }
+              val dataResourceMap = dataResource2OutputStreams.get(dr)
+              if(!dataResourceMap.isEmpty && !dataResourceMap.get.isEmpty){
+                val (zop, csv) = dataResourceMap.get.get
+                synchronized {
+                  val eventDate = {
+                    val eventDate = map.getOrElse("eventDate_p", "")
+                    val eventDateEnd = map.getOrElse("eventDateEnd_p", "")
+                    if(eventDateEnd != "" && eventDate != "" && eventDate != eventDateEnd){
+                      eventDate + "/" + eventDateEnd
+                    } else {
+                      eventDate
                     }
-                    csv.writeNext(Array(
-                      cleanValue(map.getOrElse("rowkey", "")),
-                      cleanValue(map.getOrElse("occurrenceid", "")),
-                      cleanValue(map.getOrElse("basisofrecord_p", "")),
-                      cleanValue(map.getOrElse("behavior", "")),
-                      cleanValue(map.getOrElse("catalognumber", "")),
-                      cleanValue(map.getOrElse("classs_p", "")),
-                      cleanValue(map.getOrElse("collectioncode", map.getOrElse("collectioncode_p", ""))), //_p? [either can be populated]
-                      cleanValue(map.getOrElse("coordinateuncertaintyinmeters_p", "")),
-                      cleanValue(map.getOrElse("country_p", "")),
-                      cleanValue(map.getOrElse("datageneralizations_p", "")),
-                      cleanValue(map.getOrElse("day_p", "")),
-                      cleanValue(map.getOrElse("decimallatitude_p", "")),
-                      cleanValue(map.getOrElse("decimallongitude_p", "")),
-                      cleanValue(map.getOrElse("dynamicproperties", "")),
-                      cleanValue(eventDate),
-                      cleanValue(map.getOrElse("eventid", "")),
-                      cleanValue(map.getOrElse("eventremarks", "")),
-                      cleanValue(map.getOrElse("family_p", "")),
-                      cleanValue(map.getOrElse("fieldnotes", "")),
-                      cleanValue(map.getOrElse("gridreferencewkt_p", "")),
-                      cleanValue(map.getOrElse("genus_p", "")),
-                      cleanValue(map.getOrElse("geodeticdatum_p", "")),
-                      cleanValue(map.getOrElse("georeferenceverificationstatus_p", "")),
-                      cleanValue(map.getOrElse("habitat_p", "")),
-                      cleanValue(map.getOrElse("highergeography", "")),
-                      cleanValue(map.getOrElse("identificationremarks", "")),
-                      cleanValue(map.getOrElse("identificationverificationstatus_p", "")),
-                      cleanValue(map.getOrElse("identifiedby", "")),
-                      cleanValue(map.getOrElse("individualcount", "")),
-                      cleanValue(map.getOrElse("informationwithheld_p", "")),
-                      cleanValue(map.getOrElse("institutioncode", map.getOrElse("institutioncode_p", ""))), //_p is sometimes populated and raw is blank (if supplied in defaultDarwinCoreValues for e.g. https://registry.nbnatlas.org/ws/dataResource/dr1817 , but data manager to fix before loading)
-                      cleanValue(map.getOrElse("kingdom_p", "")),
-                      cleanValue( licenseToUrlLicense( map.getOrElse("license_p", "") )),
-                      cleanValue(map.getOrElse("lifestage", "")),
-                      cleanValue(map.getOrElse("locality", "")), // [_p is not populated]
-                      cleanValue(map.getOrElse("locationremarks", "")),
-                      cleanValue(map.getOrElse("maximumdepthinmeters", "")), // [_p is populated if raw is parseable]
-                      cleanValue(map.getOrElse("maximumelevationinmeters", "")), // [_p is populated if raw is parseable]
-                      cleanValue(map.getOrElse("measurementmethod", "")),
-                      cleanValue(map.getOrElse("measurementtype", "")),
-                      cleanValue(map.getOrElse("measurementunit", "")),
-                      cleanValue(map.getOrElse("measurementvalue", "")),
-                      cleanValue(map.getOrElse("minimumdepthinmeters", "")), // [_p is populated if raw is parseable]
-                      cleanValue(map.getOrElse("minimumelevationinmeters", "")), // [_p is populated if raw is parseable]
-                      cleanValue(map.getOrElse("month_p", "")),
-                      cleanValue(map.getOrElse("nomenclaturalstatus_p", "")),
-                      cleanValue(map.getOrElse("occurrenceremarks", "")),
-                      cleanValue(map.getOrElse("occurrencestatus_p", "")),
-                      cleanValue(map.getOrElse("order_p", "")),
-                      cleanValue(map.getOrElse("organismquantity", "")),
-                      cleanValue(map.getOrElse("organismquantitytype", "")),
-                      cleanValue(map.getOrElse("organismremarks", "")),
-                      cleanValue(map.getOrElse("organismscope", "")),
-                      cleanValue(map.getOrElse("phylum_p", "")),
-                      cleanValue(map.getOrElse("recordedby_p", "")),
-                      cleanValue(map.getOrElse("recordnumber", "")),
-                      cleanValue(map.getOrElse("rightsholder", "")),
-                      cleanValue(map.getOrElse("samplesizeunit", "")),
-                      cleanValue(map.getOrElse("samplesizevalue", "")),
-                      cleanValue(map.getOrElse("samplingeffort", "")),
-                      cleanValue(map.getOrElse("samplingprotocol", "")),
-                      cleanValue(map.getOrElse("scientificname_p", map.getOrElse("scientificname", ""))),
-                      cleanValue(map.getOrElse("scientificnameauthorship_p", map.getOrElse("scientificnameauthorship", ""))),
-                      cleanValue(map.getOrElse("sex", "")),
-                      cleanValue(map.getOrElse("stateprovince_p", "")),
-                      cleanValue(map.getOrElse("taxonconceptid_p", "")),
-                      cleanValue(map.getOrElse("taxonid", "")),
-                      cleanValue(map.getOrElse("taxonrank_p", "")),
-                      cleanValue(map.getOrElse("verbatimdepth", "")),
-                      cleanValue(map.getOrElse("vernacularname_p", "")),
-                      cleanValue(map.getOrElse("year_p", ""))
-
-                    /* original exported values pre 2/4/20
-
-                      cleanValue(map.getOrElse("rowkey", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "catalogNumber" else "catalognumber", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "collectionCode" else "collectioncode", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "institutionCode" else "institutioncode", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "recordNumber" else "recordnumber", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "basisOfRecord_p" else "basisofrecord_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "recordedBy" else "recordedby", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "occurrenceStatus_p" else "occurrencestatus_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "individualCount" else "individualcount", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "scientificName_p" else "scientificname_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "taxonConceptID_p" else "taxonconceptid_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "taxonRank_p" else "taxonrank_p", "")),
-                      cleanValue(map.getOrElse("kingdom_p", "")),
-                      cleanValue(map.getOrElse("phylum_p", "")),
-                      cleanValue(map.getOrElse("classs_p", "")),
-                      cleanValue(map.getOrElse("order_p", "")),
-                      cleanValue(map.getOrElse("family_p", "")),
-                      cleanValue(map.getOrElse("genus_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "vernacularName_p" else "vernacularname_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLatitude_p" else "decimallatitude_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "decimalLongitude_p" else "decimallongitude_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "geodeticDatum_p" else "geodeticdatum_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "coordinateUncertaintyInMeters_p" else "coordinateuncertaintyinmeters_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "maximumElevationInMeters" else "maximumelevationinmeters", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "minimumElevationInMeters" else "minimumelevationinmeters", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "minimumDepthInMeters" else "minimumdepthinmeters", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "maximumDepthInMeters" else "maximumdepthinmeters", "")),
-                      cleanValue(map.getOrElse("country_p", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "stateProvince_p" else "stateprovince_p", "")),
-                      cleanValue(map.getOrElse("locality", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "locationRemarks" else "locationremarks", "")),
-                      cleanValue(map.getOrElse("year_p", "")),
-                      cleanValue(map.getOrElse("month_p", "")),
-                      cleanValue(map.getOrElse("day_p", "")),
-                      cleanValue(eventDate),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "eventID" else "eventid", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "identifiedBy" else "identifiedby", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "occurrenceRemarks" else "occurrenceremarks", "")),
-                      cleanValue(map.getOrElse(if (Config.caseSensitiveCassandra) "dataGeneralizations_p" else "datageneralizations_p", ""))
-
-                     */
-                    ))
-                    csv.flush()
                   }
+                  csv.writeNext(Array(
+                    cleanValue(map.getOrElse("rowkey", "")),
+                    cleanValue(map.getOrElse("catalogNumber",  "")),
+                    cleanValue(map.getOrElse("collectionCode", "")),
+                    cleanValue(map.getOrElse("institutionCode", "")),
+                    cleanValue(map.getOrElse("recordNumber", "")),
+                    cleanValue(map.getOrElse("basisOfRecord_p", "")),
+                    cleanValue(map.getOrElse("recordedBy", "")),
+                    cleanValue(map.getOrElse("occurrenceStatus_p", "")),
+                    cleanValue(map.getOrElse("individualCount", "")),
+                    cleanValue(map.getOrElse("scientificName_p", "")),
+                    cleanValue(map.getOrElse("taxonConceptID_p", "")),
+                    cleanValue(map.getOrElse("taxonRank_p", "")),
+                    cleanValue(map.getOrElse("kingdom_p", "")),
+                    cleanValue(map.getOrElse("phylum_p", "")),
+                    cleanValue(map.getOrElse("classs_p", "")),
+                    cleanValue(map.getOrElse("order_p", "")),
+                    cleanValue(map.getOrElse("family_p", "")),
+                    cleanValue(map.getOrElse("genus_p", "")),
+                    cleanValue(map.getOrElse("vernacularName_p", "")),
+                    cleanValue(map.getOrElse("decimalLatitude_p", "")),
+                    cleanValue(map.getOrElse("decimalLongitude_p", "")),
+                    cleanValue(map.getOrElse("geodeticDatum_p", "")),
+                    cleanValue(map.getOrElse("coordinateUncertaintyInMeters_p", "")),
+                    cleanValue(map.getOrElse("maximumElevationInMeters", "")),
+                    cleanValue(map.getOrElse("minimumElevationInmeters", "")),
+                    cleanValue(map.getOrElse("minimumDepthInMeters", "")),
+                    cleanValue(map.getOrElse("maximumDepthInMeters", "")),
+                    cleanValue(map.getOrElse("country_p", "")),
+                    cleanValue(map.getOrElse("stateProvince_p", "")),
+                    cleanValue(map.getOrElse("locality", "")),
+                    cleanValue(map.getOrElse("locationRemarks", "")),
+                    cleanValue(map.getOrElse("year_p", "")),
+                    cleanValue(map.getOrElse("month_p", "")),
+                    cleanValue(map.getOrElse("day_p", "")),
+                    cleanValue(eventDate),
+                    cleanValue(map.getOrElse("eventID", "")),
+                    cleanValue(map.getOrElse("identifiedBy", "")),
+                    cleanValue(map.getOrElse("occurrenceRemarks", "")),
+                    cleanValue(map.getOrElse("dataGeneralizations_p", ""))
+                  ))
+                  csv.flush()
                 }
               }
             }
@@ -269,11 +156,9 @@ object DwCACreator extends Tool {
         }, threads, 1000, defaultFields:_*)
 
         dataResource2OutputStreams.values.foreach { zopAndCsv =>
-          if (zopAndCsv != None) {
-            zopAndCsv.get._1.flush()
-            zopAndCsv.get._1.closeEntry()
-            zopAndCsv.get._1.close()
-          }
+          zopAndCsv.get._1.flush()
+          zopAndCsv.get._1.closeEntry()
+          zopAndCsv.get._1.close()
         }
       } catch {
         case e:Exception => {
@@ -285,17 +170,6 @@ object DwCACreator extends Tool {
   }
 
   def cleanValue(input:String) = if(input == null) "" else input.replaceAll("[\\t\\n\\r]", " ").trim
-
-  def licenseToUrlLicense( license : String ) : String = {
-    if (license == "CC0")
-      "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
-    else if (license == "CC-BY")
-      "https://creativecommons.org/licenses/by/4.0/legalcode"
-    else if (license == "CC-BY-NC")
-      "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-    else
-      ""
-  }
 
   // pattern to extract a data resource uid from a filter query , because the label show i18n value
   val dataResourcePattern = "(?:[\"]*)?(?:[a-z_]*_uid:\")([a-z0-9]*)(?:[\"]*)?".r
@@ -374,79 +248,46 @@ class DwCACreator {
       <files>
             <location>occurrence.csv</location>
       </files>
-
-        <id index="0"/>
-        <field index="1"  term="http://rs.tdwg.org/dwc/terms/occurrenceID" />
-        <field index="2"  term="http://rs.tdwg.org/dwc/terms/basisOfRecord" default="HumanObservation"/>
-        <field index="3"  term="http://rs.tdwg.org/dwc/terms/behavior" />
-        <field index="4"  term="http://rs.tdwg.org/dwc/terms/catalogNumber"/>
-        <field index="5"  term="http://rs.tdwg.org/dwc/terms/class"/>
-        <field index="6"  term="http://rs.tdwg.org/dwc/terms/collectionCode"/>
-        <field index="7"  term="http://rs.tdwg.org/dwc/terms/coordinateUncertaintyInMeters"/>
-        <field index="8"  term="http://rs.tdwg.org/dwc/terms/country"/>
-        <field index="9"  term="http://rs.tdwg.org/dwc/terms/dataGeneralizations"/>
-        <field index="10"  term="http://rs.tdwg.org/dwc/terms/day"/>
-        <field index="11"  term="http://rs.tdwg.org/dwc/terms/decimalLatitude"/>
-        <field index="12"  term="http://rs.tdwg.org/dwc/terms/decimalLongitude"/>
-        <field index="13"  term="http://rs.tdwg.org/dwc/terms/dynamicProperties"/>
-        <field index="14"  term="http://rs.tdwg.org/dwc/terms/eventDate"/>
-        <field index="15"  term="http://rs.tdwg.org/dwc/terms/eventID"/>
-        <field index="16"  term="http://rs.tdwg.org/dwc/terms/eventRemarks"/>
-        <field index="17"  term="http://rs.tdwg.org/dwc/terms/family"/>
-        <field index="18"  term="http://rs.tdwg.org/dwc/terms/fieldNotes"/>
-        <field index="19"  term="http://rs.tdwg.org/dwc/terms/footprintWKT"/>
-        <field index="20"  term="http://rs.tdwg.org/dwc/terms/genus"/>
-        <field index="21"  term="http://rs.tdwg.org/dwc/terms/geodeticDatum"/>
-        <field index="22"  term="http://rs.tdwg.org/dwc/terms/georeferenceVerificationStatus"/>
-        <field index="23"  term="http://rs.tdwg.org/dwc/terms/habitat"/>
-        <field index="24"  term="http://rs.tdwg.org/dwc/terms/higherGeography"/>
-        <field index="25"  term="http://rs.tdwg.org/dwc/terms/identificationRemarks"/>
-        <field index="26"  term="http://rs.tdwg.org/dwc/terms/identificationVerificationStatus"/>
-        <field index="27"  term="http://rs.tdwg.org/dwc/terms/identifiedBy"/>
-        <field index="28"  term="http://rs.tdwg.org/dwc/terms/individualCount"/>
-        <field index="29"  term="http://rs.tdwg.org/dwc/terms/informationWithheld"/>
-        <field index="30"  term="http://rs.tdwg.org/dwc/terms/institutionCode"/>
-        <field index="31"  term="http://rs.tdwg.org/dwc/terms/kingdom"/>
-        <field index="32"  term="http://rs.tdwg.org/dwc/terms/license"/>
-        <field index="33"  term="http://rs.tdwg.org/dwc/terms/lifeStage"/>
-        <field index="34"  term="http://rs.tdwg.org/dwc/terms/locality"/>
-        <field index="35"  term="http://rs.tdwg.org/dwc/terms/locationRemarks"/>
-        <field index="36"  term="http://rs.tdwg.org/dwc/terms/maximumDepthInMeters"/>
-        <field index="37"  term="http://rs.tdwg.org/dwc/terms/maximumElevationInMeters"/>
-        <field index="38"  term="http://rs.tdwg.org/dwc/terms/measurementMethod"/>
-        <field index="39"  term="http://rs.tdwg.org/dwc/terms/measurementType"/>
-        <field index="40"  term="http://rs.tdwg.org/dwc/terms/measurementUnit"/>
-        <field index="41"  term="http://rs.tdwg.org/dwc/terms/measurementValue"/>
-        <field index="42"  term="http://rs.tdwg.org/dwc/terms/minimumDepthInMeters"/>
-        <field index="43"  term="http://rs.tdwg.org/dwc/terms/minimumElevationInMeters"/>
-        <field index="44"  term="http://rs.tdwg.org/dwc/terms/month"/>
-        <field index="45"  term="http://rs.tdwg.org/dwc/terms/nomenclaturalStatus"/>
-        <field index="46"  term="http://rs.tdwg.org/dwc/terms/occurrenceRemarks"/>
-        <field index="47"  term="http://rs.tdwg.org/dwc/terms/occurrenceStatus"/>
-        <field index="48"  term="http://rs.tdwg.org/dwc/terms/order"/>
-        <field index="49"  term="http://rs.tdwg.org/dwc/terms/organismQuantity"/>
-        <field index="50"  term="http://rs.tdwg.org/dwc/terms/organismQuantityType"/>
-        <field index="51"  term="http://rs.tdwg.org/dwc/terms/organismRemarks"/>
-        <field index="52"  term="http://rs.tdwg.org/dwc/terms/organismScope"/>
-        <field index="53"  term="http://rs.tdwg.org/dwc/terms/phylum"/>
-        <field index="54"  term="http://rs.tdwg.org/dwc/terms/recordedBy"/>
-        <field index="55"  term="http://rs.tdwg.org/dwc/terms/recordNumber"/>
-        <field index="56"  term="http://rs.tdwg.org/dwc/terms/rightsHolder"/>
-        <field index="57"  term="http://rs.tdwg.org/dwc/terms/sampleSizeUnit"/>
-        <field index="58"  term="http://rs.tdwg.org/dwc/terms/sampleSizeValue"/>
-        <field index="59"  term="http://rs.tdwg.org/dwc/terms/samplingEffort"/>
-        <field index="60"  term="http://rs.tdwg.org/dwc/terms/samplingProtocol"/>
-        <field index="61"  term="http://rs.tdwg.org/dwc/terms/scientificName"/>
-        <field index="62"  term="http://rs.tdwg.org/dwc/terms/scientificNameAuthorship"/>
-        <field index="63"  term="http://rs.tdwg.org/dwc/terms/sex"/>
-        <field index="64"  term="http://rs.tdwg.org/dwc/terms/stateProvince"/>
-        <field index="65"  term="http://rs.tdwg.org/dwc/terms/taxonConceptID"/>
-        <field index="66"  term="http://rs.tdwg.org/dwc/terms/taxonID"/>
-        <field index="67"  term="http://rs.tdwg.org/dwc/terms/taxonRank"/>
-        <field index="68"  term="http://rs.tdwg.org/dwc/terms/verbatimDepth"/>
-        <field index="69"  term="http://rs.tdwg.org/dwc/terms/vernacularName"/>
-        <field index="70"  term="http://rs.tdwg.org/dwc/terms/year"/>
-
+            <id index="0"/>
+            <field index="0"  term="http://rs.tdwg.org/dwc/terms/occurrenceID" />
+            <field index="1"  term="http://rs.tdwg.org/dwc/terms/catalogNumber" />
+            <field index="2"  term="http://rs.tdwg.org/dwc/terms/collectionCode" />
+            <field index="3"  term="http://rs.tdwg.org/dwc/terms/institutionCode" />
+            <field index="4"  term="http://rs.tdwg.org/dwc/terms/recordNumber" />
+            <field index="5"  term="http://rs.tdwg.org/dwc/terms/basisOfRecord" default="HumanObservation" />
+            <field index="6"  term="http://rs.tdwg.org/dwc/terms/recordedBy" />
+            <field index="7"  term="http://rs.tdwg.org/dwc/terms/occurrenceStatus" />
+            <field index="8"  term="http://rs.tdwg.org/dwc/terms/individualCount" />
+            <field index="9"  term="http://rs.tdwg.org/dwc/terms/scientificName" />
+            <field index="10" term="http://rs.tdwg.org/dwc/terms/taxonConceptID" />
+            <field index="11" term="http://rs.tdwg.org/dwc/terms/taxonRank" />
+            <field index="12" term="http://rs.tdwg.org/dwc/terms/kingdom" />
+            <field index="13" term="http://rs.tdwg.org/dwc/terms/phylum" />
+            <field index="14" term="http://rs.tdwg.org/dwc/terms/class" />
+            <field index="15" term="http://rs.tdwg.org/dwc/terms/order" />
+            <field index="16" term="http://rs.tdwg.org/dwc/terms/family" />
+            <field index="17" term="http://rs.tdwg.org/dwc/terms/genus" />
+            <field index="18" term="http://rs.tdwg.org/dwc/terms/vernacularName" />
+            <field index="19" term="http://rs.tdwg.org/dwc/terms/decimalLatitude" />
+            <field index="20" term="http://rs.tdwg.org/dwc/terms/decimalLongitude" />
+            <field index="21" term="http://rs.tdwg.org/dwc/terms/geodeticDatum" />
+            <field index="22" term="http://rs.tdwg.org/dwc/terms/coordinateUncertaintyInMeters" />
+            <field index="23" term="http://rs.tdwg.org/dwc/terms/maximumElevationInMeters" />
+            <field index="24" term="http://rs.tdwg.org/dwc/terms/minimumElevationInMeters" />
+            <field index="25" term="http://rs.tdwg.org/dwc/terms/minimumDepthInMeters" />
+            <field index="26" term="http://rs.tdwg.org/dwc/terms/maximumDepthInMeters" />
+            <field index="27" term="http://rs.tdwg.org/dwc/terms/country" />
+            <field index="28" term="http://rs.tdwg.org/dwc/terms/stateProvince" />
+            <field index="29" term="http://rs.tdwg.org/dwc/terms/locality" />
+            <field index="30" term="http://rs.tdwg.org/dwc/terms/locationRemarks" />
+            <field index="31" term="http://rs.tdwg.org/dwc/terms/year" />
+            <field index="32" term="http://rs.tdwg.org/dwc/terms/month" />
+            <field index="33" term="http://rs.tdwg.org/dwc/terms/day" />
+            <field index="34" term="http://rs.tdwg.org/dwc/terms/eventDate" />
+            <field index="35" term="http://rs.tdwg.org/dwc/terms/eventID" />
+            <field index="36" term="http://rs.tdwg.org/dwc/terms/identifiedBy" />
+            <field index="37" term="http://rs.tdwg.org/dwc/terms/occurrenceRemarks" />
+            <field index="38" term="http://rs.tdwg.org/dwc/terms/dataGeneralizations" />
       </core>
     </archive>
     //add the XML
@@ -457,4 +298,3 @@ class DwCACreator {
     zop.closeEntry
   }
 }
-
