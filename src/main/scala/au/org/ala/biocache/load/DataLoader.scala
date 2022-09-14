@@ -301,7 +301,7 @@ trait DataLoader {
                 "description" -> fr.occurrence.occurrenceRemarks,
                 "license" -> fr.occurrence.license,
                 "rights" -> fr.occurrence.rights,
-                "rightsHolder" -> fr.occurrence.rightsHolder
+                "rightsHolder" -> fr.occurrence.rightsholder
               )))
             } catch {
               case e:Exception => {
