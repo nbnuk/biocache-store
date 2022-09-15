@@ -194,35 +194,44 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
-        setProcessedEventEndDMYvalues(parsedDate,processed)
-      } else if (raw.event.eventDate != null && !raw.event.eventDate.isEmpty) {
-        //look for an end date
-        val parsedDate = DateParser.parseDate(raw.event.eventDate)
-        //logger.info("2. date = " + raw.event.eventDate + " parsed = " + parsedDate)
-        if (!parsedDate.isEmpty) {
-          //what happens if d m y make the eventDate and eventDateEnd is parsed?
-          if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
-            processed.event.eventDateEnd = parsedDate.get.endDate
-          }
-          setProcessedEventEndDMYvalues(parsedDate, processed)
+        setProcessedEventEndDMYvalues(parsedDate,processed) //NBN
 
-          processed.event.day = parsedDate.get.startDay
-          processed.event.month = parsedDate.get.startMonth
-          processed.event.year = parsedDate.get.startYear
+      } else
+
+      /** NBN START* */
+        if (raw.event.eventDate != null && !raw.event.eventDate.isEmpty) {
+
+          //look for an end date
+          val parsedDate = DateParser.parseDate(raw.event.eventDate)
+          //logger.info("2. date = " + raw.event.eventDate + " parsed = " + parsedDate)
+          if (!parsedDate.isEmpty) {
+            //what happens if d m y make the eventDate and eventDateEnd is parsed?
+            if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
+              processed.event.eventDateEnd = parsedDate.get.endDate
+            }
+            setProcessedEventEndDMYvalues(parsedDate, processed) //NBN
+
+            processed.event.day = parsedDate.get.startDay
+            processed.event.month = parsedDate.get.startMonth
+            processed.event.year = parsedDate.get.startYear
+          }
         }
-      }
+
+      /** NBN END* */
+
     }
 
     //process event end date if supplied separately
     if (StringUtils.isNotEmpty(raw.event.eventDateEnd)) {
       //look for an end date
       val parsedDate = DateParser.parseDate(raw.event.eventDateEnd)
-      if (!parsedDate.isEmpty&& parsedDate.get.singleDate) { //if not single date then there is definitely a problem with the parsing, e.g. for "09/2012" being interpreted as year range
+      if (!parsedDate.isEmpty /*NBN*/ && parsedDate.get.singleDate /*NBN END*/) {
+        //if not single date then there is definitely a problem with the parsing, e.g. for "09/2012" being interpreted as year range
         //what happens if d m y make the eventDate and eventDateEnd is parsed?
         processed.event.eventDateEnd = parsedDate.get.startDate
-        processed.event.endYear = parsedDate.get.startYear
-        processed.event.endMonth = parsedDate.get.startMonth
-        processed.event.endDay = parsedDate.get.startDay
+        processed.event.endYear = parsedDate.get.startYear//NBN
+        processed.event.endMonth = parsedDate.get.startMonth//NBN
+        processed.event.endDay = parsedDate.get.startDay//NBN
       }
     }
 
@@ -235,7 +244,7 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
-        setProcessedEventEndDMYvalues(parsedDate,processed)
+        setProcessedEventEndDMYvalues(parsedDate,processed)//NBN
 
         processed.event.day = parsedDate.get.startDay
         processed.event.month = parsedDate.get.startMonth
@@ -277,7 +286,7 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
-        setProcessedEventEndDMYvalues(parsedDate,processed)
+        setProcessedEventEndDMYvalues(parsedDate,processed)//NBN
       }
     }
 
@@ -316,36 +325,10 @@ class EventProcessor extends Processor {
     //validate against date precision
     checkPrecision(raw, processed, assertions)
 
-    //smp+
-    // If we have a date range, then check that the end date is not before the start date;
-    // raising a data quality assertion if it is.
-
-    if ((processed.event.datePrecision == DAY_RANGE_PRECISION) ||
-        (processed.event.datePrecision == MONTH_RANGE_PRECISION) ||
-        (processed.event.datePrecision == YEAR_RANGE_PRECISION)) {
-
-      // note: depending on the precision not all event fields are populated
-      def toIntOr1(s: String): Int = {
-        try {
-          s.toInt
-        } catch {
-          case e: Exception => 1
-        }
-      }
-
-      val rangeStartDate = new Date( toIntOr1(processed.event.year) - 1900, toIntOr1(processed.event.month) - 1, toIntOr1(processed.event.day) )
-      val rangeEndDate = new Date( toIntOr1(processed.event.endYear) - 1900, toIntOr1(processed.event.endMonth) - 1, toIntOr1(processed.event.endDay) )
-
-      if (rangeStartDate.after( rangeEndDate )) {
-        assertions += QualityAssertion( INVALID_COLLECTION_DATE, "End date is before start date" )
-      }
-    }
-    //smp-
-
     assertions.toArray
   }
 
-  //set event end day+month+year values if not equal to starting day+month+year
+  //NBN Method set event end day+month+year values if not equal to starting day+month+year
   def setProcessedEventEndDMYvalues(parsedDate: Option[EventDate], processed: FullRecord) = {
     if (!parsedDate.get.endYear.equals(parsedDate.get.startYear) ||
       !parsedDate.get.endMonth.equals(parsedDate.get.startMonth) ||
@@ -355,8 +338,6 @@ class EventProcessor extends Processor {
       processed.event.endDay = parsedDate.get.endDay
     }
   }
-
-
   /**
     * Validate the supplied year.
     *
