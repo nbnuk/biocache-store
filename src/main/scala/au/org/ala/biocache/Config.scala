@@ -118,7 +118,7 @@ object Config {
   val commonNameLanguages:Array[String] = {
     val configValue = configModule.properties.getProperty("commonname.lang","")
     if(StringUtils.isNotEmpty(configValue)){
-      configValue.split(",").map(_./*toLowerCase.*/trim) //otherwise en-GB is converted to en-gb
+      configValue.split(",").map(_.toLowerCase.trim)
     } else {
       Array[String]()
     }
@@ -161,7 +161,7 @@ object Config {
 
       if (str == null || str.trim == "") {
         val dbfields = try {
-          new LayersStore(Config.layersServiceUrl).getLayerIds() //was getFieldIds() but this does not respect layers enabled/disabled
+          new LayersStore(Config.layersServiceUrl).getFieldIds()
         } catch {
           case e: Exception => {
             logger.error("Problem loading layers to intersect: " + e.getMessage, e)
@@ -169,7 +169,7 @@ object Config {
           }
         }
 
-        logger.info("Number of layers to sample: " + dbfields.size())
+        logger.info("Number of fields to sample: " + dbfields.size())
 
         val fields: Array[String] = if (!dbfields.isEmpty) {
           Array.ofDim(dbfields.size())
@@ -182,13 +182,13 @@ object Config {
             fields(a) = dbfields.get(a)
           }
         }
-        logger.info("Layers to sample: " + fields.mkString(","))
+        logger.info("Fields to sample: " + fields.mkString(","))
         fieldsToSampleCached = fields
       } else if (str == "none") {
         fieldsToSampleCached = Array[String]()
       } else {
         val fields = str.split(",").map(x => x.trim).toArray
-        logger.info("Layers to sample: " + fields.mkString(","))
+        logger.info("Fields to sample: " + fields.mkString(","))
         fieldsToSampleCached = fields
       }
     }
@@ -282,9 +282,6 @@ object Config {
 
   //grid reference indexing
   val gridRefIndexingEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.enabled", "false"))
-  val gridRefIndexingPolyEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.enabled", "false"))
-  val gridRefIndexingPolyOmitGrids = configModule.properties.getProperty("gridref.indexing.poly.omit.grids.less.than", "0").toInt
-  val gridRefIndexingPolyReadFromCassandra = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.read.from.cassandra", "false"))
 
   //used by location processor for associating a country with an occurrence record where only stateProvince supplied
   val defaultCountry = configModule.properties.getProperty("default.country", "Australia")
@@ -357,14 +354,91 @@ object Config {
   val exportIndexAsCsvPath = configModule.properties.getProperty("export.index.as.csv.path", "")
   val exportIndexAsCsvPathSensitive = configModule.properties.getProperty("export.index.as.csv.path.sensitive", "")
 
-  val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
-  val clearOriginalSensitiveValues = configModule.properties.getProperty("load.clearoriginalsensitivevalues","false").toBoolean // for NBN ***
-
-
   val caseSensitiveCassandra = configModule.properties.getProperty("cassandra.case.sensitive", "true").toBoolean
   val createColumnCassandra = configModule.properties.getProperty("cassandra.column.create", "true").toBoolean
 
+
+//NBN BEGIN
+  val gridRefIndexingPolyEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.enabled", "false"))
+  val gridRefIndexingPolyOmitGrids = configModule.properties.getProperty("gridref.indexing.poly.omit.grids.less.than", "0").toInt
+  val gridRefIndexingPolyReadFromCassandra = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.read.from.cassandra", "false"))
+  val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
+  val clearOriginalSensitiveValues = configModule.properties.getProperty("load.clearoriginalsensitivevalues","false").toBoolean // for NBN ***
   val fixNullFirstLoaded = configModule.properties.getProperty("temp.fixnullfirstloaded", "false").toBoolean
+  //NBN END
 }
 
+/**
+ * Guice configuration module.
+ */
+class ConfigModule extends AbstractModule {
 
+  protected val logger = LoggerFactory.getLogger("ConfigModule")
+
+  System.out.println("ALA ConfigModule")
+
+  val properties = {
+
+    val properties = new Properties()
+    //NC 2013-08-16: Supply the properties file as a system property via -Dbiocache.config=<file>
+    //or the default /data/biocache/config/biocache-test-config.properties file is used.
+
+    //check to see if a system property has been supplied with the location of the config file
+    val filename = System.getProperty("biocache.config", "/data/biocache/config/biocache-config.properties")
+    logger.info("Using config file: " + filename)
+
+    val file = new java.io.File(filename)
+
+    //only load the properties file if it exists otherwise default to the biocache-test-config.properties on the classpath
+    val stream = if(file.exists()) {
+      new FileInputStream(file)
+    } else {
+      this.getClass.getResourceAsStream(filename)
+    }
+
+    if(stream == null){
+      throw new RuntimeException("Configuration file not found. Please add to classpath or /data/biocache/config/biocache-config.properties")
+    }
+
+    logger.debug("Loading configuration from " + filename)
+    properties.load(stream)
+
+    //this allows the SDS to access the same config file
+    System.setProperty("sds.config.file", filename)
+
+    properties
+  }
+
+  override def configure() {
+
+    Names.bindProperties(this.binder, properties)
+    //bind concrete implementations
+    logger.debug("Initialising DAOs")
+    bind(classOf[OccurrenceDAO]).to(classOf[OccurrenceDAOImpl]).in(Scopes.SINGLETON)
+    bind(classOf[OutlierStatsDAO]).to(classOf[OutlierStatsDAOImpl]).in(Scopes.SINGLETON)
+    bind(classOf[DeletedRecordDAO]).to(classOf[DeletedRecordDAOImpl]).in(Scopes.SINGLETON)
+    bind(classOf[DuplicateDAO]).to(classOf[DuplicateDAOImpl]).in(Scopes.SINGLETON)
+    bind(classOf[ValidationRuleDAO]).to(classOf[ValidationRuleDAOImpl]).in(Scopes.SINGLETON)
+    bind(classOf[QidDAO]).to(classOf[QidDAOImpl]).in(Scopes.SINGLETON)
+    logger.debug("Initialising SOLR")
+    bind(classOf[IndexDAO]).to(classOf[SolrIndexDAO]).in(Scopes.SINGLETON)
+    logger.debug("Initialising name matching indexes")
+    try {
+      val nameIndexLocation = properties.getProperty("name.index.dir")
+      logger.debug("Loading name index from " + nameIndexLocation)
+      val nameIndex = new ALANameSearcher(nameIndexLocation)
+      bind(classOf[ALANameSearcher]).toInstance(nameIndex)
+    } catch {
+      case e: Exception => logger.warn("Lucene indexes are not currently available. " +
+        "Please check 'name.index.dir' property in config. Message: " + e.getMessage())
+    }
+    logger.debug("Initialising persistence manager")
+    properties.getProperty("db") match {
+      case "mock" => bind(classOf[PersistenceManager]).to(classOf[MockPersistenceManager]).in(Scopes.SINGLETON)
+//      case "cassandra" => bind(classOf[PersistenceManager]).to(classOf[CassandraPersistenceManager]).in(Scopes.SINGLETON)
+      case "cassandra3" => bind(classOf[PersistenceManager]).to(classOf[Cassandra3PersistenceManager]).in(Scopes.SINGLETON)
+      case _ => throw new RuntimeException("Persistence manager type unrecognised. Please check your external config file. ")
+    }
+    logger.debug("Configure complete")
+  }
+}
