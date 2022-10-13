@@ -1241,7 +1241,9 @@ class Cassandra3PersistenceManager  @Inject() (
   def delete(properties: Map[String, String], entityName: String) = {
 
     val query = "DELETE FROM " + entityName + " where " +
-      properties.keySet.map { "\"" + _ + "\" = ?"}.mkString(" AND ")
+      (if (Config.caseSensitiveCassandra) properties.keySet.map { "\"" + _ + "\" = ?"}.mkString(" AND ")
+      else properties.keySet.map { _ + " = ?"}.mkString(" AND "))
+
 
     try {
       val deleteStmt = getPreparedStmt(query, entityName)
