@@ -50,7 +50,6 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     "outlierForLayers_p"
   )
 
-
   /**
    * Gets the map for a record based on searching the index for new and old ids
    */
@@ -695,8 +694,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
         //only add  the assertions if they are different OR the properties to persist contain more than the last modified time stamp
         if (
           oldRecord == null ||
-            oldRecord.assertions.toSet != newRecord.assertions.toSet ||
-            propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
+          oldRecord.assertions.toSet != newRecord.assertions.toSet ||
+          propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
         ) {
           //only add the assertions if they have changed since the last time or the number of records to persist >1
           val checkUserAssertions = oldRecord != null && StringUtils.isNotEmpty(oldRecord.getUserAssertionStatus)
@@ -705,6 +704,13 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           val x = assertions.get.values.filter{!_.isEmpty}.flatten.toList
 
           propertiesToPersist ++= Map(FullRecordMapper.qualityAssertionColumn ->  Json.toJSONWithGeneric(x))
+        }
+      }
+
+      if (Config.fixNullFirstLoaded) {
+        //If firstLoaded has a value, then it must be persisted. (It was set in RecordProcessor as fix for null firstLoaded)
+        if (newRecord.firstLoaded != null && !"".equals(newRecord.firstLoaded)) {
+          propertiesToPersist.put("firstLoaded", newRecord.firstLoaded);
         }
       }
 
@@ -974,7 +980,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           Map(
             "rowkey" -> toBeDeleted.referenceRowKey,
             "userId" -> toBeDeleted.getUserId,
-            "code"   -> toBeDeleted.code.toString
+            "code"   -> toBeDeleted.code.toString,
+            "relatedUuid" -> toBeDeleted.getRelatedUuid // new cassandra primary key
           ),
           qaEntityName
         )

@@ -2,7 +2,7 @@ package au.org.ala.biocache.processor
 
 import au.org.ala.biocache.caches.AttributionDAO
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion}
-import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, IdentificationVerificationStatus, License}
+import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, License}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer

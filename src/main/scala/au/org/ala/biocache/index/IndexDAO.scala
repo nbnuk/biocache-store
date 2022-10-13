@@ -2,18 +2,15 @@ package au.org.ala.biocache.index
 
 import java.io.{File, FileWriter, OutputStream}
 import java.util.Date
-
 import au.org.ala.biocache.Config
 import au.org.ala.biocache.dao.OccurrenceDAO
 import au.org.ala.biocache.index.lucene.DocBuilder
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
-import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.persistence.DataRow
-import au.org.ala.biocache.util.Json
-import au.org.ala.biocache.vocab.{AssertionStatus}
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
+import au.org.ala.biocache.vocab.AssertionStatus
 import com.datastax.driver.core.GettableData
-import org.apache.batik.parser.NumberParser
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang.time.{DateFormatUtils, DateUtils}
 import org.slf4j.LoggerFactory
@@ -29,7 +26,7 @@ trait IndexDAO {
   val logger = LoggerFactory.getLogger("IndexDAO")
 
   //position of cassandra3 array response columns
-  val columnOrder: ColumnOrder = new ColumnOrder
+  var columnOrder: ColumnOrder = new ColumnOrder
 
   def getRowKeysForQuery(query: String, limit: Int = 1000): Option[List[String]]
 
@@ -200,6 +197,7 @@ trait IndexDAO {
   val RAW = 2
   val PARSED = 3
 
+
   /**
     * header attributes used by index-local-node-v2
     *
@@ -209,7 +207,7 @@ trait IndexDAO {
     * TODO: 2. Simplify to CassandraColumnName -> SolrFieldName. Complexity is required to reflect backward compatibility.
     * TODO: 3. Remove all DWC fields. These should be indexed by default.
     */
-  lazy val headerAttributes = List (
+  lazy val headerAttributes = buildHeaderAttributes(List (
     ("dateIdentified", "identified_date", 0, PARSED),
     ("firstLoaded", "first_loaded_date", 0, RAW),
     (FullRecordMapper.alaModifiedColumn, "last_load_date", 0, RAW),
@@ -265,7 +263,7 @@ trait IndexDAO {
     ("occurrenceRemarks", "occurrence_remarks", -1, RAW),
     ("occurrenceStatus", "raw_occurrence_status", -1, RAW),
     ("originalNameUsage", "original_name_usage", -1, RAW),
-    ("lifeStage", "life_stage", 4, RAW), /* was phenology */
+    ("phenology", "life_stage", -1, RAW),
     ("photographer", "photographer", -1, RAW),
     ("recordedBy", "collector", -1, RAW),
     ("recordNumber", "record_number", -1, RAW),
@@ -292,11 +290,11 @@ trait IndexDAO {
     ("decimalLongitude", "longitude", -1, PARSED),
     ("duplicationStatus", "duplicate_status", -1, PARSED),
     ("family", "family", -1, PARSED),
-    ("georeferenceVerificationStatus", "georeference_verification_status", -1, RAW_AND_PARSED),
+    ("georeferenceVerificationStatus", "georeference_verification_status", -1, PARSED),
     ("genus", "genus", -1, PARSED),
     ("genusID", "genus_guid", -1, PARSED),
     ("identificationQualifier", "identification_qualifier", -1, PARSED),
-    ("identificationVerificationStatus", "identification_verification_status", -1, RAW_AND_PARSED),
+    ("identificationVerificationStatus", "identification_verification_status", -1, PARSED),
     ("institutionName", "institution_name", -1, PARSED),
     ("institutionUid", "institution_uid", -1, PARSED),
     ("infraspecificEpithet", "infraspecific_epithet", -1, RAW),
@@ -325,41 +323,23 @@ trait IndexDAO {
     ("taxonRank", "rank", -1, PARSED),
     ("taxonRankID", "rank_id", -1, PARSED),
     ("typeStatus", "type_status", -1, PARSED),
-    /* ("verbatimDepth", "depth", -1, PARSED), NBN replaced with below */
-    ("verbatimDepth", "raw_depth", -1, RAW),
+    ("verbatimDepth", "depth", -1, PARSED),
     ("verbatimElevation", "elevation", -1, PARSED),
     ("vernacularName", "common_name", -1, PARSED),
-    ("year", "year", -1, PARSED),
-    ("day", "day", -1, PARSED),
-    ("endday", "end_day", -1, PARSED), //index end date fields
-    ("endmonth", "end_month", -1, PARSED),
-    ("endyear", "end_year", -1, PARSED),
-    ("organismquantity", "organism_quantity", -1, RAW), //other NBN fields to index
-    ("organismquantitytype", "organism_quantity_type", -1, RAW),
-    ("organismscope", "organism_scope", -1, RAW),
-    ("organismremarks", "organism_remarks", -1, RAW),
-    ("rightsholder", "rightsholder", -1, RAW), //fix for index-local-node missing this field for sensitive records
-    ("establishmentMeansTaxon", "establishment_means_taxon", -1, PARSED),
-    ("vitality", "vitality", -1, RAW),
-    ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
-    ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
-    ("habitatTaxon", "habitats_taxon", 4, PARSED),
-    ("gridSizeInMeters", "grid_size", 4, PARSED),
-    ("taxonId", "raw_taxon_id", -1, RAW),
-    ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
-    ("scientificName", "raw_taxon_name", -1, RAW) // NEW
-  )
+    ("year", "year", -1, PARSED)
+  ))
 
   /**
     * headerAttributesFix are the unprocessed fields excluded as a result of the backwards compatible headerAttributes.
     *
     * These fields are not indexed by index-local-node-v2 for sensitive records.
     */
-  lazy val headerAttributesFix = List(
+  lazy val headerAttributesFix = buildHeaderAttributesFix(List(
     ("verbatimElevation", "raw_min_elevation", -1, RAW), // NEW
     ("verbatimDepth", "raw_verbatim_depth", -1, RAW), // NEW   - this is causing an error
     ("taxonRank", "raw_rank", -1, RAW), // NEW
     ("stateProvince", "raw_state", -1, RAW), // NEW
+    ("scientificName", "raw_taxon_name", -1, RAW), // NEW
     ("phylum", "raw_phylum", -1, RAW), // NEW
     ("order", "raw_order", -1, RAW), // NEW
     ("month", "raw_month", -1, RAW), // NEW
@@ -382,12 +362,12 @@ trait IndexDAO {
     ("eventDate", "raw_occurrence_date", 0, RAW),  // NEW
     ("eventDateEnd", "raw_occurrence_date_end_dt", 0, RAW),  // NEW
     ("modified", "raw_modified_date", 0, RAW) // NEW
-  )
+  ))
 
   /**
    * The header values for the CSV file.
    */
-  lazy val header = List("id", "occurrence_id", "data_hub_uid", "data_hub", "data_provider_uid", "data_provider", "data_resource_uid",
+  lazy val header = buildHeader(List("id", "occurrence_id", "data_hub_uid", "data_hub", "data_provider_uid", "data_provider", "data_resource_uid",
     "data_resource", "institution_uid", "institution_code", "institution_name",
     "collection_uid", "collection_code", "collection_name", "catalogue_number",
     "taxon_concept_lsid", "occurrence_date", "occurrence_date_end_dt", "occurrence_year", "occurrence_decade_i", "taxon_name", "common_name", "names_and_lsid", "common_name_and_lsid",
@@ -404,22 +384,17 @@ trait IndexDAO {
     "life_stage", "outlier_layer", "outlier_layer_count", "taxonomic_issue", "raw_identification_qualifier", "identification_qualifier", "species_habitats",
     "identified_by", "identified_date", "sensitive_longitude", "sensitive_latitude", "pest_flag", "collectors", "duplicate_status", "duplicate_record",
     "duplicate_type", "sensitive_coordinate_uncertainty", "distance_outside_expert_range", "elevation_d", "min_elevation_d", "max_elevation_d",
-    "raw_depth", /* was "depth_d", */ "min_depth_d", "max_depth_d", "name_parse_type", "occurrence_status", "occurrence_details", "photographer", "rights",
+    "depth_d", "min_depth_d", "max_depth_d", "name_parse_type", "occurrence_status", "occurrence_details", "photographer", "rights",
     "raw_geo_validation_status", "raw_occurrence_status", "raw_locality", "raw_latitude", "raw_longitude", "raw_datum", "raw_sex",
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status"
-    , "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks" // added for NBN
-    , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "grid_size"
-    , "geohash_grid" // *** NBN test
-    , "day", "end_day", "end_month", "end_year"
-    , "raw_taxon_id", "raw_sampling_protocol"
-    , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
-  ) ::: Config.additionalFieldsToIndex
+
+  )) ::: Config.additionalFieldsToIndex
 
   /**
    * sensitive csv header columns
    */
-  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality", "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end")
+  lazy val sensitiveHeader = buildSensitiveHeader(List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality"))
 
   /**
    * Constructs a scientific name.
@@ -473,6 +448,7 @@ trait IndexDAO {
    * should result in a quicker load time.
    */
   def getOccIndexModel(guid: String, map: scala.collection.Map[String, String]) : List[String] = {
+
     try {
       //get the lat lon values so that we can determine all the point values
       val deleted = getValue(FullRecordMapper.deletedColumn, map, "false")
@@ -569,19 +545,9 @@ trait IndexDAO {
             case e: Exception => slat = ""; slon = ""
           }
         }
-
-        //for grid-polygon overlap searching: NBN test
-        var poly_grid = ""
-        if (Config.gridRefIndexingPolyReadFromCassandra) {
-          poly_grid = getGridWKTConfigWrapper(getValue("gridReference", map), getValue("gridReferenceWKT", map), latlon)
-        } else {
-          poly_grid = getGridWKTConfigWrapper(getValue("gridReference", map), "", latlon)
-        }
-
         //get sensitive values map
-        //for ((k,v) <- map) println(s"key: $k, value: $v")
         val sensitiveMap = {
-          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains(if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")) {
+          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains(if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")) { //NBN
             try {
               val osv = getValue("originalSensitiveValues", map, "{}")
               val parsed = JSON.parseFull(osv)
@@ -679,14 +645,7 @@ trait IndexDAO {
 
         val lastUserAssertion = DateParser.parseStringToDate(getValue(FullRecordMapper.lastUserAssertionDateColumn, map, ""))
 
-        //NBN some records have null firstLoaded. The raw lastModifiedTime looks like when the record was first processed, so use that as a stop-gap
-        val firstLoadDate = {
-          if (getValue("firstLoaded", map) == "") {
-            DateParser.parseStringToDate(getValue("lastModifiedTime", map))
-          } else {
-            DateParser.parseStringToDate(getValue("firstLoaded", map))
-          }
-        }
+        val firstLoadDate = DateParser.parseStringToDate(getValue("firstLoaded", map))
 
         val loanDate = DateParser.parseStringToDate(getValue("loanDate", map, ""))
 
@@ -792,7 +751,7 @@ trait IndexDAO {
           countryCons,
           rawCountryCons,
           sensitive,
-          getParsedValue("coordinateUncertaintyInMeters", map), /* was getParsedIntValue */
+          getParsedIntValue("coordinateUncertaintyInMeters", map),
           getValue("userId", map, ""),
           getValue("userId", map, ""),
           getParsedValue("provenance", map),
@@ -815,7 +774,7 @@ trait IndexDAO {
           getValue("recordNumber", map, ""),
           if (firstLoadDate.isEmpty) "" else DateFormatUtils.format(firstLoadDate.get, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
           getParsedValue("nameMatchMetric", map),
-          getValue("lifeStage", map, ""), /* NBN was getValue("phenology", map, ""), */
+          getValue("phenology", map, ""),
           outlierForLayers.mkString("|"),
           outlierForLayers.length.toString,
           taxonIssueArray.mkString("|"),
@@ -831,13 +790,12 @@ trait IndexDAO {
           getParsedValue("duplicationStatus", map),
           getParsedValue("associatedOccurrences", map),
           dupTypes.mkString("|"),
-          //getParsedValue("coordinateUncertaintyInMeters", sensitiveMap), //TODO won't work for non-case-sensitive config
-          sensitiveMap.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""),
+          getParsedValue("coordinateUncertaintyInMeters", sensitiveMap),
           distanceOutsideExpertRange,
           getParsedValue("verbatimElevation", map),
           getParsedValue("minimumElevationInMeters", map),
           getParsedValue("maximumElevationInMeters", map),
-          getParsedValueIfAvailable("verbatimDepth", map, "").trim, /* was getParsedValue but this is empty */
+          getParsedValue("verbatimDepth", map),
           getParsedValue("minimumDepthInMeters", map),
           getParsedValue("maximumDepthInMeters", map),
           getParsedValue("nameParseType", map),
@@ -860,29 +818,9 @@ trait IndexDAO {
           getParsedValue("license", map),
           getValue("individualCount", map),
           getParsedValueIfAvailable("datePrecision", map, ""),
-          getParsedValueIfAvailable("identificationVerificationStatus", map, "").trim, /* verification fields added here */
-          getParsedValueIfAvailable("georeferenceVerificationStatus", map, "").trim,
-          getValue("rightsHolder", map),
-          getValue("organismQuantity", map),
-          getValue("organismQuantityType", map),
-          getValue("organismScope", map),
-          getValue("organismRemarks", map),
-          getParsedValue("establishmentMeansTaxon", map),
-          getValue("vitality", map),
-          getParsedValueIfAvailable("scientificNameAuthorship", map, ""),
-          getParsedValueIfAvailable("nomenclaturalStatus", map, ""),
-          getParsedValueIfAvailable("habitatTaxon", map, ""),
-          getParsedValueIfAvailable("gridSizeInMeters", map, ""),
-          poly_grid,
-          getParsedValue("day", map),
-          getParsedValue("endDay", map),
-          getParsedValue("endMonth", map),
-          getParsedValue("endYear", map),
-          getValue("taxonId", map),
-          getValue("samplingProtocol", map),
-          if (sensitiveMap.getOrElse("gridReference", "") != "") sensitiveMap.getOrElse("gridReference", "") else sensitiveMap.getOrElse("gridReference_p", ""),
-          sensitiveMap.getOrElse("eventDate", ""),
-          sensitiveMap.getOrElse("eventDateEnd", "")
+          getParsedValue("identificationVerificationStatus", map),
+          getParsedValue("georeferenceVerificationStatus", map),
+          getParsedValue("samplingProtocol", map)
         ) ::: Config.additionalFieldsToIndex.map(field => getValue(field, map, ""))
       } else {
         return List()
@@ -890,57 +828,6 @@ trait IndexDAO {
     } catch {
       case e: Exception => logger.error(e.getMessage, e); throw e
     }
-  }
-
-  def getGridWKTConfigWrapper(gridReference: String = "", gridReferenceWKT: String = "", latlon: String = "") :String = {
-    var poly_grid = ""
-    var gridRefWKTuse = ""
-    if (Config.gridRefIndexingPolyEnabled) {
-      if (gridReference.length() >= Config.gridRefIndexingPolyOmitGrids) {
-        //logger.info("indexing grid")
-        if (Config.gridRefIndexingPolyReadFromCassandra) {
-          gridRefWKTuse = gridReferenceWKT
-        } else {
-          gridRefWKTuse = getGridWKT(gridReference) //WKT in lon,lat order
-          //logger.info("from getGrid:")
-        }
-      }
-    }
-    if (gridRefWKTuse != "" ) {
-      gridRefWKTuse
-    } else {
-      latlon //use point if no grid reference (in lat,lon order as per SOLR specification)
-    }
-  }
-
-  def getGridWKT(gridReference: String = "") = {
-    var poly_grid = ""
-    if (gridReference != "") {
-      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
-        case Some(gr) => {
-          val bbox = Array(
-            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
-            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
-          )
-          val minLatitude = bbox(0).get._1
-          val minLongitude = bbox(0).get._2
-          val maxLatitude = bbox(1).get._1
-          val maxLongitude = bbox(1).get._2
-
-          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
-            minLongitude + " " + maxLatitude + "," +
-            maxLongitude + " " + maxLatitude + "," +
-            maxLongitude + " " + minLatitude + "," +
-            minLongitude + " " + minLatitude + "))";
-          //in long-lat order
-          //logger.info("geohash_grid: " + latlon_grid)
-        }
-        case None => {
-          logger.info("Invalid grid reference: " + gridReference)
-        }
-      }
-    }
-    poly_grid
   }
 
   def getCsvWriter(sensitive: Boolean = false) = {
@@ -1677,6 +1564,7 @@ trait IndexDAO {
     var slon = getArrayValue(columnOrder.decimalLongitudeP, array)
     var latlon = ""
     if (StringUtils.isNotEmpty(slat) && StringUtils.isNotEmpty(slon)) {
+      var latlon = ""
       var lat = java.lang.Double.NaN
       var lon = java.lang.Double.NaN
       try {
@@ -1914,6 +1802,133 @@ trait IndexDAO {
       addField(doc, field, item)
     )
   }
+
+  //BEGIN NBN methods
+  def getGridWKTConfigWrapper(gridReference: String = "", gridReferenceWKT: String = "", latlon: String = ""): String = {
+    var poly_grid = ""
+    var gridRefWKTuse = ""
+    if (Config.gridRefIndexingPolyEnabled) {
+      if (gridReference.length() >= Config.gridRefIndexingPolyOmitGrids) {
+        //logger.info("indexing grid")
+        if (Config.gridRefIndexingPolyReadFromCassandra) {
+          gridRefWKTuse = gridReferenceWKT
+        } else {
+          gridRefWKTuse = getGridWKT(gridReference) //WKT in lon,lat order
+          //logger.info("from getGrid:")
+        }
+      }
+    }
+    if (gridRefWKTuse != "") {
+      gridRefWKTuse
+    } else {
+      latlon //use point if no grid reference (in lat,lon order as per SOLR specification)
+    }
+  }
+
+
+  def getGridWKT(gridReference: String = "") = {
+    var poly_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+
+          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
+            minLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + minLatitude + "," +
+            minLongitude + " " + minLatitude + "))";
+          //in long-lat order
+          //logger.info("geohash_grid: " + latlon_grid)
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    poly_grid
+  }
+
+  def buildHeaderAttributes(defaultHeaderAttributes: List[(String, String, Int, Int)]) ={
+    var headerAttributes = defaultHeaderAttributes.map(
+      tup =>
+        tup._1 match {
+          case "phenology" => ("lifeStage", "life_stage", 4, RAW)
+          case "georeferenceVerificationStatus" => ("georeferenceVerificationStatus", "georeference_verification_status", -1, RAW_AND_PARSED)
+          case "identificationVerificationStatus" => ("identificationVerificationStatus", "identification_verification_status", -1, RAW_AND_PARSED)
+          case "verbatimDepth" => ("verbatimDepth", "raw_depth", -1, RAW)
+          case _ => tup
+        }
+    )
+    headerAttributes = headerAttributes ++ List(
+      ("day", "day", -1, PARSED),
+      ("endday", "end_day", -1, PARSED), //index end date fields
+      ("endmonth", "end_month", -1, PARSED),
+      ("endyear", "end_year", -1, PARSED),
+      ("organismquantity", "organism_quantity", -1, RAW), //other NBN fields to index
+      ("organismquantitytype", "organism_quantity_type", -1, RAW),
+      ("organismscope", "organism_scope", -1, RAW),
+      ("organismremarks", "organism_remarks", -1, RAW),
+      ("rightsholder", "rightsholder", -1, RAW), //fix for index-local-node missing this field for sensitive records
+      ("establishmentMeansTaxon", "establishment_means_taxon", -1, PARSED),
+      ("vitality", "vitality", -1, RAW),
+      ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
+      ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
+      ("habitatTaxon", "habitats_taxon", 4, PARSED),
+      ("gridSizeInMeters", "grid_size", 4, PARSED),
+      ("taxonId", "raw_taxon_id", -1, RAW),
+      ("samplingProtocol", "raw_sampling_protocol", -1, RAW),
+      ("scientificName", "raw_taxon_name", -1, RAW) // NEW
+    )
+    logger.debug("headerAttributes")
+    logger.debug(headerAttributes.mkString(","))
+    headerAttributes
+  }
+
+  def buildHeaderAttributesFix(defaultHeaderAttributesFix: List[(String, String, Int, Int)]) ={
+    defaultHeaderAttributesFix.filter(tup => tup._1 != "scientificName")
+  }
+
+  def buildHeader(defaultHeader: List[(String)]) ={
+    var header = defaultHeader.map(
+      v =>
+        v match {
+          case "depth_d" => "raw_depth"
+          case other => other
+        }
+    )
+
+    header = header ++ List(
+      "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks"
+      , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "grid_size"
+      , "geohash_grid"
+      , "day", "end_day", "end_month", "end_year"
+      , "raw_taxon_id", "raw_sampling_protocol"
+      , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    )
+    logger.debug("header")
+    logger.debug(header.mkString(","))
+
+    header
+  }
+
+  def buildSensitiveHeader(defaultSensitiveHeader: List[(String)]) = {
+    var sensitiveHeader = defaultSensitiveHeader ++ List(
+      "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    )
+
+    logger.debug("sensitiveHeader")
+    logger.debug(sensitiveHeader.mkString(","))
+    sensitiveHeader
+  }
+  //END NBN methods
 }
 
 /**

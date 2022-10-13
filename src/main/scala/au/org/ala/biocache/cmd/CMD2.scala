@@ -138,15 +138,7 @@ object CMD2 {
     //close down the data store and index so the program can exit normally
     Config.persistenceManager.shutdown
     IndexRecords.indexer.shutdown
-
-    val exitEarly = java.util.Objects.equals(System.getProperty("slowDownCleanAbort"), "true")
-
-    if (exitEarly) {
-      System.exit( 1 )
-    }
-    else {
-      System.exit(0)
-    }
+    System.exit(0)
   }
 
   def printTools = {

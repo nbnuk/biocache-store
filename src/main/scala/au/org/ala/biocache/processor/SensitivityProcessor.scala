@@ -4,7 +4,7 @@ import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.{LocationDAO, SensitivityDAO, SpatialLayerDAO}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion, Versions}
-import au.org.ala.biocache.util.{GISUtil, GridUtil, Json, StringHelper}
+import au.org.ala.biocache.util.{GridUtil, Json}
 import au.org.ala.biocache.vocab.StateProvinces
 import au.org.ala.sds.SensitiveDataService
 import org.apache.commons.lang.StringUtils
@@ -22,7 +22,6 @@ class SensitivityProcessor extends Processor {
   val logger = LoggerFactory.getLogger("SensitivityProcessor")
 
   import JavaConversions._
-  import StringHelper._
 
   def getName = "sensitive"
 
@@ -80,76 +79,17 @@ class SensitivityProcessor extends Processor {
       rawMap.put("coordinateUncertaintyInMeters", processed.location.coordinateUncertaintyInMeters)
     }
 
-
-
-    //temporary
-    /*
-    var sensitiveGridDifferentFromBlurred = false
-    var originalRawMapGridReference = ""
-    if(raw.occurrence.originalSensitiveValues != null) {
-      if (raw.occurrence.originalSensitiveValues.contains("gridReference") &&
-        rawMap.contains("gridreference")) {
-        if (rawMap("gridreference") != raw.occurrence.originalSensitiveValues("gridReference")) {
-          sensitiveGridDifferentFromBlurred = true
-          originalRawMapGridReference = rawMap("gridreference")
-        }
-      }
-    }
-    */
-
     //does the object have some original sensitive values
     //these should override the processed versions
-    //NBN: to avoid overwriting updated values in a record that has been reloaded with old sensitive values, use Config.clearOriginalSensitiveValues (see OccurrenceDAOImpl)
-
-    if (raw.occurrence.originalSensitiveValues != null) {
+    if(raw.occurrence.originalSensitiveValues != null){
       //update the raw object.....
       raw.occurrence.originalSensitiveValues.foreach {
         case (key, value) => {
-          raw.setProperty(key, value) //TODO what about _p properties in sensitive values e.g. coordinateuncertaintyinmeters_p
-          rawMap.put(key.toLowerCase, value) //to lower case because of inconsistency (sds1.4.4 sets these with camelcasing)
+          raw.setProperty(key, value)
+          rawMap.put(key, value)
         }
       }
     }
-
-    //hopefully one-off fix for incorrectly processed sensitive records with grid instead of coordinates: the generalised lat/long values were
-    //stored in originalsensitivevalues instead of the grid centroid, which might be more precise
-    //e.g. {"coordinateUncertaintyInMeters_p":"100.0","decimalLongitude":"-4.6","decimalLatitude":"54.1","gridReference":"SC303697"}
-    /*
-    if(raw.occurrence.originalSensitiveValues != null) {
-      if (raw.occurrence.originalSensitiveValues.contains("gridReference") &&
-        Config.gridRefIndexingEnabled && raw.location.gridReference != null &&
-        raw.occurrence.originalSensitiveValues.contains("decimalLatitude") &&
-        raw.occurrence.originalSensitiveValues.contains("decimalLongitude")) {
-        if (sensitiveGridDifferentFromBlurred) {
-          //if sensitive coords are centroid of non-sensitive (i.e. blurred) grid, then recalc using sensitive grid
-          //assumes that record did not have both grid and coords supplied
-          //below doesn't work because lat/longs rounded off before storage baed on coord uncertainty, so differ from the actual centroid
-          /* val checkPnt = GridUtil.processGridReference(originalRawMapGridReference)
-          if ((checkPnt.get.latitude.toDouble - raw.occurrence.originalSensitiveValues("decimalLatitude").toDouble).abs < 0.001 &&
-            (checkPnt.get.longitude.toDouble - raw.occurrence.originalSensitiveValues("decimalLongitude").toDouble).abs < 0.001) { */
-          if (rawMap("datageneralizations_p").contains("already generalised")) {
-            val newPnt = GridUtil.processGridReference(raw.occurrence.originalSensitiveValues("gridReference"))
-            raw.occurrence.originalSensitiveValues -= "decimalLongitude"
-            raw.occurrence.originalSensitiveValues -= "decimalLatitude"
-
-
-            raw.location.decimalLongitude = newPnt.get.longitude
-            raw.location.decimalLatitude = newPnt.get.latitude
-            raw.location.gridReference = raw.occurrence.originalSensitiveValues("gridReference")
-            rawMap -= "decimallongitude"
-            rawMap -= "decimallatitude"
-            rawMap -= "gridreference"
-            rawMap.put("decimallongitude", newPnt.get.longitude)
-            rawMap.put("decimallatitude", newPnt.get.latitude)
-            rawMap.put("gridreference", raw.occurrence.originalSensitiveValues("gridReference"))
-
-            //if (rawMap.contains("decimallatitude")) rawMap -= "decimallatitude"
-            //if (rawMap.contains("decimallongitude")) rawMap -= "decimallongitude"
-          }
-        }
-      }
-    }
-    */
 
     if (processed.location.hasCoordinates) {
 
@@ -189,28 +129,13 @@ class SensitivityProcessor extends Processor {
       rawMap("month") = processed.event.month
     if (processed.event.year != null)
       rawMap("year") = processed.event.year
-    if (processed.event.endDay != null)
-      rawMap("endDay") = processed.event.endDay
-    if (processed.event.endMonth != null)
-      rawMap("endMonth") = processed.event.endMonth
-    if (processed.event.endYear != null)
-      rawMap("endYear") = processed.event.endYear
 
     if (logger.isDebugEnabled()) {
       logger.debug("Testing with the following properties: " + rawMap + ", and Taxon Concept ID :" + processed.classification.taxonConceptID)
     }
 
     //SDS check - now get the ValidationOutcome from the Sensitive Data Service
-    //sds1.4.4 expects rawMap to have camelcase keys, not all lowercase, so it fails to find e.g. decimalLatitude
-    //TODO fix sds. This is a hacky workaround
-    if (rawMap.contains("decimallatitude")) rawMap("decimalLatitude") = rawMap("decimallatitude")
-    if (rawMap.contains("decimallongitude")) rawMap("decimalLongitude") = rawMap("decimallongitude")
-    if (rawMap.contains("dataresourceuid")) rawMap("dataResourceUid") = rawMap("dataresourceuid")
-
-
     val outcome = SensitivityDAO.getSDS.testMapDetails(Config.sdsFinder, rawMap, exact, processed.classification.taxonConceptID)
-    //TODO: do we need to set any rawMap lowercase fields from the camelcase entries in outcome? eg. locationRemarks etc.
-    //TODO: not sure. Need test record.
 
     logger.debug("SDS outcome: " + outcome)
 
@@ -234,23 +159,13 @@ class SensitivityProcessor extends Processor {
             if (StringUtils.isNotBlank(raw.location.gridReference)) {
               originalSensitiveValues.put("gridReference", raw.location.gridReference)
             }
-
-            if (StringUtils.isNotBlank(processed.location.gridReference)) {
-              //store processed high-resolution grid reference
-              originalSensitiveValues.put("gridReference" + Config.persistenceManager.fieldDelimiter + "p", processed.location.gridReference)
-            }
-
+            originalSensitiveValues.put("eventDate", raw.event.eventDate)
+            originalSensitiveValues.put("eventDateEnd", raw.event.eventDateEnd)
+            originalSensitiveValues.put("eventTime", raw.event.eventTime)
             originalSensitiveValues.put("eventID", raw.event.eventID)
-            if (Config.sensitiveDateDay) {
-              originalSensitiveValues.put("eventDate", raw.event.eventDate)
-              originalSensitiveValues.put("eventDateEnd", raw.event.eventDateEnd)
-              originalSensitiveValues.put("eventTime", raw.event.eventTime)
-              originalSensitiveValues.put("day", raw.event.day)
-              originalSensitiveValues.put("month", raw.event.month)
-              originalSensitiveValues.put("endDay", raw.event.endDay)
-              originalSensitiveValues.put("endMonth", raw.event.endMonth)
-              originalSensitiveValues.put("verbatimEventDate", raw.event.verbatimEventDate)
-            }
+            originalSensitiveValues.put("day", raw.event.day)
+            originalSensitiveValues.put("month", raw.event.month)
+            originalSensitiveValues.put("verbatimEventDate", raw.event.verbatimEventDate)
 
             //remove all the el/cl's from the original sensitive values
             SpatialLayerDAO.sdsLayerList.foreach { key => originalSensitiveValues.remove(key) }
@@ -260,215 +175,88 @@ class SensitivityProcessor extends Processor {
           }
         }
 
-        val currentUncertainty = if (StringUtils.isNotEmpty(processed.location.coordinateUncertaintyInMeters)) {
-          java.lang.Float.parseFloat(processed.location.coordinateUncertaintyInMeters)
-        } else {
-          0
-        }
         //take away the values that need to be added to the processed record NOT the raw record
-        var uncertainty = rawPropertiesToUpdate.get("generalisationInMetres")
-        //not sure about uncertainty vs. generalisationToApplyInMetres - should we treat uncertainty in a grid way or as a linear distance?
-        if (uncertainty.isDefined) {
-          if (uncertainty.get != null && uncertainty.get != "") {
-            //rewrite as grid dist centre to point
-            val cornerDistFromCentre = java.lang.Integer.parseInt(uncertainty.get).toDouble / math.sqrt(2.0) //math.sqrt(2.0 * math.pow(sideDistFromCentre,2))
-            uncertainty = Some("%.1f".format(cornerDistFromCentre))
-          }
-        }
-        val generalisationToApplyInMetresGrid = rawPropertiesToUpdate.get("generalisationToApplyInMetres")
-        var generalisationToApplyInMetres = generalisationToApplyInMetresGrid
-        if (generalisationToApplyInMetresGrid.isDefined) {
-          if (generalisationToApplyInMetresGrid.get != null && generalisationToApplyInMetresGrid.get != "") {
-            //rewrite as grid dist centre to point
-            val cornerDistFromCentre = java.lang.Integer.parseInt(generalisationToApplyInMetresGrid.get).toDouble / math.sqrt(2.0) //math.sqrt(2.0 * math.pow(sideDistFromCentre,2))
-            generalisationToApplyInMetres = Some("%.1f".format(cornerDistFromCentre))
-          }
-        }
-        var centroidAlreadyGeneralised = false
+        val uncertainty = rawPropertiesToUpdate.get("generalisationInMetres")
+        val generalisationToApplyInMetres = rawPropertiesToUpdate.get("generalisationToApplyInMetres")
         if (!uncertainty.isEmpty) {
-          if (uncertainty.get != null && uncertainty.get != "") {
-            //if centroid provided then don't generalise further if existing grid is bigger than sensitive grid
-            if (currentUncertainty >= java.lang.Float.parseFloat(uncertainty.get.toString)) {
-              val isCentroid =
-                if (processed.location.gridReference != null && processed.location.gridReference.length > 0) {
-                  GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, processed.location.gridReference)
-                } else if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
-                  GridUtil.isCentroid(rawMap("decimalLongitude").toDouble, rawMap("decimalLatitude").toDouble, raw.location.gridReference)
-                } else {
-                  false
-                }
-              if (isCentroid) {
-                centroidAlreadyGeneralised = true
-                rawPropertiesToUpdate -= "decimalLatitude"
-                rawPropertiesToUpdate -= "decimalLongitude"
-                rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
-              }
-            }
-          }
-        }
-        if (!centroidAlreadyGeneralised) {
-          if (!uncertainty.isEmpty) {
-            if (uncertainty.get != null && uncertainty.get != "") {
-              if (currentUncertainty <= java.lang.Float.parseFloat(uncertainty.get.toString)) {
-                //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
-                //for grid records, do not compute new uncertainty additively with original record uncertainty, but simply as SDS uncertainty
-                //val newUncertainty = (if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) + java.lang.Float.parseFloat(uncertainty.get.toString)
-                processed.location.coordinateUncertaintyInMeters = "%.1f".format(java.lang.Float.parseFloat(uncertainty.get.toString))
-              }
-            }
-          }
+          //we know that we have sensitised, add the uncertainty to the currently processed uncertainty
+          if (StringUtils.isNotEmpty(uncertainty.get.toString)) {
 
+            val currentUncertainty = if (StringUtils.isNotEmpty(processed.location.coordinateUncertaintyInMeters)) {
+              java.lang.Float.parseFloat(processed.location.coordinateUncertaintyInMeters)
+            } else {
+              0
+            }
+
+            val newUncertainty = currentUncertainty + java.lang.Integer.parseInt(uncertainty.get.toString)
+            processed.location.coordinateUncertaintyInMeters = newUncertainty.toString
+
+          }
           processed.location.decimalLatitude = rawPropertiesToUpdate.getOrElse("decimalLatitude", "")
           processed.location.decimalLongitude = rawPropertiesToUpdate.getOrElse("decimalLongitude", "")
           processed.location.northing = ""
           processed.location.easting = ""
           processed.location.bbox = ""
-          processed.location.geodeticDatum = GISUtil.WGS84_EPSG_Code //since we know the coordinates have already been reprojected as necessary
           rawPropertiesToUpdate -= "generalisationInMetres"
+        }
 
+        //remove other GIS references
+        if (Config.gridRefIndexingEnabled && raw.location.gridReference != null) {
 
-          //remove other GIS references
-          if (Config.gridRefIndexingEnabled && raw.location.gridReference != null) {
-
-            if (generalisationToApplyInMetres.isDefined) {
-              //reduce the quality of the grid reference
-              if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
-                rawPropertiesToUpdate.put("gridReference", "")
-                processed.setProperty("gridSizeInMeters", "")
-              } else {
-                if (currentUncertainty >= java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) {
-                  //raw coordinate uncertainty is already cruder than the SDS-derived generalisation
-                  processed.location.coordinateUncertaintyInMeters = "%.1f".format(currentUncertainty)
-                  processed.location.decimalLatitude = rawMap("decimalLatitude")
-                  processed.location.decimalLongitude = rawMap("decimalLongitude")
-                  processed.location.geodeticDatum = GISUtil.WGS84_EPSG_Code //since we know the coordinates have already been reprojected as necessary
-                  rawPropertiesToUpdate("decimalLatitude") = rawMap("decimalLatitude")
-                  rawPropertiesToUpdate("decimalLongitude") = rawMap("decimalLongitude")
-                  rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
-                } else {
-                  processed.location.coordinateUncertaintyInMeters = "%.1f".format(/*currentUncertainty.toDouble + */ java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) //ignore original uncertainty and just use SDS value
-
-                  val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetresGrid.get)
-                  if (generalisedRef.isDefined) {
-                    rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
-                    processed.setProperty("gridSizeInMeters", generalisationToApplyInMetresGrid.get)
-                  } else {
-                    rawPropertiesToUpdate.put("gridReference", "")
-                    processed.setProperty("gridSizeInMeters", "")
-                  }
-                }
-              }
-            } else {
+          if (generalisationToApplyInMetres.isDefined) {
+            //reduce the quality of the grid reference
+            if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
               rawPropertiesToUpdate.put("gridReference", "")
-              processed.setProperty("gridSizeInMeters", "")
-            }
-          }
-
-          //if grid reference was derived from coordinates
-          if (processed.location.gridReference != null) {
-            if (generalisationToApplyInMetres.isDefined) {
-              //reduce the quality of the grid reference
-              if (generalisationToApplyInMetres.get == null || generalisationToApplyInMetres.get == "") {
-                processed.setProperty("gridReference", "")
-                processed.setProperty("gridSizeInMeters", "")
-              } else {
-                if (currentUncertainty < java.lang.Float.parseFloat(generalisationToApplyInMetres.get)) {
-                  val uncertaintyNewAsGrid = (/*(if (raw.location.gridReference != null && raw.location.gridReference != "") 0.0 else currentUncertainty) +*/  java.lang.Float.parseFloat(generalisationToApplyInMetres.get.toString()) * Math.sqrt(2)).round
-                  val generalisedRef = GridUtil.convertReferenceToResolution(processed.location.gridReference, uncertaintyNewAsGrid.toString() )
-                  if (generalisedRef.isDefined) {
-                    processed.setProperty("gridReference", generalisedRef.get)
-                    val newGridSizeInMetres = GridUtil.getGridSizeInMeters(generalisedRef.get)
-                    if (newGridSizeInMetres.isDefined) {
-                      processed.setProperty("gridSizeInMeters", newGridSizeInMetres.get.toString())
-                    } else { //some error in calculating grid size
-                      processed.setProperty("gridSizeInMeters", "")
-                    }
-                  } else {
-                    processed.setProperty("gridReference", "")
-                    processed.setProperty("gridSizeInMeters", "")
-                  }
-                } else {
-                  rawPropertiesToUpdate("dataGeneralizations") = rawPropertiesToUpdate("dataGeneralizations").replace(" generalised", " is already generalised")
-                }
-              }
             } else {
-              processed.setProperty("gridReference", "")
-              processed.setProperty("gridSizeInMeters", "")
+              processed.location.coordinateUncertaintyInMeters = generalisationToApplyInMetres.get
+              val generalisedRef = GridUtil.convertReferenceToResolution(raw.location.gridReference, generalisationToApplyInMetres.get)
+              if (generalisedRef.isDefined) {
+                rawPropertiesToUpdate.put("gridReference", generalisedRef.get)
+              } else {
+                rawPropertiesToUpdate.put("gridReference", "")
+              }
             }
+          } else {
+            rawPropertiesToUpdate.put("gridReference", "")
           }
         }
 
-        // add a guard here as we may have already updated this field when building WKT
-        if ((processed.occurrence.informationWithheld == null) || (processed.occurrence.informationWithheld == "")) {
-          processed.occurrence.informationWithheld = rawPropertiesToUpdate.getOrElse("informationWithheld", "")
-          rawPropertiesToUpdate -= "informationWithheld"
-        }
-
+        processed.occurrence.informationWithheld = rawPropertiesToUpdate.getOrElse("informationWithheld", "")
         processed.occurrence.dataGeneralizations = rawPropertiesToUpdate.getOrElse("dataGeneralizations", "")
+        rawPropertiesToUpdate -= "informationWithheld"
         rawPropertiesToUpdate -= "dataGeneralizations"
 
         //remove the day from the values if present
-        if (Config.sensitiveDateDay) {
-          raw.event.day = ""
-          raw.event.eventDate = ""
-          raw.event.endDay = ""
-          raw.event.eventDateEnd = ""
-          raw.event.eventTime = ""
-          raw.event.verbatimEventDate = ""
-        }
+        raw.event.day = ""
+        raw.event.month = ""
         raw.location.easting = ""
         raw.location.northing = ""
+        raw.event.eventDate = ""
+        raw.event.eventDateEnd = ""
+        raw.event.eventTime = ""
         raw.event.eventID = ""
+        raw.event.verbatimEventDate = ""
 
-        if (Config.sensitiveDateDay) {
-          processed.event.day = ""
-          if (processed.event.endDay != null) {
-            processed.event.endDay = ""
-          }
-          processed.event.eventDate = ""
-          if (processed.event.eventDateEnd != null) {
-            processed.event.eventDateEnd = ""
-          }
-          if (processed.event.eventTime != null) {
-            processed.event.eventTime = ""
-          }
+        processed.event.day = ""
+        processed.event.eventDate = ""
+        if (processed.event.eventDateEnd != null) {
+          processed.event.eventDateEnd = ""
+        }
+        if (processed.event.eventTime != null) {
+          processed.event.eventTime = ""
         }
 
         //remove this field values
-        if (Config.sensitiveDateDay) {
-          rawPropertiesToUpdate.put("day", "")
-          rawPropertiesToUpdate.put("endDay", "")
-          rawPropertiesToUpdate.put("eventDate", "")
-          rawPropertiesToUpdate.put("eventDateEnd", "")
-          rawPropertiesToUpdate.put("eventTime", "")
-          rawPropertiesToUpdate.put("verbatimEventDate", "")
-        }
-        rawPropertiesToUpdate.put("northing", "")
+        rawPropertiesToUpdate.put("day", "")
+        rawPropertiesToUpdate.put("month", "")
         rawPropertiesToUpdate.put("easting", "")
+        rawPropertiesToUpdate.put("northing", "")
+        rawPropertiesToUpdate.put("eventDate", "")
+        rawPropertiesToUpdate.put("eventDateEnd", "")
         rawPropertiesToUpdate.put("eventID", "")
+        rawPropertiesToUpdate.put("eventTime", "")
+        rawPropertiesToUpdate.put("verbatimEventDate", "")
 
-        if (!Config.sensitiveDateDay) {
-          if (raw.event.eventDate != null) {
-            rawPropertiesToUpdate.put("eventDate", raw.event.eventDate)
-          } else if (processed.event.eventDate != null) {
-            rawPropertiesToUpdate.put("eventDate", processed.event.eventDate)
-          }
-          if (raw.event.eventDateEnd != null) {
-            rawPropertiesToUpdate.put("eventDateEnd", raw.event.eventDateEnd)
-          } else if (processed.event.eventDateEnd != null) {
-            rawPropertiesToUpdate.put("eventDateEnd", processed.event.eventDateEnd)
-          }
-          if (raw.event.eventTime != null) {
-            rawPropertiesToUpdate.put("eventTime", raw.event.eventTime)
-          } else if (processed.event.eventTime != null) {
-            rawPropertiesToUpdate.put("eventTime", processed.event.eventTime)
-          }
-          if (raw.event.verbatimEventDate != null) {
-            rawPropertiesToUpdate.put("verbatimEventDate", raw.event.verbatimEventDate)
-          } else if (processed.event.verbatimEventDate != null) {
-            rawPropertiesToUpdate.put("verbatimEventDate", processed.event.verbatimEventDate)
-          }
-        }
         //update the object for downstream processing
         rawPropertiesToUpdate.foreach { case (key, value) => raw.setProperty(key, value) }
 
@@ -500,29 +288,6 @@ class SensitivityProcessor extends Processor {
         })
         processed.occurrence.informationWithheld = infoMessage
       }
-
-      // recalculate footprint and informationWithheld annotation using generalised grid
-      if (raw.location.gridReference != null && !raw.location.gridReference.isEmpty) {
-        //TODO: sensitive records have raw.location.decimallatitude etc. populated during the generalisation process, even if the actual data file did not have these values. This means we can't check these as a proxy for a grid- or coordinate-based record.
-        var computed = false
-        if (processed.location.gridReference != null && !processed.location.gridReference.isEmpty) {
-          processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
-          computed = true
-        } else if (raw.location.gridReference != null && !raw.location.gridReference.isEmpty) {
-          processed.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
-          computed = true
-        }
-        if (computed) {
-          if (processed.occurrence.informationWithheld == null)
-            processed.occurrence.informationWithheld = ""
-          else
-            processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " "
-
-          processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation(raw.location.gridReference)
-          // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
-        }
-      }
-
     } else {
       //Species is NOT sensitive
       //if the raw record has originalSensitive values we need to re-initialise the value
@@ -577,15 +342,13 @@ class SensitivityProcessor extends Processor {
       processed.location.coordinateUncertaintyInMeters = lastProcessed.get.location.coordinateUncertaintyInMeters
       processed.location.decimalLatitude = lastProcessed.get.location.decimalLatitude
       processed.location.decimalLongitude = lastProcessed.get.location.decimalLatitude
-      processed.location.geodeticDatum = lastProcessed.get.location.geodeticDatum
       processed.location.northing = lastProcessed.get.location.northing
       processed.location.easting = lastProcessed.get.location.easting
       processed.location.bbox = lastProcessed.get.location.bbox
       processed.occurrence.informationWithheld = lastProcessed.get.occurrence.informationWithheld
       processed.occurrence.dataGeneralizations = lastProcessed.get.occurrence.dataGeneralizations
-      processed.event.day = lastProcessed.get.event.day //was eventDateEnd ???
-      processed.event.endDay = lastProcessed.get.event.endDay
-      processed.event.eventDate = lastProcessed.get.event.eventDate //was eventDateEnd ???
+      processed.event.day = lastProcessed.get.event.eventDateEnd
+      processed.event.eventDate = lastProcessed.get.event.eventDateEnd
       processed.event.eventDateEnd = lastProcessed.get.event.eventDateEnd
     }
 

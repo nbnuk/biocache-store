@@ -696,12 +696,6 @@ class DuplicationDetection {
 
     while (currentLine != null) {
       if (currentLine.size >= 16) {
-        /* logger.info("$$$ current line: " + currentLine.size)
-        for (i <- 0 to 16)
-        {
-          logger.info("i " + i + " " + currentLine(i))
-        }
-        logger.info(currentLine.toString) */
         counter += 1
         if (counter % 10000 == 0) {
           logger.debug("Loaded into memory : " + counter + " + records")

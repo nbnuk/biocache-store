@@ -1,9 +1,10 @@
 package au.org.ala.biocache.util
 
 import java.util
+import java.util.Collections
 
 import au.org.ala.biocache.model.QualityAssertion
-import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus}
+import au.org.ala.biocache.vocab.{AssertionStatus, AssertionCodes}
 import au.org.ala.biocache.vocab.AssertionCodes._
 import au.org.ala.biocache.vocab.AssertionStatus._
 import com.google.common.cache.CacheBuilder
@@ -29,7 +30,6 @@ object GridUtil {
   //deal with the 2k OS grid ref separately
   val osGridRefNoEastingNorthing = ("""([A-Z]{2})""").r
   val osGridRefRegex1Number = """([A-Z]{2})\s*([0-9]+)$""".r
-  val osGridRef50kRegex = """([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""".r
   val osGridRef2kRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
   val osGridRefRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)$""".r
   val osGridRefWithQuadRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([NW|NE|SW|SE]{2})$""".r
@@ -39,7 +39,6 @@ object GridUtil {
   val irishGridlettersFlattened = irishGridletterscodes.mkString
   val irishGridRefNoEastingNorthing = ("""(I?[""" + irishGridlettersFlattened +"""]{1})""").r
   val irishGridRefRegex1Number = """(I?[A-Z]{1})\s*([0-9]+)$""".r
-  val irishGridRef50kRegex = """([A-Z]{1})\s*([NW|NE|SW|SE]{2})$""".r
   val irishGridRef2kRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
   val irishGridRefRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)$""".r
   val irishGridRefWithQuadRegex = """(I?[A-Z]{1})\s*([0-9]+)\s*([0-9]+)\s*([NW|NE|SW|SE]{2})$""".r
@@ -48,9 +47,6 @@ object GridUtil {
   //CRS
   val IRISH_CRS = "EPSG:29902"
   val OSGB_CRS = "EPSG:27700"
-
-  //proportion of grid size a point is allowed to vary (in x or y dimensions) from the true centre and still be considered central (to deal with rounding errors)
-  val CENTROID_FRACTION = 0.1
 
   lazy val crsEpsgCodesMap = {
     var valuesMap = Map[String, String]()
@@ -70,13 +66,13 @@ object GridUtil {
     valuesMap
   }
   /**
-    * Derive a value from the grid reference accuracy for grid size.
+    * Derive a value from the grid reference accuracy for coordinateUncertaintyInMeters.
     *
     * @param noOfNumericalDigits
     * @param noOfSecondaryAlphaChars
     * @return
     */
-  def getGridSizeFromGridRef(noOfNumericalDigits:Int, noOfSecondaryAlphaChars:Int) : Option[Int] = {
+  def getCoordinateUncertaintyFromGridRef(noOfNumericalDigits:Int, noOfSecondaryAlphaChars:Int) : Option[Int] = {
     val accuracy = noOfNumericalDigits match {
       case 10 => 1
       case 8 => 10
@@ -108,7 +104,6 @@ object GridUtil {
 
       val gridRefSeq = Array(
         gridRefs.getOrElse("grid_ref_100000", ""),
-        gridRefs.getOrElse("grid_ref_50000", ""),
         gridRefs.getOrElse("grid_ref_10000", ""),
         gridRefs.getOrElse("grid_ref_2000", ""),
         gridRefs.getOrElse("grid_ref_1000", ""),
@@ -116,18 +111,16 @@ object GridUtil {
       )
 
       val ref = {
-        if (uncertainty > 50000) {
+        if (uncertainty > 10000) {
           getBestValue(gridRefSeq, 0)
-        } else if (uncertainty <= 50000 && uncertainty > 10000) {
-          getBestValue(gridRefSeq, 1)
         } else if (uncertainty <= 10000 && uncertainty > 2000) {
-          getBestValue(gridRefSeq, 2)
+          getBestValue(gridRefSeq, 1)
         } else if (uncertainty <= 2000 && uncertainty > 1000) {
-          getBestValue(gridRefSeq, 3)
+          getBestValue(gridRefSeq, 2)
         } else if (uncertainty <= 1000 && uncertainty > 100) {
-          getBestValue(gridRefSeq, 4)
+          getBestValue(gridRefSeq, 3)
         } else if (uncertainty < 100) {
-          getBestValue(gridRefSeq, 5)
+          getBestValue(gridRefSeq, 4)
         } else {
           ""
         }
@@ -163,7 +156,6 @@ object GridUtil {
     * Takes a grid reference and returns a map of grid references at different resolutions.
     * Map will look like:
     * grid_ref_100000 -> "NO"
-    * grid_ref_50000 -> "NOSW"
     * grid_ref_10000 -> "NO11"
     * grid_ref_1000 -> "NO1212"
     * grid_ref_100 -> "NO123123"
@@ -178,7 +170,7 @@ object GridUtil {
     gridReferenceToEastingNorthing(gridRef) match {
       case Some(gr) => {
 
-        val gridSize = gr.gridSize.getOrElse(-1)
+        val gridSize = gr.coordinateUncertainty.getOrElse(-1)
         map.put("grid_ref_100000", gr.gridLetters)
 
           if (gridRef.length > 2) {
@@ -186,46 +178,25 @@ object GridUtil {
             val eastingAsStr = padWithZeros((gr.easting.toInt % 100000).toString, 5)
             val northingAsStr = padWithZeros((gr.northing.toInt % 100000).toString, 5)
 
-            //add grid reference for 50km
+            //add grid references for 10km, and 1km
             if (eastingAsStr.length() >= 2 && northingAsStr.length() >= 2) {
-              var quad = ""
-              if (eastingAsStr.substring(0, 1).toInt < 5) { //W
-                if (northingAsStr.substring(0, 1).toInt < 5) { //S
-                  quad = "SW"
-                } else { //N
-                  quad = "NW"
-                }
-              } else { //E
-                if (northingAsStr.substring(0, 1).toInt < 5) { //S
-                  quad = "SE"
-                } else { //N
-                  quad = "NE"
-                }
+              map.put("grid_ref_10000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1))
+            }
+            if (eastingAsStr.length() >= 3 && northingAsStr.length() >= 3) {
+              val eastingWithin10km = eastingAsStr.substring(1, 2).toInt
+              val northingWithin10km = northingAsStr.substring(1, 2).toInt
+              val tetrad = tetradLetters((eastingWithin10km / 2) * 5 + (northingWithin10km /2))
+
+              if(gridSize != -1 && gridSize <= 2000){
+                map.put("grid_ref_2000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1) + tetrad)
               }
-              map.put("grid_ref_50000", gr.gridLetters + quad)
+              if(gridSize != -1 && gridSize <= 1000) {
+                map.put("grid_ref_1000", gr.gridLetters + eastingAsStr.substring(0, 2) + northingAsStr.substring(0, 2))
+              }
             }
 
-            if (gridSize < 50000) {
-              //add grid references for 10km, and 1km
-              if (eastingAsStr.length() >= 2 && northingAsStr.length() >= 2) {
-                map.put("grid_ref_10000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1))
-              }
-              if (eastingAsStr.length() >= 3 && northingAsStr.length() >= 3) {
-                val eastingWithin10km = eastingAsStr.substring(1, 2).toInt
-                val northingWithin10km = northingAsStr.substring(1, 2).toInt
-                val tetrad = tetradLetters((eastingWithin10km / 2) * 5 + (northingWithin10km / 2))
-
-                if (gridSize != -1 && gridSize <= 2000) {
-                  map.put("grid_ref_2000", gr.gridLetters + eastingAsStr.substring(0, 1) + northingAsStr.substring(0, 1) + tetrad)
-                }
-                if (gridSize != -1 && gridSize <= 1000) {
-                  map.put("grid_ref_1000", gr.gridLetters + eastingAsStr.substring(0, 2) + northingAsStr.substring(0, 2))
-                }
-              }
-
-              if (gridSize != -1 && gridSize <= 100 && eastingAsStr.length > 3) {
-                map.put("grid_ref_100", gr.gridLetters + eastingAsStr.substring(0, 3) + northingAsStr.substring(0, 3))
-              }
+            if (gridSize != -1 && gridSize <= 100 && eastingAsStr.length > 3) {
+              map.put("grid_ref_100", gr.gridLetters + eastingAsStr.substring(0, 3) + northingAsStr.substring(0, 3))
             }
           }
       }
@@ -246,52 +217,8 @@ object GridUtil {
     }
   }
 
-  def getGridSizeInMeters(gridRef:String): Option[Int] = {
-    val grid = gridReferenceToEastingNorthing(gridRef)
-    grid match {
-      case Some(gr) => {
-        gr.gridSize
-      }
-      case None => {
-        logger.info("Invalid grid reference: " + gridRef)
-        None
-      }
-    }
-  }
-
-  def isCentroid(decimalLongitude:Double, decimalLatitude:Double, gridRef:String): Boolean = {
-    val grid = gridReferenceToEastingNorthing(gridRef)
-    grid match {
-      case Some(gr) => {
-        val reposition = if(!gr.gridSize.isEmpty && gr.gridSize.get > 0){
-          gr.gridSize.get / 2
-        } else {
-          0
-        }
-
-        val coordsCentroid = GISUtil.reprojectCoordinatesToWGS84(gr.easting + reposition, gr.northing + reposition, gr.datum, 5)
-        val coordsCorner = GISUtil.reprojectCoordinatesToWGS84(gr.easting, gr.northing, gr.datum, 5)
-        val (gridCentroidLatitude, gridCentroidLongitude) = coordsCentroid.get
-        val (gridCornerLatitude, gridCornerLongitude) = coordsCorner.get
-        val devLatitude = (decimalLatitude - gridCentroidLatitude.toDouble).abs
-        val devLongitude = (decimalLongitude - gridCentroidLongitude.toDouble).abs
-        val gridSizeLatitude = (gridCentroidLatitude.toDouble - gridCornerLatitude.toDouble).abs * 2.0
-        val gridSizeLongitude = (gridCentroidLongitude.toDouble - gridCornerLongitude.toDouble).abs * 2.0
-        if ((devLatitude > CENTROID_FRACTION * gridSizeLatitude) ||
-          (devLongitude > CENTROID_FRACTION * gridSizeLongitude)) {
-          false
-        } else {
-          true
-        }
-      }
-      case None => {
-        false
-      }
-    }
-  }
-
   /**
-    * Convert an ordnance survey grid reference to northing, easting and grid size.
+    * Convert an ordnance survey grid reference to northing, easting and coordinateUncertaintyInMeters.
     * This is a port of this javascript code:
     *
     * http://www.movable-type.co.uk/scripts/latlong-gridref.html
@@ -305,27 +232,24 @@ object GridUtil {
   def irishGridReferenceToEastingNorthing(gridRef:String): Option[GridRef] = {
 
     // validate & parse format
-    val (gridletters:String, easting:String, northing:String, twoKRef:String, quadRef:String, gridSize:Option[Int]) = gridRef.trim() match {
+    val (gridletters:String, easting:String, northing:String, twoKRef:String, quadRef:String, coordinateUncertainty:Option[Int]) = gridRef.trim() match {
       case irishGridRefRegex1Number(gridletters, oneNumber) => {
         val gridDigits = oneNumber.toString
         val en = Array(gridDigits.substring(0, gridDigits.length / 2), gridDigits.substring(gridDigits.length / 2))
-        val gridSize = getGridSizeFromGridRef(gridDigits.length, 0)
-        (gridletters, en(0), en(1), "", "", gridSize)
+        val coordUncertainty = getCoordinateUncertaintyFromGridRef(gridDigits.length, 0)
+        (gridletters, en(0), en(1), "", "", coordUncertainty)
       }
       case irishGridRefRegex(gridletters, easting, northing) => {
-        (gridletters, easting, northing, "", "", getGridSizeFromGridRef(easting.length * 2, 0))
+        (gridletters, easting, northing, "", "", getCoordinateUncertaintyFromGridRef(easting.length * 2, 0))
       }
       case irishGridRef2kRegex(gridletters, easting, northing, twoKRef) => {
-        (gridletters, easting, northing, twoKRef, "", getGridSizeFromGridRef(easting.length * 2, 1))
+        (gridletters, easting, northing, twoKRef, "", getCoordinateUncertaintyFromGridRef(easting.length * 2, 1))
       }
       case irishGridRefWithQuadRegex(gridletters, easting, northing, quadRef) => {
-        (gridletters, easting, northing, "", quadRef, getGridSizeFromGridRef(easting.length * 2, 2))
+        (gridletters, easting, northing, "", quadRef, getCoordinateUncertaintyFromGridRef(easting.length * 2, 2))
       }
       case irishGridRefNoEastingNorthing(gridletters) => {
-        (gridletters, "0", "0", "",  "", getGridSizeFromGridRef(0,0))
-      }
-      case irishGridRef50kRegex(gridletters, quadRef) => {
-        (gridletters, "0", "0", "", quadRef, getGridSizeFromGridRef(0, 2))
+        (gridletters, "0", "0", "",  "", getCoordinateUncertaintyFromGridRef(0,0))
       }
       case _ => return None
     }
@@ -372,33 +296,30 @@ object GridUtil {
       }
     } else if(quadRef != ""){
 
-      var cellSize = {
+      val cellSize = {
         if (easting.length == 1) 5000
         else if (easting.length == 2) 500
         else if (easting.length == 3) 50
         else if (easting.length == 4) 5
         else 0
       }
-      if (gridSize.getOrElse(0) == 50000) { //50km grids only
-        cellSize = 50000
-      }
       if(cellSize > 0) {
-        quadRef match {
+        twoKRef match {
           case "NW" => {
-            e = e //+ (cellSize / 2)
-            n = n + (cellSize) // + cellSize / 2)
+            e = e + (cellSize / 2)
+            n = n + (cellSize + cellSize / 2)
           }
           case "NE" => {
-            e = e + (cellSize) // + cellSize / 2)
-            n = n + (cellSize) // + cellSize / 2)
+            e = e + (cellSize + cellSize / 2)
+            n = n + (cellSize + cellSize / 2)
           }
           case "SW" => {
-            e = e //+ (cellSize / 2)
-            n = n //+ (cellSize / 2)
+            e = e + (cellSize / 2)
+            n = n + (cellSize / 2)
           }
           case "SE" => {
-            e = e + (cellSize) // + cellSize / 2)
-            n = n //+ (cellSize / 2)
+            e = e + (cellSize + cellSize / 2)
+            n = n + (cellSize / 2)
           }
           case _ => return None
         }
@@ -406,61 +327,55 @@ object GridUtil {
     }
 
     /** end of C & P ***/
-    val gridSizeOrZero = if(gridSize.isEmpty) 0 else gridSize.get
+    val coordinateUncertaintyOrZero = if(coordinateUncertainty.isEmpty) 0 else coordinateUncertainty.get
 
-    Some(GridRef(gridletters, e, n, Some(gridSizeOrZero), e, n, e + gridSizeOrZero, n + gridSizeOrZero, IRISH_CRS))
+    Some(GridRef(gridletters, e, n, Some(coordinateUncertaintyOrZero), e, n, e + coordinateUncertaintyOrZero, n + coordinateUncertaintyOrZero, IRISH_CRS))
   }
 
   /**
-    * Convert an ordnance survey grid reference to northing, easting and grid size.
+    * Convert an ordnance survey grid reference to northing, easting and coordinateUncertaintyInMeters.
     * This is a port of this javascript code:
     *
     * http://www.movable-type.co.uk/scripts/latlong-gridref.html
     *
     * with additional extensions to handle 2km grid references e.g. NM39A
     *
-    * ADDED: handling for 50km grids like 'SK SE' (although NBN won't accept data in this format, these grids can be assigned for sensitive records with 50km generalisations)
-    *
     * @param gridRef
-    * @return easting, northing, grid size in meters, minEasting, minNorthing, maxEasting, maxNorthing
+    * @return easting, northing, coordinate uncertainty in meters, minEasting, minNorthing, maxEasting, maxNorthing
     */
   def osGridReferenceToEastingNorthing(gridRef:String): Option[GridRef] = {
 
     //deal with the 2k OS grid ref separately
     val osGridRefNoEastingNorthing = ("""([A-Z]{2})""").r
-    val osGridRef50kRegex = """([A-Z]{2})\s*([NW|NE|SW|SE]{2})$""".r
     val osGridRefRegex1Number = """([A-Z]{2})\s*([0-9]+)$""".r
     val osGridRef2kRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([A-Z]{1})""".r
     val osGridRefRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)$""".r
     val osGridRefWithQuadRegex = """([A-Z]{2})\s*([0-9]+)\s*([0-9]+)\s*([NW|NE|SW|SE]{2})$""".r
 
     // validate & parse format
-    val (gridletters:String, easting:String, northing:String, twoKRef:String, quadRef:String, gridSize:Option[Int]) = gridRef.toUpperCase().trim() match {
+    val (gridletters:String, easting:String, northing:String, twoKRef:String, quadRef:String, coordinateUncertainty:Option[Int]) = gridRef.toUpperCase().trim() match {
       case osGridRefRegex1Number(gridletters, oneNumber) => {
         val gridDigits = oneNumber.toString
         val en = Array(gridDigits.substring(0, gridDigits.length / 2), gridDigits.substring(gridDigits.length / 2))
-        val gridSize = getGridSizeFromGridRef(gridDigits.length, 0)
-        (gridletters, en(0), en(1), "", "", gridSize)
+        val coordUncertainty = getCoordinateUncertaintyFromGridRef(gridDigits.length, 0)
+        (gridletters, en(0), en(1), "", "", coordUncertainty)
       }
       case osGridRefRegex(gridletters, easting, northing) => {
-        (gridletters, easting, northing, "", "", getGridSizeFromGridRef(easting.length * 2, 0))
+        (gridletters, easting, northing, "", "", getCoordinateUncertaintyFromGridRef(easting.length * 2, 0))
       }
       case osGridRef2kRegex(gridletters, easting, northing, twoKRef) => {
-        (gridletters, easting, northing, twoKRef, "", getGridSizeFromGridRef(easting.length * 2, 1))
+        (gridletters, easting, northing, twoKRef, "", getCoordinateUncertaintyFromGridRef(easting.length * 2, 1))
       }
       case osGridRefWithQuadRegex(gridletters, easting, northing, quadRef) => {
-        (gridletters, easting, northing, "", quadRef, getGridSizeFromGridRef(easting.length * 2, 2))
+        (gridletters, easting, northing, "", quadRef, getCoordinateUncertaintyFromGridRef(easting.length * 2, 2))
       }
       case osGridRefNoEastingNorthing(gridletters) => {
-        (gridletters, "0", "0", "",  "", getGridSizeFromGridRef(0,0))
-      }
-      case osGridRef50kRegex(gridletters, quadRef) => {
-        (gridletters, "0", "0", "", quadRef, getGridSizeFromGridRef(0, 2))
+        (gridletters, "0", "0", "",  "", getCoordinateUncertaintyFromGridRef(0,0))
       }
       case _ => return None
     }
 
-    // get numeric values of letter references, mapping A->0, B->1, C->2, etc: (skipping I)
+    // get numeric values of letter references, mapping A->0, B->1, C->2, etc:
     val l1 = {
       val value = Character.codePointAt(gridletters, 0) - Character.codePointAt("A", 0)
       if(value > 7){
@@ -526,169 +441,39 @@ object GridUtil {
       }
     } else if(quadRef != ""){
 
-      var cellSize = {
+      val cellSize = {
         if (easting.length == 1) 5000
         else if (easting.length == 2) 500
         else if (easting.length == 3) 50
         else if (easting.length == 4) 5
         else 0
       }
-      if (gridSize.getOrElse(0) == 50000) { //50km grids only
-        cellSize = 50000
-      }
       if(cellSize > 0) {
-        quadRef match {
+        twoKRef match {
           case "NW" => {
-            e = e //+ (cellSize / 2)
-            n = n + (cellSize) // + cellSize / 2)
+            e = e + (cellSize / 2)
+            n = n + (cellSize + cellSize / 2)
           }
           case "NE" => {
-            e = e + (cellSize) // + cellSize / 2)
-            n = n + (cellSize) // + cellSize / 2)
+            e = e + (cellSize + cellSize / 2)
+            n = n + (cellSize + cellSize / 2)
           }
           case "SW" => {
-            e = e //+ (cellSize / 2)
-            n = n //+ (cellSize / 2)
+            e = e + (cellSize / 2)
+            n = n + (cellSize / 2)
           }
           case "SE" => {
-            e = e + (cellSize) // + cellSize / 2)
-            n = n //+ (cellSize / 2)
+            e = e + (cellSize + cellSize / 2)
+            n = n + (cellSize / 2)
           }
           case _ => return None
         }
       }
     }
 
-    val gridSizeOrZero = if(gridSize.isEmpty) 0 else gridSize.get
+    val coordinateUncertaintyOrZero = if(coordinateUncertainty.isEmpty) 0 else coordinateUncertainty.get
 
-    Some(GridRef(gridletters, e, n, gridSize, e, n, e + gridSizeOrZero, n + gridSizeOrZero, OSGB_CRS))
-  }
-
-/**
-  * Convert a WGS84 lat/lon coordinate to either OSGB (ordnance survey GB) or Irish OS grid reference using coordinateUncertaintyInMeters to define grid cell size
-  *
-  * Note: does not handle 2000m uncertainty
-  *
-  *  http://www.carabus.co.uk/ll_ngr.html
-  *
-  * @param lat latitude
-  * @param lon longitude
-  * @param coordinateUncertaintyInMeters
-  * @param geodeticDatum geodeticDatum (if empty assume WGS84)
-  * @return gridRef
-  */
-  def latLonToOsGrid (lat:Double, lon:Double, coordinateUncertaintyInMeters:Double, geodeticDatum:String, gridType:String, knownGridSize: Int = -1): Option[String] = {
-    val datum = lookupEpsgCode(geodeticDatum)
-
-    var N = 0.0
-    var E = 0.0
-
-    if (!(datum == Some("") || datum == Some("EPSG:27700") || datum == Some("EPSG:4326"))) {
-      return None
-    } else {
-      if (datum == Some("EPSG:27700")) {
-        //in OSGB36
-        val northingsEastings = GISUtil.coordinatesOSGB36toNorthingEasting(lat, lon, 4)
-        val (northings, eastings) = northingsEastings.get
-        N = northings.toDouble
-        E = eastings.toDouble
-      } else { //assume WGS84
-        val reprojectedNorthingsEastings = gridType match {
-          case "OSGB" => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 4)
-          case "Irish" => GISUtil.reprojectCoordinatesWGS84ToOSNI(lat, lon, 4)
-          case _ => GISUtil.reprojectCoordinatesWGS84ToOSGB36(lat, lon, 4)
-        }
-        val (northings, eastings) = reprojectedNorthingsEastings.get
-        N = northings.toDouble
-        E = eastings.toDouble
-      }
-    }
-
-    val gridSize =
-      if (knownGridSize >= 0) {
-        knownGridSize
-      } else {
-        coordinateUncertaintyInMeters * math.sqrt(2.0) -0.001 //old coordinateUncertaintyInMeters was understood as the linear dimension of a grid cell - convert back to this from a centre to corner distance
-        //danger here is rounding error from floating point arithmetic, hence the arbitrary deduction
-      }
-    val digits = gridSize match {
-      case x if (x <= 1)                   => 10
-      case x if (1 < x && x <= 10)         => 8
-      case x if (10 < x && x <= 100)       => 6
-      case x if (100 < x && x <= 1000)     => 4
-      case x if (1000 < x && x <= 10000)   => 2
-      case x if (10000 <= x)               => 0
-      case _ => return None
-    }
-    if (gridSize == 2000) {
-      //FIXME: sort out getOSGridFromNorthingEasting to handle 2km, 50km grids properly
-      val onekmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 4, gridType)
-      //now convert 1km grid to containing 2km grid
-      if (onekmGrid.isDefined) {
-        convertReferenceToResolution(onekmGrid.get, "2000")
-      } else {
-        None
-      }
-    } else if (gridSize == 50000) {
-      //FIXME: sort out getOSGridFromNorthingEasting to handle 2km, 50km grids properly
-      val tenkmGrid = getOSGridFromNorthingEasting(Math.round(N), Math.round(E), 2, gridType)
-      //now convert 10km grid to containing 50km grid
-      if (tenkmGrid.isDefined) {
-        convertReferenceToResolution(tenkmGrid.get, "50000")
-      } else {
-        None
-      }
-    } else {
-      getOSGridFromNorthingEasting(Math.round(N), Math.round(E), digits, gridType)
-    }
-
-  }
-
-  /**
-    *
-    * @param n : north
-    * @param e : east
-    * @param digits : digits
-    * @param gridType : gridType (Irish or OSGB)
-    * @return
-    */
-  def getOSGridFromNorthingEasting(n:Double, e:Double, digits:Int, gridType: String): Option[String] = {
-    if ((digits % 2 != 0) || digits > 16) {
-      return None
-    } else {
-      // get the 100km-grid indices// get the 100km-grid indices
-
-      val e100k = Math.floor(e / 100000)
-      val n100k = Math.floor(n / 100000)
-
-      if (e100k < 0 || e100k > 6 || n100k < 0 || n100k > 12) {
-        return None
-      }
-      // translate those into numeric equivalents of the grid letters// translate those into numeric equivalents of the grid letters
-      var l1 = (19 - n100k) - (19 - n100k) % 5 + Math.floor((e100k + 10) / 5)
-      var l2 = (19 - n100k) * 5 % 25 + e100k % 5
-      // compensate for skipped 'I' and build grid letter-pairs// compensate for skipped 'I' and build grid letter-pairs
-      if (l1 > 7) {
-        l1 += 1
-      }
-      if (l2 > 7) {
-        l2 += 1
-      }
-      val letterPair = (l1 + Character.codePointAt("A", 0)).toChar.toString.concat((l2 + Character.codePointAt("A", 0)).toChar.toString)
-      val letterPairLastOnly = ((l2 + Character.codePointAt("A", 0)).toChar.toString)
-      // strip 100km-grid indices from easting & northing, and reduce precision
-      val eMod = Math.floor((e % 100000) / Math.pow(10, 5 - digits / 2))
-      val nMod = Math.floor((n % 100000) / Math.pow(10, 5 - digits / 2))
-      // pad eastings & northings with leading zeros (just in case, allow up to 16-digit (mm) refs)
-      var eModStr = padWithZeros(eMod.round.toString(),8).takeRight(digits/2)
-      var nModStr = padWithZeros(nMod.round.toString(),8).takeRight(digits/2)
-
-      gridType match {
-        case "Irish" => Some(letterPairLastOnly.concat(eModStr).concat(nModStr))
-        case "OSGB" => Some(letterPair.concat(eModStr).concat(nModStr))
-        case _ => Some(letterPair.concat(eModStr).concat(nModStr)) //default
-      }
-    }
+    Some(GridRef(gridletters, e, n, coordinateUncertainty, e, n, e + coordinateUncertaintyOrZero, n + coordinateUncertaintyOrZero, OSGB_CRS))
   }
 
   /**
@@ -708,24 +493,24 @@ object GridUtil {
       case Some(gr) => {
 
         //move coordinates to the centroid of the grid
-        val reposition = if(!gr.gridSize.isEmpty && gr.gridSize.get > 0){
-          gr.gridSize.get / 2
+        val reposition = if(!gr.coordinateUncertainty.isEmpty && gr.coordinateUncertainty.get > 0){
+          gr.coordinateUncertainty.get / 2
         } else {
           0
         }
 
-        val coords = GISUtil.reprojectCoordinatesToWGS84(gr.easting + reposition, gr.northing + reposition, gr.datum, 6)
+        val coords = GISUtil.reprojectCoordinatesToWGS84(gr.easting + reposition, gr.northing + reposition, gr.datum, 5)
 
         //reproject min/max lat/lng
         val bbox = Array(
-          GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 6),
-          GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 6)
+          GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+          GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
         )
 
         if(!coords.isEmpty){
           val (latitude, longitude) = coords.get
-          val uncertaintyToUse = if(!gr.gridSize.isEmpty){
-            "%.1f".format(gr.gridSize.get / math.sqrt(2.0))
+          val uncertaintyToUse = if(!gr.coordinateUncertainty.isEmpty){
+            gr.coordinateUncertainty.get.toString
           } else {
             null
           }
@@ -774,53 +559,6 @@ object GridUtil {
       None
     }
   }
-
-  // get grid reference as human readable text with an annotation to say if it's a OSGB or OSI grid
-  def getGridAsTextWithAnnotation(gridReference: String = "") = {
-    var text = ""
-    if (gridReference != "" && gridReference != null) {
-      // see if it's OSGB
-      val result = GridUtil.osGridReferenceToEastingNorthing( gridReference )
-      if(!result.isEmpty){
-        text = "OSGB Grid Reference " + gridReference;
-      } else {
-        // otherwise assume it's OSI
-        text = "OSI Grid Reference " + gridReference
-      }
-    }
-    text
-  }
-
-  // get grid WKT from a grid reference
-  def getGridWKT(gridReference: String = "") = {
-    var poly_grid = ""
-    if (gridReference != "") {
-      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
-        case Some(gr) => {
-          val bbox = Array(
-            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
-            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
-          )
-          val minLatitude = bbox(0).get._1
-          val minLongitude = bbox(0).get._2
-          val maxLatitude = bbox(1).get._1
-          val maxLongitude = bbox(1).get._2
-
-          //for WKT, need to give points in lon-lat order, not lat-lon
-          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
-            minLongitude + " " + maxLatitude + "," +
-            maxLongitude + " " + maxLatitude + "," +
-            maxLongitude + " " + minLatitude + "," +
-            minLongitude + " " + minLatitude + "))"
-        }
-        case None => {
-          logger.info("Invalid grid reference: " + gridReference)
-        }
-      }
-    }
-    poly_grid
-  }
-
 
   /**
     * Converts a easting northing to a decimal latitude/longitude.

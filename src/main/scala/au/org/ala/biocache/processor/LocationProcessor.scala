@@ -5,7 +5,6 @@ import au.org.ala.biocache.caches.{LocationDAO, SpatialLayerDAO, TaxonProfileDAO
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model._
 import au.org.ala.biocache.parser.{DistanceRangeParser, VerbatimLatLongParser}
-import au.org.ala.biocache.util.GridUtil.{irishGridReferenceToEastingNorthing, osGridReferenceToEastingNorthing}
 import au.org.ala.biocache.util.{GISPoint, GISUtil, GridUtil, StringHelper}
 import au.org.ala.biocache.vocab._
 import org.apache.commons.lang.StringUtils
@@ -53,8 +52,6 @@ class LocationProcessor extends Processor {
       //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
       checkCoordinateUncertainty(raw, processed, assertions)
 
-
-
       //intersect values with sensitive areas
       val intersectValues = SpatialLayerDAO.intersect(processed.location.decimalLongitude, processed.location.decimalLatitude)
 
@@ -100,18 +97,6 @@ class LocationProcessor extends Processor {
 
     //check marine/non-marine
     checkForBiomeMismatch(raw, processed, assertions)
-
-
-
-    //gridsize is needed for the recalculation of coordinate uncertainty, hence done twice
-    addGridSize(raw, processed, assertions)
-    possiblyRecalculateCoordinateUncertainty(raw, processed, assertions)
-    //set grid ref if coordinates were supplied
-    setGridRefFromCoordinates(raw, processed, assertions)
-    addGridSize(raw, processed, assertions)
-    //requires gridreferencewkt, gridreferencewkt_p field in DB
-    processGridWKT(raw, processed)
-
 
 
     //return the assertions created by this processor
@@ -210,7 +195,7 @@ class LocationProcessor extends Processor {
     */
   private def processAltitudeAndDepth(guid: String, raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
     //check that the values are numeric
-    // processVerbatimDepth(raw, processed, assertions)     turn off this processing as per Sophie NBN request
+    processVerbatimDepth(raw, processed, assertions)
     processVerbatimElevation(raw, processed, assertions)
     processMinMaxDepth(raw, processed, assertions)
   }
@@ -279,7 +264,7 @@ class LocationProcessor extends Processor {
     }
   }
 
-  private def processVerbatimDepth(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+  protected def processVerbatimDepth(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
     if (raw.location.verbatimDepth != null) {
       val parseDepthResult = DistanceRangeParser.parse(raw.location.verbatimDepth)
       if (parseDepthResult.isDefined) {
@@ -545,99 +530,6 @@ class LocationProcessor extends Processor {
     }
   }
 
-  /**
-    * If gridreference supplied without coordinates, convert to WKT. Note: if both gridref and coordinates supplied then WKT is not set
-    *
-    * @param raw
-    * @param processed
-
-    */
-  private def processGridWKT(raw: FullRecord, processed: FullRecord): Unit = {
-
-    if (processed.location.gridReferenceWKT == null &&
-       raw.location.gridReference != null && !raw.location.gridReference.isEmpty &&
-      (raw.location.decimalLatitude == null || raw.location.decimalLongitude == null || raw.location.decimalLatitude.toFloatWithOption.isEmpty || raw.location.decimalLongitude.toFloatWithOption.isEmpty)) {
-      var computed = false
-      if (processed.location.gridReference != null) {
-        processed.location.gridReferenceWKT = GridUtil.getGridWKT(processed.location.gridReference)
-        computed = true
-      } else if (raw.location.gridReference != null) {
-        processed.location.gridReferenceWKT = GridUtil.getGridWKT(raw.location.gridReference)
-        computed = true
-      }
-      if (computed) {
-        if (processed.occurrence.informationWithheld == null)
-          processed.occurrence.informationWithheld = ""
-        else
-          processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + " "
-
-        processed.occurrence.informationWithheld = processed.occurrence.informationWithheld + GridUtil.getGridAsTextWithAnnotation(raw.location.gridReference)
-        // note, we don't overwrite raw.occurrence.informationWithheld, as we might prefer that untouched
-      }
-    } else {
-      //no gridReferenceWKT if it was a coordinate-based record
-    }
-  }
-
-  /**
-    * Set gridSizeInMeters, using the processed gridReference
-   */
-  private def addGridSize(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
-    if (processed.location.gridSizeInMeters == null || processed.location.gridSizeInMeters == "") {
-      if (processed.location.gridReference != null) {
-        processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(processed.location.gridReference).getOrElse("").toString()
-      } else if (raw.location.gridReference != null) {
-        processed.location.gridSizeInMeters = GridUtil.getGridSizeInMeters(raw.location.gridReference).getOrElse("").toString()
-      } else if (raw.location.gridSizeInMeters != null) {
-        processed.location.gridSizeInMeters = raw.location.gridSizeInMeters
-      } else {
-        processed.location.gridSizeInMeters = null
-      }
-    }
-  }
-
-  /**
-    *  Sometimes coordinate uncertainty is provided according to the old concept, i.e. as the grid size
-    *  This checks for this and makes sure we use the revised concept, i.e. centre-to-corner distance
-    *  */
-  private def possiblyRecalculateCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
-    //if grid and no lat/long
-    //or if grid and lat/long, and lat/long is centroid
-    //or if grid and lat/long and no coordinate uncertainty provided
-    //then amend coordinate uncertainty to radius of circle through corners of grid
-
-    var isCentroid = false
-    var recalcCoordUncertainty = false
-    if (raw.location.gridReference != null && raw.location.gridReference.length > 0) {
-      if (raw.location.decimalLongitude == null || raw.location.decimalLatitude == null ||
-        raw.location.decimalLongitude.length == 0 || raw.location.decimalLatitude.length == 0) {
-        recalcCoordUncertainty = true
-      } else {
-        isCentroid = GridUtil.isCentroid(raw.location.decimalLongitude.toDouble, raw.location.decimalLatitude.toDouble,raw.location.gridReference)
-        if (isCentroid) {
-          recalcCoordUncertainty = true
-        } else if (raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0) {
-          recalcCoordUncertainty = true
-        }
-        if (!isCentroid) {
-          assertions += QualityAssertion(COORDINATES_NOT_CENTRE_OF_GRID)
-        }
-      }
-    }
-    if (recalcCoordUncertainty) {
-      val cornerDistFromCentre =
-        if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
-            processed.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
-          } else if (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0) {
-            raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0)
-          } else {
-            -1 //give up
-          }
-
-      if (cornerDistFromCentre >= 0)
-        processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
-    }
-  }
 
   /**
     * Get the number of decimal places in a double value in string form
@@ -654,7 +546,7 @@ class LocationProcessor extends Processor {
     }
   }
 
-  private def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
+  protected def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
     //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
     var checkedPrecision = false
     if (raw.location.coordinateUncertaintyInMeters != null && raw.location.coordinateUncertaintyInMeters.length > 0) {
@@ -677,15 +569,7 @@ class LocationProcessor extends Processor {
     } else {
       //check to see if the uncertainty has incorrectly been put in the precision
       if (raw.location.coordinatePrecision != null) {
-        var value = raw.location.coordinatePrecision.toFloatWithOption
-        if (raw.location.coordinatePrecision.endsWith("km") || raw.location.coordinatePrecision.endsWith("m")) { //another way to misuse coordinatePrecision
-          if (raw.location.coordinatePrecision.endsWith("km")) {
-            value = raw.location.coordinatePrecision.dropRight(2).toFloatWithOption
-            if (!value.isEmpty && value.get > 0) value = Option(value.get*1000)
-          } else {
-            value = raw.location.coordinatePrecision.dropRight(1).toFloatWithOption
-          }
-        }
+        val value = raw.location.coordinatePrecision.toFloatWithOption
         if (!value.isEmpty && value.get > 1) {
           processed.location.coordinateUncertaintyInMeters = value.get.toInt.toString
           val comment = "Supplied precision, " + raw.location.coordinatePrecision + ", is assumed to be uncertainty in metres";
@@ -731,55 +615,9 @@ class LocationProcessor extends Processor {
     // This step will pick up on default values because processed.location.coordinateUncertaintyInMeters
     // will already be populated if a default value exists
     if (processed.location.coordinateUncertaintyInMeters == null) {
-      assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, "Coordinate uncertainty was not supplied")
+      assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, "Uncertainty was not supplied")
     } else {
       assertions += QualityAssertion(UNCERTAINTY_NOT_SPECIFIED, PASSED)
-    }
-
-    //set coordinate uncertainty from gridsizeinmeters if necessary
-    if ((raw.location.coordinateUncertaintyInMeters == null || raw.location.coordinateUncertaintyInMeters.length == 0 || processed.location.coordinateUncertaintyInMeters.toDouble < 0.000001) &&
-      (raw.location.gridSizeInMeters != null && raw.location.gridSizeInMeters.length > 0)) {
-      val cornerDistFromCentre = raw.location.gridSizeInMeters.toDouble / math.sqrt(2.0) //centre to corner
-      processed.location.coordinateUncertaintyInMeters = "%.1f".format(cornerDistFromCentre)
-    }
-
-  }
-
-  /**
-    * If coordinates were supplied but no grid reference, populate gridReference from coords
-    * @param raw
-    * @param processed
-    * @param assertions
-    */
-  private def setGridRefFromCoordinates(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
-    if (processed.location.decimalLatitude != null
-      && processed.location.decimalLongitude != null
-      && processed.location.gridReference == null
-      && processed.location.coordinateUncertaintyInMeters != null
-      && processed.location.coordinateUncertaintyInMeters.toDouble > 0) {
-      val gbList = List("Wales", "Scotland", "England", "Isle of Man") //OSGB-grid countries hard-coded
-      val niList = List("Northern Ireland") //Irish grid
-      var gridCalc = None: Option[String]
-      var gridToUse = "OSGB" //TODO: could add Channel Islands when applicable. For now, just try OSGB grid for everything non-Irish
-      if (gbList.contains(processed.location.stateProvince)) {
-        gridToUse = "OSGB"
-      } else if (niList.contains(processed.location.stateProvince)) {
-        gridToUse = "Irish"
-      } else if ((processed.location.decimalLongitude.toDouble < -5.0) &&
-          (processed.location.decimalLatitude.toDouble < 57.0 && processed.location.decimalLatitude.toDouble > 48.0)) {
-        gridToUse = "Irish"
-      }
-      if (processed.location.gridSizeInMeters != null && processed.location.gridSizeInMeters.length > 0) {
-        gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse, processed.location.gridSizeInMeters.toInt)
-      } else {
-        gridCalc = GridUtil.latLonToOsGrid(processed.location.decimalLatitude.toDouble, processed.location.decimalLongitude.toDouble, processed.location.coordinateUncertaintyInMeters.toDouble, "WGS84", gridToUse)
-      }
-      if (gridCalc.isDefined) {
-        processed.location.gridReference = gridCalc.get
-        if (raw.location.gridReference == null || raw.location.gridReference.isEmpty) {
-          assertions += QualityAssertion(GRID_REF_CALCULATED_FROM_LAT_LONG)
-        }
-      }
     }
   }
 
@@ -1072,7 +910,7 @@ class LocationProcessor extends Processor {
         MISSING_GEOREFERENCESOURCES.code, MISSING_GEOREFERENCEVERIFICATIONSTATUS.code, MISSING_GEOREFERENCE_DATE.code,
         INVERTED_COORDINATES.code, COORDINATES_OUT_OF_RANGE.code, ZERO_COORDINATES.code, ZERO_LATITUDE_COORDINATES.code,
         ZERO_LONGITUDE_COORDINATES.code, UNKNOWN_COUNTRY_NAME.code, NEGATED_LATITUDE.code, NEGATED_LONGITUDE.code,
-        COUNTRY_COORDINATE_MISMATCH.code, COORDINATES_NOT_CENTRE_OF_GRID.code))
+        COUNTRY_COORDINATE_MISMATCH.code))
 
       //update the details from lastProcessed
       processed.location = lastProcessed.get.location

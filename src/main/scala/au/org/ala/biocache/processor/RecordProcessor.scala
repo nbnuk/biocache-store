@@ -102,7 +102,7 @@ class RecordProcessor {
       if (Config.fixNullFirstLoaded) {
         if (raw.firstLoaded == null || "".equals(raw.firstLoaded)) {
           processed.firstLoaded = raw.lastModifiedTime
-          logger.info("..................Setting firstLoaded - rowKey:" + raw.rowKey + " to " + processed.firstLoaded)
+          logger.debug("..................Setting firstLoaded - rowKey:" + raw.rowKey + " to " + processed.firstLoaded)
         }
       }
 

@@ -371,11 +371,9 @@ object Config {
 /**
  * Guice configuration module.
  */
-class ConfigModule extends AbstractModule {
+private class ConfigModule extends AbstractModule {
 
   protected val logger = LoggerFactory.getLogger("ConfigModule")
-
-  System.out.println("ALA ConfigModule")
 
   val properties = {
 

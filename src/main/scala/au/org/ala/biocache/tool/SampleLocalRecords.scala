@@ -197,6 +197,7 @@ class SampleLocalRecords extends Counter {
 
     // do not use full scan when no -dr or -edr
     val useFullScan = !(skipDrs.isEmpty && drs.isEmpty) && _useFullScan
+
     if (rowKeyFile != null && rowKeyFile.exists()) {
       println("Using rowKeyFile " + rowKeyFile.getPath)
       rowkeys = scala.io.Source.fromFile(rowKeyFile, "UTF-8").getLines().toSeq

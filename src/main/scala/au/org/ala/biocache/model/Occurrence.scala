@@ -42,7 +42,7 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var license:String = _
   @BeanProperty var lifeStage:String = _
   @BeanProperty var modified:String = _
-  @BeanProperty var nameParseType:String = _
+
   @BeanProperty var occurrenceAttributes:String = _
   @BeanProperty var occurrenceDetails:String = _
   @BeanProperty var occurrenceRemarks:String = _
@@ -70,7 +70,7 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var sex:String = _
   @BeanProperty var source:String = _
   @BeanProperty var userId:String = _  //this is the ALA ID for the user
-  @BeanProperty var vitality:String = _
+
   //Additional fields for HISPID support
   @BeanProperty var collectorFieldNumber:String = _  //This value now maps to the correct DWC field http://rs.tdwg.org/dwc/terms/fieldNumber
   @BeanProperty var cultivated:String = _ //http://www.chah.org.au/hispid/terms/cultivatedOccurrence
@@ -119,10 +119,13 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var outlierForLayers:Array[String] = _
   @BeanProperty var photographer:String =_
 
+  //BEGIN NBN
+  @BeanProperty var nameParseType:String = _
+  @BeanProperty var vitality:String = _
   @BeanProperty var organismScope:String =_
   @BeanProperty var organismRemarks:String =_
-
   @BeanProperty var locationId:String =_
+  //END NBN
 
   @JsonIgnore
   def getOriginalSensitiveValues():Map[String,String] = originalSensitiveValues

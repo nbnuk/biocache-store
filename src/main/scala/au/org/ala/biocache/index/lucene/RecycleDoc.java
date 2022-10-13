@@ -167,7 +167,7 @@ public class RecycleDoc implements Iterable<IndexableField> {
                     ((Field) f).setStringValue((String) value);
                     found = true;
                 } else if (ft instanceof SpatialTermQueryPrefixTreeFieldType ||
-                        ft instanceof SpatialRecursivePrefixTreeFieldType) { /* NBN: RptWithGeometrySpatialField not supported, get MISSING FIELD errors */
+                        ft instanceof SpatialRecursivePrefixTreeFieldType) {
 
                     PrefixTreeStrategy strategy = (ft instanceof SpatialTermQueryPrefixTreeFieldType) ?
                             ((SpatialTermQueryPrefixTreeFieldType) ft).getStrategy(name) :

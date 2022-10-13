@@ -11,7 +11,7 @@ import au.org.ala.biocache.index.lucene.{DocBuilder, LuceneIndexing}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.persistence.DataRow
-import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
+import au.org.ala.biocache.util.{GridUtil, Json}
 import au.org.ala.biocache.vocab.{AssertionCodes, CoordinateUncertaintyCategory, ErrorCode, ErrorCodeCategory, SpeciesGroups}
 import com.datastax.driver.core.{ColumnDefinitions, GettableData, Row}
 import com.google.inject.Inject
@@ -107,19 +107,19 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         poolingConnectionPoolManager.setDefaultMaxPerRoute(Config.solrConnectionMaxPerRoute)
         connectionPoolManager = poolingConnectionPoolManager
         val cacheConfig = CacheConfig.custom()
-          .setMaxCacheEntries(Config.solrConnectionCacheEntries)
-          .setMaxObjectSize(Config.solrConnectionCacheObjectSize)
-          .setSharedCache(false).build()
+                                     .setMaxCacheEntries(Config.solrConnectionCacheEntries)
+                                     .setMaxObjectSize(Config.solrConnectionCacheObjectSize)
+                                     .setSharedCache(false).build()
         val requestConfig = RequestConfig.custom()
-          .setConnectTimeout(Config.solrConnectionConnectTimeout)
-          .setConnectionRequestTimeout(Config.solrConnectionRequestTimeout)
-          .setSocketTimeout(Config.solrConnectionSocketTimeout).build()
+                                         .setConnectTimeout(Config.solrConnectionConnectTimeout)
+                                         .setConnectionRequestTimeout(Config.solrConnectionRequestTimeout)
+                                         .setSocketTimeout(Config.solrConnectionSocketTimeout).build()
         httpClient = CachingHttpClientBuilder.create()
-          .setCacheConfig(cacheConfig)
-          .setDefaultRequestConfig(requestConfig)
-          .setConnectionManager(connectionPoolManager)
-          .setUserAgent(Config.userAgent)
-          .useSystemProperties().build()
+                                .setCacheConfig(cacheConfig)
+                                .setDefaultRequestConfig(requestConfig)
+                                .setConnectionManager(connectionPoolManager)
+                                .setUserAgent(Config.userAgent)
+                                .useSystemProperties().build()
 
         if (!solrHome.startsWith("http://")) {
           if (solrHome.contains(":")) {
@@ -185,6 +185,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
     } while (values != null && !values.isEmpty)
   }
+
 
 
   def streamIndex(proc: java.util.Map[String, AnyRef] => Boolean, fieldsToRetrieve: Array[String], query: String, filterQueries: Array[String], sortFields: Array[String], multivaluedFields: Option[Array[String]] = None) {
@@ -503,6 +504,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
     if (shouldIndex(map, startDate)) {
 
       val values = getOccIndexModel(guid, map)
+
       if (values.length > 0 && values.length != header.length) {
         logger.error("Values don't matcher header: " + values.length + ":" + header.length + ", values:header")
         logger.error("Headers: " + header.toString())
@@ -766,9 +768,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         val hasUserAssertions = getValue(FullRecordMapper.userQualityAssertionColumn, map)
         if (hasUserAssertions != "") {
           val assertionUserIds = extractUserIds(hasUserAssertions)
-          assertionUserIds.foreach {
-            doc.addField("assertion_user_id", _)
-          }
+          assertionUserIds.foreach {  doc.addField("assertion_user_id", _) }
         }
 
         // add query assertions
@@ -960,7 +960,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt)
           val northing = getParsedValue("northing", map)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
-          val gridRef = getParsedValueIfAvailable("gridReference", map, "")
+          val gridRef = getValue("gridReference", map)
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)
             val map = GridUtil.getGridRefAsResolutions(gridRef)
@@ -983,17 +983,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
         //index the available el and cl's - more efficient to use the supplied map than using the old way
         addJsonMapToDoc(doc, getParsedValue("el", map))
-        //addJsonMapToDoc(doc, getParsedValue("cl", map))
-        //since cls can be multi-value now, easiest to do it this way
-        val cls = Json.toStringMap(getParsedValue("cl", map))
-        cls.foreach {
-          case (key, value) => {
-            val values_separate = value.split('|').map(_.trim)
-            values_separate.foreach {
-              doc.addField(key, _)
-            }
-          }
-        }
+        addJsonMapToDoc(doc, getParsedValue("cl", map))
 
         //index the additional species information - ie species groups
         val lft = getParsedValue("left", map)
@@ -1163,7 +1153,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
 
         //index the available el and cl's - more efficient to use the supplied map than using the old way
 
-        //        addJsonMapToDoc(doc, getArrayValue(columnOrder.elP, array))
+//        addJsonMapToDoc(doc, getArrayValue(columnOrder.elP, array))
         val els = Json.toJavaMap(getArrayValue(columnOrder.elP, dataRow))
         els.foreach {
           case (key, value) => doc.addField(key, value)
@@ -1693,7 +1683,6 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
       maxResults = numFound
     }
   }
-
 }
 
 class ColumnOrder {
@@ -1771,14 +1760,6 @@ class ColumnOrder {
     this.eastingP = dataRow.getIndexOf("easting" + Config.persistenceManager.fieldDelimiter + "p")
     this.northingP = dataRow.getIndexOf("northing" + Config.persistenceManager.fieldDelimiter + "p")
     this.gridReference = dataRow.getIndexOf("gridReference")
-    this.gridReferenceP = dataRow.getIndexOf("gridReference"+ Config.persistenceManager.fieldDelimiter + "p")
-    if (Config.gridRefIndexingPolyReadFromCassandra) {
-      this.gridReferenceWKT = dataRow.getIndexOf("gridReferenceWKT") // NBN Cassandra WKT ***
-    } else {
-      this.gridReferenceWKT = -1
-    }
-    this.coordinateUncertainty = dataRow.getIndexOf("coordinateUncertaintyInMeters")
-    this.coordinateUncertaintyP = dataRow.getIndexOf("coordinateUncertaintyInMeters"+ Config.persistenceManager.fieldDelimiter + "p")
     this.queryAssertionColumn = dataRow.getIndexOf(FullRecordMapper.queryAssertionColumn)
     this.elP = dataRow.getIndexOf("el" + Config.persistenceManager.fieldDelimiter + "p")
     this.clP = dataRow.getIndexOf("cl" + Config.persistenceManager.fieldDelimiter + "p")
@@ -1788,12 +1769,23 @@ class ColumnOrder {
     this.rightP = dataRow.getIndexOf("right" + Config.persistenceManager.fieldDelimiter + "p")
     this.datePrecisionP = dataRow.getIndexOf("datePrecision" + Config.persistenceManager.fieldDelimiter + "p")
 
+    //NBN BEGIN
+    this.gridReferenceP = dataRow.getIndexOf("gridReference"+ Config.persistenceManager.fieldDelimiter + "p")
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      this.gridReferenceWKT = dataRow.getIndexOf("gridReferenceWKT") // NBN Cassandra WKT ***
+    } else {
+      this.gridReferenceWKT = -1
+    }
+    this.coordinateUncertainty = dataRow.getIndexOf("coordinateUncertaintyInMeters")
+    this.coordinateUncertaintyP = dataRow.getIndexOf("coordinateUncertaintyInMeters"+ Config.persistenceManager.fieldDelimiter + "p")
     this.firstLoaded = dataRow.getIndexOf("firstLoaded") //NBN
     this.lastModifiedTime = dataRow.getIndexOf("lastModifiedTime") //not _p
     this.lifeStage = dataRow.getIndexOf("lifeStage")
     this.habitatTaxon = dataRow.getIndexOf("habitatTaxon")
     this.scientificNameAuthorship = dataRow.getIndexOf("scientificNameAuthorship")
     this.nomenclaturalStatus = dataRow.getIndexOf("nomenclaturalStatus")
+    //NBN END
+
 
     val isUsed: Array[Boolean] = new Array[Boolean](dataRow.getNumberOfFields())
     val columnNames: Array[String] = new Array[String](dataRow.getNumberOfFields())
@@ -1946,6 +1938,17 @@ class ColumnOrder {
   var deletedColumn: Int = -1
 
   var gridReference: Int = -1
+
+  var qualityAssertionColumn: Int = -1
+  var miscPropertiesColumn: Int = -1
+
+  var datePrecisionP: Int = -1
+
+  var isUsed: Array[Boolean] = _
+  var columnNames: Array[String] = _
+  var length: Long = 0L
+
+  //NBN BEGIN
   var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
   var gridReferenceP: Int = -1
   var coordinateUncertainty: Int = -1
@@ -1957,13 +1960,5 @@ class ColumnOrder {
   var habitatTaxon: Int = -1
   var scientificNameAuthorship: Int = -1
   var nomenclaturalStatus: Int = -1
-
-  var qualityAssertionColumn: Int = -1
-  var miscPropertiesColumn: Int = -1
-
-  var datePrecisionP: Int = -1
-
-  var isUsed: Array[Boolean] = _
-  var columnNames: Array[String] = _
-  var length: Long = 0L
+  //NBN END
 }
