@@ -265,7 +265,8 @@ public class DocBuilder {
             } else {
                 List<IndexableField> list = field.getType().createFields(field, val, 1f);
                 if (!list.isEmpty() && list.get(0) == null) {
-                    logger.error("schema definition of field '" + field.getName() + "' is invalid and will be ignored.");
+                    logger.debug("schema definition of field '" + field.getName() + "' is invalid and will be ignored.");
+                    //NBN changed to debug because NBN made assertions_unchecked stored="false" and the 'error' is reported too many times in the log
                 } else {
                     doc.add(field, list);
                 }
