@@ -178,7 +178,7 @@
         <dependency>
             <groupId>au.org.ala</groupId>
             <artifactId>sds</artifactId>
-            <version>1.4.5</version>
+            <version>1.4.6-NBN</version> <!-- was 1.4.4. 1.4.6-NBN includes 50km generalisation (local build and put in maven repo) -->
             <exclusions>
                 <exclusion>
                     <groupId>commons-lang</groupId>
@@ -220,7 +220,7 @@
         <dependency>
             <groupId>au.org.ala</groupId>
             <artifactId>ala-name-matching</artifactId>
-            <version>3.4</version>
+            <version>3.5.0-NBN</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.gbif</groupId>
@@ -703,7 +703,23 @@
             <id>gbif-repository</id>
             <url>http://repository.gbif.org/content/groups/gbif</url>
         </repository>
+        <repository>
+            <id>nbnuk-repository</id>
+            <url>https://repository.gbif.org/repository/uk-nbn-releases</url>
+        </repository>
     </repositories>
+    <distributionManagement>
+        <repository>
+            <id>uk-nbn-releases</id>
+            <name>Internal Releases</name>
+            <url>https://repository.gbif.org/repository/uk-nbn-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>uk-nbn-snapshots</id>
+            <name>Internal Releases</name>
+            <url>https://repository.gbif.org/repository/uk-nbn-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
     <profiles>
         <profile>
             <id>default</id>
