@@ -4,7 +4,6 @@ import java.io.{File, FileWriter, OutputStream}
 import java.util
 import java.util.Date
 import java.util.concurrent.ArrayBlockingQueue
-
 import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.TaxonSpeciesListDAO
 import au.org.ala.biocache.dao.OccurrenceDAO
@@ -13,7 +12,7 @@ import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.persistence.DataRow
 import au.org.ala.biocache.util.{GridUtil, Json}
-import au.org.ala.biocache.vocab.{AssertionCodes, ErrorCode, ErrorCodeCategory, SpeciesGroups}
+import au.org.ala.biocache.vocab.{AssertionCodes, CoordinateUncertaintyCategory, ErrorCode, ErrorCodeCategory, SpeciesGroups}
 import com.datastax.driver.core.{ColumnDefinitions, GettableData}
 import com.google.inject.Inject
 import com.google.inject.name.Named
@@ -602,7 +601,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
   }
 
   val multifields = Array("duplicate_inst", "establishment_means", "species_group", "assertions", "data_hub_uid", "interactions", "outlier_layer",
-    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue")
+    "species_habitats", "multimedia", "all_image_url", "collectors", "duplicate_record", "duplicate_type", "taxonomic_issue", "life_stage", "habitats_taxon", "cl")
 
   val typeNotSuitableForModelling = Array("invalid", "historic", "vagrant", "irruptive")
 
@@ -662,7 +661,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
             if (multifields.contains(header(i))) {
               //multiple values in this field
               val multiValuedField = new SolrInputField(header(i))
-              for (value <- values(i).split('|')) {
+              for (value <- values(i).split('|').map(_.trim)) {//NBN change (added trim)
                 if (value != "") {
                   multiValuedField.addValue(value, 1.0f)
                 }
@@ -895,7 +894,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt)
           val northing = getParsedValue("northing", map)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt)
-          val gridRef = getValue("gridReference", map)
+          val gridRef = getParsedValueIfAvailable("gridReference", map, "") //NBN
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef)
             val map = GridUtil.getGridRefAsResolutions(gridRef)
@@ -933,7 +932,15 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         }
         val cls = Json.toStringMap(getParsedValue("cl", map))
         cls.foreach {
-          case (key, value) => doc.addField(key, value)
+//          case (key, value) => doc.addField(key, value)
+          //NBN BEGIN
+          case (key, value) => {
+            val values_separate = value.split('|').map(_.trim)
+            values_separate.foreach {
+              doc.addField(key, _)
+            }
+          }
+          //NBN END
         }
 
 
@@ -1072,7 +1079,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           arrDefaultMiscFields.foreach(field =>
             if (!field.isEmpty) fieldsAndType.put(field.replaceAll("_[dsi(dt)]$", ""), field))
 
-          Config.additionalFieldsToIndex.foreach(field =>
+            Config.additionalFieldsToIndex.foreach(field =>
             if (!field.isEmpty) fieldsAndType.put(field.replaceAll("_[dsi(dt)]$", ""), field))
 
           addJsonMapToDoc(doc, getArrayValue(columnOrder.miscPropertiesColumn, dataRow), fieldsAndType, null, true)
@@ -1087,6 +1094,17 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
         val speciesLists = TaxonSpeciesListDAO.getCachedListsForTaxon(getArrayValue(columnOrder.taxonConceptIDP, dataRow))
         speciesLists.foreach { v =>
           doc.addField("species_list_uid", v) // is set to IGNORE in IndexDAO.headerAttributes
+        }
+
+        //NBN some records have null firstLoaded. The raw lastModifiedTime looks like when the record was first processed, so use that as a stop-gap
+        if ((getArrayValue(columnOrder.firstLoaded, dataRow) == "") && (getArrayValue(columnOrder.lastModifiedTime, dataRow) != "")) {
+          val dateValue = DateParser.parseDate(getArrayValue(columnOrder.lastModifiedTime, dataRow))
+          if (!dateValue.isEmpty) {
+            val dte = dateValue.get.parsedStartDate
+            doc.addField("first_loaded_date", dte.toInstant.toString())
+          } else {
+            logger.error("Unable to convert value to date " + getArrayValue(columnOrder.lastModifiedTime, dataRow) + " for " + guid)
+          }
         }
 
         /**
@@ -1107,13 +1125,18 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt) // is set to IGNORE in IndexDAO.headerAttributes
           val northing = getArrayValue(columnOrder.northingP, dataRow)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt) // is set to IGNORE in IndexDAO.headerAttributes
-          val gridRef = getArrayValue(columnOrder.gridReference, dataRow)
+          var gridRef = getArrayValue(columnOrder.gridReference, dataRow)
+          if (gridRef == "") {
+            gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
+          }
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef) // is set to IGNORE in IndexDAO.headerAttributes
             val map = GridUtil.getGridRefAsResolutions(gridRef)
             map.keySet.foreach { key => doc.addField(key, map.getOrElse(key, "")) }
           }
         }
+        var coordinateUncertaintyCategory = CoordinateUncertaintyCategory.getCategory(getArrayValue(columnOrder.coordinateUncertaintyP, dataRow))
+        doc.addField("coordinate_uncertainty_category",coordinateUncertaintyCategory)
         /** UK NBN **/
 
         // user if userQA = true
@@ -1136,7 +1159,16 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           case (key, value) => doc.addField(key, value)
         }
 
-        addJsonMapToDoc(doc, getArrayValue(columnOrder.clP, dataRow))
+        //addJsonMapToDoc(doc, getArrayValue(columnOrder.clP, dataRow))
+        val cls = Json.toJavaMap(getArrayValue(columnOrder.clP, dataRow))
+        cls.foreach {
+          case (key, value) => {
+            val values_separate = value.toString().split('|').map(_.trim)
+            values_separate.foreach {
+              doc.addField(key, _)
+            }
+          }
+        }
 
         //index the additional species information - ie species groups
 
@@ -1743,6 +1775,24 @@ class ColumnOrder {
     this.rightP = dataRow.getIndexOf("right" + Config.persistenceManager.fieldDelimiter + "p")
     this.datePrecisionP = dataRow.getIndexOf("datePrecision" + Config.persistenceManager.fieldDelimiter + "p")
 
+    //NBN BEGIN
+    this.gridReferenceP = dataRow.getIndexOf("gridReference"+ Config.persistenceManager.fieldDelimiter + "p")
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      this.gridReferenceWKT = dataRow.getIndexOf("gridReferenceWKT") // NBN Cassandra WKT ***
+    } else {
+      this.gridReferenceWKT = -1
+    }
+    this.coordinateUncertainty = dataRow.getIndexOf("coordinateUncertaintyInMeters")
+    this.coordinateUncertaintyP = dataRow.getIndexOf("coordinateUncertaintyInMeters"+ Config.persistenceManager.fieldDelimiter + "p")
+    this.firstLoaded = dataRow.getIndexOf("firstLoaded") //NBN
+    this.lastModifiedTime = dataRow.getIndexOf("lastModifiedTime") //not _p
+    this.lifeStage = dataRow.getIndexOf("lifeStage")
+    this.habitatTaxon = dataRow.getIndexOf("habitatTaxon")
+    this.scientificNameAuthorship = dataRow.getIndexOf("scientificNameAuthorship")
+    this.nomenclaturalStatus = dataRow.getIndexOf("nomenclaturalStatus")
+    //NBN END
+
+
     val isUsed: Array[Boolean] = new Array[Boolean](dataRow.getNumberOfFields())
     val columnNames: Array[String] = new Array[String](dataRow.getNumberOfFields())
     (0 until isUsed.length).foreach { i =>
@@ -1915,4 +1965,18 @@ class ColumnOrder {
   var isUsed: Array[Boolean] = _
   var columnNames: Array[String] = _
   var length: Long = 0L
+
+  //NBN BEGIN
+  var gridReferenceWKT: Int = -1 // NBN Cassandra WKT ***
+  var gridReferenceP: Int = -1
+  var coordinateUncertainty: Int = -1
+  var coordinateUncertaintyP: Int = -1
+
+  var lifeStage: Int = -1
+  var firstLoaded: Int = -1 // NBN for fixing null firstLoaded when indexing
+  var lastModifiedTime: Int = -1
+  var habitatTaxon: Int = -1
+  var scientificNameAuthorship: Int = -1
+  var nomenclaturalStatus: Int = -1
+  //NBN END
 }

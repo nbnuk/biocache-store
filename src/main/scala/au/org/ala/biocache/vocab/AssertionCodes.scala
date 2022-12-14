@@ -48,6 +48,7 @@ object AssertionCodes {
   val MISSING_GEOREFERENCESOURCES = ErrorCode("missingGeoreferenceSources",33,false,"GeoreferenceSources not supplied with the record", Missing)
   val MISSING_GEOREFERENCEVERIFICATIONSTATUS = ErrorCode("missingGeoreferenceVerificationStatus",34, false,"GeoreferenceVerificationStatus not supplied with the record", Missing)
   val INVALID_GEODETICDATUM = ErrorCode("invalidGeodeticDatum", 35, false,"The geodetic datum is not valid", Error)
+  val COORDINATES_NOT_CENTRE_OF_GRID = ErrorCode("coordinatesNotCentreOfGrid",36, false, "Coordinates not centre of grid square", Warning)
 
   val MISSING_GEOREFERENCE_DATE = ErrorCode("missingGeoreferenceDate",42,false, "GeoreferenceDate not supplied with the record", Missing)
   val LOCATION_NOT_SUPPLIED = ErrorCode("locationNotSupplied", 43, false, "No location information has been provided with the record", Missing)
@@ -65,6 +66,7 @@ object AssertionCodes {
   val ZERO_LONGITUDE_COORDINATES = ErrorCode("zeroLongitude",54,true,"Supplied longitude are zero", Warning)
 
   val DECIMAL_LAT_LONG_CALCULATED_FROM_GRID_REF = ErrorCode("decimalLatLongCalculatedFromGridReference", 55, false, "Decimal latitude and longitude were calculated using grid reference", Warning)
+  val GRID_REF_CALCULATED_FROM_LAT_LONG = ErrorCode("gridReferenceCalculatedFromLatLong", 56, false, "Grid reference calculated using latitude and longitude", Warning)
 
   //taxonomy issues
   val TAXONOMIC_ISSUE = ErrorCode("taxonomicIssue",10000,false,"Taxonomic issue", Error)  // general purpose option
@@ -81,6 +83,7 @@ object AssertionCodes {
   val MISSING_IDENTIFICATIONREFERENCES = ErrorCode("missingIdentificationReferences",10011,false,"identificationReferences not supplied with the record", Missing)
   val MISSING_DATEIDENTIFIED = ErrorCode("missingDateIdentified", 10012,false,"identificationDate not supplied with the record", Missing)
   val NAME_NOT_SUPPLIED = ErrorCode("nameNotSupplied", 10015,false,"No scientific name or vernacular name was supplied", Missing)
+  val MISSING_IDENTIFICATIONVERIFICATIONSTATUS = ErrorCode("missingIdentificationVerificationStatus",10016, false,"IdentificationVerificationStatus not supplied with the record", Missing)
 
   //miscellaneous issues
   val MISSING_BASIS_OF_RECORD = ErrorCode("missingBasisOfRecord",20001,true,"Basis of record not supplied", Missing)
@@ -98,7 +101,8 @@ object AssertionCodes {
   val UNRECOGNISED_OCCURRENCE_STATUS = ErrorCode("unrecognisedOccurrenceStatus", 20017, false, "Occurrence status not recognised", Error)
   val ASSUMED_PRESENT_OCCURRENCE_STATUS = ErrorCode("assumedPresentOccurrenceStatus", 20018, false, "Occurrence status assumed to be present", Warning)
   val USER_ASSERTION_OTHER = ErrorCode("userAssertionOther", 20019,false,"Other error", Error)
-  val USER_DUPLICATE_RECORD = ErrorCode("userDuplicateRecord",20020,false,"The occurrence appears to be a duplicate", Warning)
+  val UNRECOGNISED_IDENTIFICATIONVERIFICATIONSTATUS = ErrorCode("unrecognisedIdentificationVerificationStatus",20020, false,"IdentificationVerificationStatus not recognised", Error)
+  val USER_DUPLICATE_RECORD = ErrorCode("userDuplicateRecord",20021,false,"The occurrence appears to be a duplicate", Warning)
 
   //temporal issues
   val TEMPORAL_ISSUE = ErrorCode("temporalIssue",30000,false,"Temporal issue", Error)  // general purpose option
@@ -152,7 +156,7 @@ object AssertionCodes {
   val miscellaneousCodes = all.filter(errorCode => {errorCode.code>=20000 && errorCode.code<30000})
   val temporalCodes = all.filter(errorCode => {errorCode.code>=30000 && errorCode.code<40000})
 
-  val userAssertionCodes = Array(GEOSPATIAL_ISSUE,COORDINATE_HABITAT_MISMATCH,DETECTED_OUTLIER,TAXONOMIC_ISSUE,IDENTIFICATION_INCORRECT,TEMPORAL_ISSUE,USER_DUPLICATE_RECORD,USER_ASSERTION_OTHER)
+  val userAssertionCodes = Array(GEOSPATIAL_ISSUE,/*COORDINATE_HABITAT_MISMATCH,DETECTED_OUTLIER,TAXONOMIC_ISSUE,*/IDENTIFICATION_INCORRECT,TEMPORAL_ISSUE,USER_DUPLICATE_RECORD,USER_ASSERTION_OTHER)
   //the assertions that are NOT performed during the processing phase
   val offlineAssertionCodes = Array(INFERRED_DUPLICATE_RECORD, SPECIES_OUTSIDE_EXPERT_RANGE, DETECTED_OUTLIER)
 

@@ -326,8 +326,8 @@ class SampleLocalRecords extends Counter {
     } else {
       logger.info(s"Starting loading sampling for all local=${!allNodes} records")
     }
-    val dlat = "decimalLatitude" + Config.persistenceManager.fieldDelimiter + "p"
-    val dlon = "decimalLongitude" + Config.persistenceManager.fieldDelimiter + "p"
+    val dlat = (if (Config.caseSensitiveCassandra) "decimalLatitude" else "decimallatitude") + Config.persistenceManager.fieldDelimiter + "p" //NBN
+    val dlon = (if (Config.caseSensitiveCassandra) "decimalLongitude" else "decimallongitude") + Config.persistenceManager.fieldDelimiter + "p" //NBN
 
     if (rowkeys.length > 0 && !rowkeys.iterator.next().isEmpty) {
       val counterLoaded = new AtomicLong(0)

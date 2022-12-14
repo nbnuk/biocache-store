@@ -274,6 +274,24 @@ object DateParser {
         x
       }
     }
+
+    //NBN match 'before' format e.g. /2008 , /2008-02, /2008-02-23
+    if (dateStr.trim.startsWith("/")) {
+      val eventDateBeforeWithOption = parseBeforeDate(dateStrNormalised)
+      eventDateBeforeWithOption match {
+        case Some(eventDate) => {
+          if (isValid(eventDate)) {
+            val emptyStartDate: Date = new Date()
+            val dtEnd: Option[EventDate] = Some(EventDate(emptyStartDate, "", "", "", "", eventDate.parsedStartDate, eventDate.startDate, eventDate.startDay, eventDate.startMonth, eventDate.startYear, true))
+            dtEnd
+          } else {
+            None
+          }
+        }
+        case None => None
+      }
+    } else {
+
     //assume ISO
     val eventDateWithOption = parseISODate(dateStrNormalised)
 
@@ -300,6 +318,17 @@ object DateParser {
           parseNonISOTruncatedYearDate(dateStrNormalised)
         }
       }
+    }
+  }
+  }
+
+  def parseBeforeDate(date: String): Option[EventDate] = {
+    date match {
+      case ISOWithMonthNameDate(date) => Some(date)
+      case ISOSingleYear(date) => Some(date)
+      case ISOSingleDate(date) => Some(date)
+      case ISOMonthDate(date) => Some(date)
+      case _ => None
     }
   }
 

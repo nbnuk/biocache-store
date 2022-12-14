@@ -307,7 +307,7 @@ class DuplicationDetection {
   val collectorNameLevenshteinDistanceThreshold = 3
 
   val fieldsToExport = Array(
-    "row_key",
+    "id", //"row_key", NBN
     "species_guid",
     "year",
     "month",
@@ -400,8 +400,8 @@ class DuplicationDetection {
           collector,
           oldStatus,
           oldDuplicateOf,
-          currentLine(24),
-          currentLine(25))
+          currentLine(15),
+          currentLine(16))
       } else {
         logger.warn("lsid " + currentLine(0) + " line " + counter + " has incorrect number of columns: "
           + currentLine.size + ", vs " + fieldsToExport.length)
@@ -660,7 +660,7 @@ class DuplicationDetection {
       fieldsToExport,
       field,
       if (field == "species_guid") speciesFilters else subspeciesFilters,
-      Array("row_key"),
+      Array("id"), // was row-key: Array("row_key"),
       fileWriter,
       None,
       Some(Array("duplicate_record")))
@@ -717,7 +717,7 @@ class DuplicationDetection {
         val oldDuplicateOf = StringUtils.trimToNull(currentLine(14).replaceAll("\\[", "").replaceAll("\\]", ""))
         buff += new DuplicateRecordDetails(rowKey, rowKey, taxon_lsid, year, month, day, currentLine(5), currentLine(6),
           currentLine(7), currentLine(8), currentLine(9), currentLine(10), rawName, collector, oldStatus, oldDuplicateOf,
-          currentLine(24), currentLine(25))
+          currentLine(15), currentLine(15)) //NBN bug fix, was 24 25
       } else {
         logger.warn("lsid " + lsid + " line " + counter + " has incorrect column number: " + currentLine.size)
       }

@@ -393,6 +393,16 @@ object Config {
 
   val caseSensitiveCassandra = configModule.properties.getProperty("cassandra.case.sensitive", "true").toBoolean
   val createColumnCassandra = configModule.properties.getProperty("cassandra.column.create", "true").toBoolean
+
+
+//NBN BEGIN
+  val gridRefIndexingPolyEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.enabled", "false"))
+  val gridRefIndexingPolyOmitGrids = configModule.properties.getProperty("gridref.indexing.poly.omit.grids.less.than", "0").toInt
+  val gridRefIndexingPolyReadFromCassandra = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.read.from.cassandra", "false"))
+  val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
+  val clearOriginalSensitiveValues = configModule.properties.getProperty("load.clearoriginalsensitivevalues","false").toBoolean // for NBN ***
+  val fixNullFirstLoaded = configModule.properties.getProperty("temp.fixnullfirstloaded", "false").toBoolean
+  //NBN END
 }
 
 /**

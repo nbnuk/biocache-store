@@ -9,7 +9,7 @@ import au.org.ala.biocache.index.lucene.DocBuilder
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.parser.DateParser
 import au.org.ala.biocache.persistence.DataRow
-import au.org.ala.biocache.util.Json
+import au.org.ala.biocache.util.{GISUtil, GridUtil, Json}
 import au.org.ala.biocache.vocab.AssertionStatus
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang.time.{DateFormatUtils, DateUtils}
@@ -209,7 +209,7 @@ trait IndexDAO {
     * TODO: 2. Simplify to CassandraColumnName -> SolrFieldName. Complexity is required to reflect backward compatibility.
     * TODO: 3. Remove all DWC fields. These should be indexed by default.
     */
-  lazy val headerAttributes = List (
+  lazy val headerAttributes = buildHeaderAttributes(List (
     ("dateIdentified", "identified_date", 0, PARSED),
     ("firstLoaded", "first_loaded_date", 0, RAW),
     (FullRecordMapper.alaModifiedColumn, "last_load_date", 0, RAW),
@@ -394,14 +394,14 @@ trait IndexDAO {
     (null, "assertion_user_id", -1, IGNORE),
     (null, "assertions_missing", -1, IGNORE),
     (null, "assertions", -1, IGNORE)
-  )
+  ))
 
   /**
     * headerAttributesFix are the unprocessed fields excluded as a result of the backwards compatible headerAttributes.
     *
     * These fields are not indexed by index-local-node-v2 for sensitive records.
     */
-  lazy val headerAttributesFix = List(
+  lazy val headerAttributesFix = buildHeaderAttributesFix(List(
     ("verbatimElevation", "raw_verbatim_elevation", -1, RAW), // NEW
     ("verbatimDepth", "raw_verbatim_depth", -1, RAW), // NEW   - this is causing an error
     ("taxonRank", "raw_rank", -1, RAW), // NEW
@@ -428,12 +428,12 @@ trait IndexDAO {
     ("eventDate", "raw_occurrence_date", 0, RAW),  // NEW
     ("eventDateEnd", "raw_occurrence_date_end_dt", 0, RAW),  // NEW
     ("modified", "raw_modified_date", 0, RAW) // NEW
-  )
+  ))
 
   /**
    * The header values for the CSV file.
    */
-  lazy val header = List("id", "occurrence_id", "data_hub_uid", "data_hub", "data_provider_uid", "data_provider", "data_resource_uid",
+  lazy val header = buildHeader(List("id", "occurrence_id", "data_hub_uid", "data_hub", "data_provider_uid", "data_provider", "data_resource_uid",
     "data_resource", "institution_uid", "institution_code", "institution_name",
     "collection_uid", "collection_code", "collection_name", "catalogue_number",
     "taxon_concept_lsid", "occurrence_date", "occurrence_date_end_dt", "occurrence_year", "occurrence_decade_i", "taxon_name", "common_name", "names_and_lsid", "common_name_and_lsid",
@@ -455,12 +455,12 @@ trait IndexDAO {
     "sensitive_locality", "event_id", "location_id", "dataset_name", "reproductive_condition", "license", "individual_count", "date_precision",
     "identification_verification_status", "georeference_verification_status", "sampling_protocol", "raw_sampling_protocol"
 
-  ) ::: Config.additionalFieldsToIndex
+  )) ::: Config.additionalFieldsToIndex
 
   /**
    * sensitive csv header columns
    */
-  val sensitiveHeader = List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality")
+  lazy val sensitiveHeader = buildSensitiveHeader(List("sensitive_longitude", "sensitive_latitude", "sensitive_coordinate_uncertainty", "sensitive_locality"))
 
   /**
    * Constructs a scientific name.
@@ -613,7 +613,7 @@ trait IndexDAO {
         }
         //get sensitive values map
         val sensitiveMap = {
-          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains("originalSensitiveValues")) {
+          if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains(if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")) { //NBN
             try {
               val osv = getValue("originalSensitiveValues", map, "{}")
               val parsed = JSON.parseFull(osv)
@@ -944,10 +944,12 @@ trait IndexDAO {
       var value: String = {
         if (h._4 == PARSED) { // Parsed only
           getArrayValue(array_header_parsed_idx(i), array)
-        } else if (h._4 == RAW || h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
-          val v = getArrayValue(array_header_idx(i), array)
-          if (StringUtils.isEmpty(v) && h._4 == RAW_AND_PARSED) {
-            getArrayValue(array_header_parsed_idx(i), array)
+        } else if (h._4 == RAW) { //Raw
+          getArrayValue(array_header_idx(i), array)
+        } else if ( h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
+          val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
+          if (StringUtils.isEmpty(v)) {
+            getArrayValue(array_header_idx(i), array)
           } else {
             v
           }
@@ -967,7 +969,15 @@ trait IndexDAO {
 
       if (StringUtils.isNotEmpty(value)) {
         if (h._3 == 4) { // Multivalue
+          if ((h._1 == "lifeStage" || h._1 == "habitatTaxon") && value.contains("|")) { //not sure if other fields should have this treatment, or make generic if not JSON
+            for (value_sub <- value.split('|').map(_.trim)) {
+              if (value_sub != "") {
+                addField(doc, h._2, value_sub)
+              }
+            }
+          } else {
           jsonArrayLoop(value, h._2, doc)
+          }
         } else  { // Default
           addField(doc, h._2, value)
         }
@@ -981,11 +991,13 @@ trait IndexDAO {
         val h = headerAttributesFix(i)
         var value: String = {
           if (h._4 == PARSED) { // Parsed only
-            getArrayValue(array_header_parsed_idx_fix(i), array)
-          } else if (h._4 == RAW || h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
-            val v = getArrayValue(array_header_idx_fix(i), array)
-            if (StringUtils.isEmpty(v) && h._4 == RAW_AND_PARSED) {
-              getArrayValue(array_header_parsed_idx_fix(i), array)
+            getArrayValue(array_header_parsed_idx(i), array)
+          } else if (h._4 == RAW) { //Raw
+            getArrayValue(array_header_idx(i), array)
+          } else if ( h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
+            val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
+            if (StringUtils.isEmpty(v)) {
+              getArrayValue(array_header_idx(i), array)
             } else {
               v
             }
@@ -1016,6 +1028,7 @@ trait IndexDAO {
     //latitude,longitude related fields
     var slat = getArrayValue(columnOrder.decimalLatitudeP, array)
     var slon = getArrayValue(columnOrder.decimalLongitudeP, array)
+    var latlon = ""
     if (StringUtils.isNotEmpty(slat) && StringUtils.isNotEmpty(slon)) {
       var latlon = ""
       var lat = java.lang.Double.NaN
@@ -1044,6 +1057,17 @@ trait IndexDAO {
         case e: Exception => slat = ""; slon = ""
       }
     }
+
+    /* RR added for polygon indexing */
+    var poly_grid = ""
+    if (Config.gridRefIndexingPolyReadFromCassandra) {
+      poly_grid = getGridWKTConfigWrapper(getArrayValue(columnOrder.gridReference, array), getArrayValue(columnOrder.gridReferenceWKT, array), latlon)
+    } else {
+      poly_grid = getGridWKTConfigWrapper(getArrayValue(columnOrder.gridReference, array), "", latlon)
+    }
+
+    addField(doc, "geohash_grid", poly_grid)
+
 
     //images
     val simages = getArrayValue(columnOrder.images, array)
@@ -1179,6 +1203,16 @@ trait IndexDAO {
           addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
           addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
           addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
+          if (Config.sensitiveDateDay) {
+            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
+            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
+          }
+          if (parsed.getOrElse("gridReference","") != "") {
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
+          } else {
+            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
+          }
         } catch {
           case _: Exception => Map[String, String]()
         }
@@ -1196,9 +1230,11 @@ trait IndexDAO {
   }
 
   def addField(doc: DocBuilder, field: String, value: Object) {
-    if (value != "null") {
+    if (value != null && value != "null") {
+      if (value.toString.length > 0) {
         doc.addField(field, value)
     }
+  }
   }
 
   /**
@@ -1241,6 +1277,133 @@ trait IndexDAO {
       addField(doc, field, item)
     )
   }
+
+  //BEGIN NBN methods
+  def getGridWKTConfigWrapper(gridReference: String = "", gridReferenceWKT: String = "", latlon: String = ""): String = {
+    var poly_grid = ""
+    var gridRefWKTuse = ""
+    if (Config.gridRefIndexingPolyEnabled) {
+      if (gridReference.length() >= Config.gridRefIndexingPolyOmitGrids) {
+        //logger.info("indexing grid")
+        if (Config.gridRefIndexingPolyReadFromCassandra) {
+          gridRefWKTuse = gridReferenceWKT
+        } else {
+          gridRefWKTuse = getGridWKT(gridReference) //WKT in lon,lat order
+          //logger.info("from getGrid:")
+        }
+      }
+    }
+    if (gridRefWKTuse != "") {
+      gridRefWKTuse
+    } else {
+      latlon //use point if no grid reference (in lat,lon order as per SOLR specification)
+    }
+  }
+
+
+  def getGridWKT(gridReference: String = "") = {
+    var poly_grid = ""
+    if (gridReference != "") {
+      GridUtil.gridReferenceToEastingNorthing(gridReference) match {
+        case Some(gr) => {
+          val bbox = Array(
+            GISUtil.reprojectCoordinatesToWGS84(gr.minEasting, gr.minNorthing, gr.datum, 5),
+            GISUtil.reprojectCoordinatesToWGS84(gr.maxEasting, gr.maxNorthing, gr.datum, 5)
+          )
+          val minLatitude = bbox(0).get._1
+          val minLongitude = bbox(0).get._2
+          val maxLatitude = bbox(1).get._1
+          val maxLongitude = bbox(1).get._2
+
+          poly_grid = "POLYGON((" + minLongitude + " " + minLatitude + "," +
+            minLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + maxLatitude + "," +
+            maxLongitude + " " + minLatitude + "," +
+            minLongitude + " " + minLatitude + "))";
+          //in long-lat order
+          //logger.info("geohash_grid: " + latlon_grid)
+        }
+        case None => {
+          logger.info("Invalid grid reference: " + gridReference)
+        }
+      }
+    }
+    poly_grid
+  }
+
+  //If/when we override IndexDAO, the following builder methods should be moved to the derived class
+  def buildHeaderAttributes(defaultHeaderAttributes: List[(String, String, Int, Int)]) ={
+    var headerAttributes = defaultHeaderAttributes.map(
+      tup =>
+        tup._1 match {
+          case "phenology" => ("lifeStage", "life_stage", 4, RAW)
+          case "georeferenceVerificationStatus" => ("georeferenceVerificationStatus", "georeference_verification_status", -1, RAW_AND_PARSED)
+          case "identificationVerificationStatus" => ("identificationVerificationStatus", "identification_verification_status", -1, RAW_AND_PARSED)
+          case "verbatimDepth" => ("verbatimDepth", "raw_depth", -1, RAW)
+          case _ => tup
+        }
+    )
+    headerAttributes = headerAttributes ++ List(
+      ("day", "day", -1, PARSED),
+      ("endday", "end_day", -1, PARSED), //index end date fields
+      ("endmonth", "end_month", -1, PARSED),
+      ("endyear", "end_year", -1, PARSED),
+      ("organismquantity", "organism_quantity", -1, RAW), //other NBN fields to index
+      ("organismquantitytype", "organism_quantity_type", -1, RAW),
+      ("organismscope", "organism_scope", -1, RAW),
+      ("organismremarks", "organism_remarks", -1, RAW),
+      ("rightsholder", "rightsholder", -1, RAW), //fix for index-local-node missing this field for sensitive records
+      ("establishmentMeansTaxon", "establishment_means_taxon", -1, PARSED),
+      ("vitality", "vitality", -1, RAW),
+      ("scientificNameAuthorship", "scientific_name_authorship", -1, PARSED),
+      ("nomenclaturalStatus", "nomenclatural_status", -1, PARSED),
+      ("habitatTaxon", "habitats_taxon", 4, PARSED),
+      ("gridSizeInMeters", "grid_size", 4, PARSED),
+      ("taxonId", "raw_taxon_id", -1, RAW),
+      ("scientificName", "raw_taxon_name", -1, RAW) // NEW
+    )
+    logger.debug("headerAttributes")
+    logger.debug(headerAttributes.mkString(","))
+    headerAttributes
+  }
+
+  def buildHeaderAttributesFix(defaultHeaderAttributesFix: List[(String, String, Int, Int)]) ={
+    defaultHeaderAttributesFix.filter(tup => tup._1 != "scientificName")
+  }
+
+  def buildHeader(defaultHeader: List[(String)]) ={
+    var header = defaultHeader.map(
+      v =>
+        v match {
+          case "raw_depth" => "depth_d"
+          case _ => v
+        }
+    )
+
+    header = header ++ List(
+      "rightsholder", "organism_quantity", "organism_quantity_type", "organism_scope", "organism_remarks"
+      , "establishment_means_taxon", "vitality", "scientific_name_authorship", "nomenclatural_status", "habitats_taxon", "grid_size"
+      , "geohash_grid"
+      , "day", "end_day", "end_month", "end_year"
+      , "raw_taxon_id"
+      , "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    )
+    logger.debug("header")
+    logger.debug(header.mkString(","))
+
+    header
+  }
+
+  def buildSensitiveHeader(defaultSensitiveHeader: List[(String)]) = {
+    var sensitiveHeader = defaultSensitiveHeader ++ List(
+      "sensitive_grid_reference", "sensitive_event_date", "sensitive_event_date_end"
+    )
+
+    logger.debug("sensitiveHeader")
+    logger.debug(sensitiveHeader.mkString(","))
+    sensitiveHeader
+  }
+  //END NBN methods
 }
 
 /**

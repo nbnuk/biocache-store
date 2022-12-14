@@ -52,6 +52,63 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     "outlierForLayers_p"
   )
 
+  //NBN START
+
+  // Quality assertions we no longer wish to store (as a map for quick and easy lookup).
+  // note, just being in this table means we no longer wish to store this assertion (not what the individual value is set to in the map!)
+  // note, names are those used in AssertionCodes.scala and must match the assertion
+  // note, remove from map and re process records to turn back on
+
+  val assertionsToRemove = Map(
+    ("zeroCoordinates", true),
+    ("recordedByUnparsable", true),
+    ("invalidScientificName", true),
+    ("nameNotInNationalChecklists", true),
+    ("invertedCoordinates", true ),
+    ("zeroLongitude", true),
+    ("missingCoordinatePrecision", true),
+    ("coordinatesCentreOfStateProvince", true),
+    ("coordinatesCentreOfCountry", true),
+    ("missingGeoreferenceVerificationStatus", true),
+    ("missingIdentificationQualifier", true),
+    ("missingIdentificationReferences", true),
+    ("missingDateIdentified", true),
+    ("missingTaxonRank", true),
+    ("missingGeorefencedBy", true),
+    ("missingGeoreferenceProtocol", true),
+    ("missingGeoreferenceDate", true),
+    ("habitatMismatch", true),
+    ("altitudeInFeet", true),
+    ("occCultivatedEscapee", true),
+    ("negatedLongitude", true),
+    ("altitudeNonNumeric", true),
+    ("depthInFeet", true),
+    ("dayMonthTransposed", true),
+    ("decimalLatLongCalculatedFromVerbatim", true),
+    ("negatedLatitude", true),
+    ("depthNonNumeric", true),
+    ("altitudeOutOfRange", true),
+    ("unknownKingdom", true),
+    ("unrecognisedInstitutionCode", true),
+    ("idPreOccurrence", true),
+    ("georefPostDate", true),
+    ("unrecognisedTypeStatus", true),
+    ("depthOutOfRange", true),
+    ("minMaxDepthReversed", true),
+    ("resourceTaxonomicScopeMismatch", true),
+    ("decimalLatLongCalculationFromVerbatimFailed", true),
+    ("coordinatePrecisionMismatch", true),
+    ("coordinatesOutOfRange", true),
+    ("missingGeoreferenceSources", true)
+  )
+
+  // return true if we want to keep this assertion (by checking it's not in our list of assertions to remove)
+  def qaRequired( qa : QualityAssertion) : Boolean = {
+    return !assertionsToRemove.contains( qa.name )
+  }
+
+  //NBN END
+
   /**
    * Gets the map for a record based on searching the index for new and old ids
    */
@@ -182,7 +239,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     * Writes the supplied field values to the writer.  The Writer specifies the format in which the record is
     * written.
     */
-  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null): Array[String] = {
+  def writeToRecordWriter(writer: RecordWriter, rowKeys: Array[String], fields: Array[String], qaFields: Array[String], includeSensitive: Boolean = false, includeMisc: Boolean = false, miscFields: Array[String] = null, dataToInsert: java.util.Map[String, Array[String]] = null, explainLicense: String = null): Array[String] = {
     //get the codes for the qa fields that need to be included in the download
     //TODO fix this in case the value can't be found
     val mfields = fields.toBuffer
@@ -248,6 +305,9 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
               getUserAssertionsString(fieldMap.getOrElse(ROW_KEY,""))
             else
               ""
+          }
+          case a if "license_p".equals(a) => {
+            if (explainLicense != null) fieldMap.getOrElse(field, "").concat(" - ").concat(explainLicense) else getHackValue(field,fieldMap)
           }
           case _ => if(includeSensitive) sensitiveMap.getOrElse(field, getHackValue(field,fieldMap)) else getHackValue(field,fieldMap)
         }
@@ -695,6 +755,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
         //only add  the assertions if they are different OR the properties to persist contain more than the last modified time stamp
         if (
           oldRecord == null ||
+            (oldRecord.assertions.toSet.intersect( assertionsToRemove.keySet ).size > 0) || // NBN if oldRecord contains any assertions we want to remove then we should update it
           oldRecord.assertions.toSet != newRecord.assertions.toSet ||
           propertiesToPersist.size > 1  //i.e. theres more than just the timestamp to update
         ) {
@@ -702,7 +763,13 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           val checkUserAssertions = oldRecord != null && StringUtils.isNotEmpty(oldRecord.getUserAssertionStatus)
 
           propertiesToPersist ++= convertAssertionsToMap(rowKey, assertions.get, checkUserAssertions)
-          val x = assertions.get.values.filter{!_.isEmpty}.flatten.toList
+          val x:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList.filter( qaRequired )//NBN
+          /*
+          // if you want to see the lists of 'before' and 'after' the removal of assertions replace the line above with this...
+          val nx:List[QualityAssertion] = assertions.get.values.filter{!_.isEmpty}.flatten.toList
+          // filter assertions we'd like to remove
+          val x:List[QualityAssertion] = nx.filter( qaRequired )
+          */
 
           propertiesToPersist ++= Map(FullRecordMapper.qualityAssertionColumn ->  Json.toJSONWithGeneric(x))
         }
@@ -719,7 +786,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     }
   }
 
-  private def initAssertions(processed:FullRecord, assertions:Map[String, Array[QualityAssertion]]){
+  protected def initAssertions(processed:FullRecord, assertions:Map[String, Array[QualityAssertion]]){
     assertions.values.foreach { array =>
       val failedQas = array.filter(_.qaStatus==0).map(_.getName)
       processed.assertions = processed.assertions ++ failedQas
@@ -747,7 +814,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     // Updating system assertion, pass in false
     val (userAssertionStatus, trueUserAssertions, originalAssertions) = getCombinedUserStatus(false, userAssertions)
 
-    val verified = if (userAssertionStatus == AssertionStatus.QA_VERIFIED || userAssertionStatus == AssertionStatus.QA_CORRECTED) true else false
+    val verified = if (userAssertionStatus == AssertionStatus.QA_VERIFIED || userAssertionStatus == AssertionStatus.QA_CORRECTED || userAssertionStatus == AssertionStatus.QA_TODELETE) true else false
 
     val falseUserAssertions = userAssertions.filter { qa =>
       qa.code != AssertionCodes.VERIFIED.code &&
@@ -906,7 +973,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
     if (!record.isEmpty) {
 
       //preserve the raw record
-      val qaMap = qualityAssertionProperties ++ Map("snapshot" -> Json.toJSON(record.get))
+      //NBN:
+      val qaMap = qualityAssertionProperties ++ (if (qualityAssertion.relatedUuid == null || qualityAssertion.relatedUuid.isEmpty()) Map("relatedUuid" -> "") else Map()) ++ Map("snapshot" -> Json.toJSON(record.get))
       persistenceManager.put(rowKey, qaEntityName, qaMap, true, false)
       val systemAssertions = getSystemAssertions(rowKey)
       val userAssertions = getUserAssertions(rowKey)
@@ -973,7 +1041,8 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
           Map(
             "rowkey" -> toBeDeleted.referenceRowKey,
             "userId" -> toBeDeleted.getUserId,
-            "code"   -> toBeDeleted.code.toString
+            "code"   -> toBeDeleted.code.toString,
+            "relatedUuid" -> toBeDeleted.getRelatedUuid // new cassandra primary key
           ),
           qaEntityName
         )
@@ -1023,7 +1092,7 @@ class OccurrenceDAOImpl extends OccurrenceDAO {
 
     var originalAssertions = new ArrayBuffer[QualityAssertion]()
     // qa.relatedUuid == null means it's not a verification because a verification must have an associated assertion thus relatedUuid not null
-    assertions.filter(qa => qa.relatedUuid == null).foreach {
+    assertions.filter(qa => (qa.relatedUuid == null || qa.relatedUuid == "")).foreach {
       originalAssertions.append(_)
     }
 

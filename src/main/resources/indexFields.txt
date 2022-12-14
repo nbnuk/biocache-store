@@ -179,6 +179,7 @@ distance_outside_expert_range	double	distanceOutsideExpertRange_p	F	F		F
 	string	easting	F	F	F	F
 	string	endDayOfYear	F	F	F	F
 	string	establishmentMeans	F	F	F	F
+	string	establishmentMeansTaxon	F	F	F	F
 	string	event_qa	T	T	F	F
 	string	eventDate	F	F	F	F
 	string	eventRemarks	F	F	F	F
@@ -283,6 +284,7 @@ geospatial_kosher	string	geospatiallyKosher	F	F	F	F
 	string	namePublishedIn	F	F	F	F
 	string	namePublishedInID	F	F	F	F
 	string	namePublishedInYear	F	F	F	F
+	string	native	F	F	F	F
 	string	naturalOccurrence	F	F	F	F
 	string	nearNamedPlaceRelationTo	F	F	F	F
 	string	nomenclaturalCode	F	F	F	F
@@ -377,6 +379,7 @@ occurrenceStatus	string	occurrenceStatus_p	F	F	F	F
 	string	verifier	F	F	F	F
 	string	videos	T	T	F	F
 	string	videos_p	T	T	F	F
+	string	vitality	F	F	F	F
 	string	waterBody	F	F	F	F
 	string	year	F	F	F	F
 	string	zone	F	F	F	F

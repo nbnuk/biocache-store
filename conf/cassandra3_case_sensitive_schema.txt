@@ -116,7 +116,7 @@ CREATE TABLE occ.qa (
     uuid text,
     relatedrecordid text,
     relatedrecordreason text,
-    PRIMARY KEY (rowkey, "userId", code)
+    PRIMARY KEY (rowkey, "userId", code, "relatedUuid")
 ) WITH CLUSTERING ORDER BY ("userId" ASC, code ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
@@ -245,6 +245,7 @@ CREATE TABLE occ.occ (
     "endYear" text,
     "establishmentMeans" text,
     "establishmentMeans_p" text,
+    "establishmentMeansTaxon_p" text,
     "eventAttributes" text,
     "eventDate" text,
     "eventDateEnd" text,
@@ -287,8 +288,14 @@ CREATE TABLE occ.occ (
     "geospatiallyKosher" text,
     "globalConservation" text,
     "gridReference" text,
+    "gridReference_p" text,
+    "gridReferenceWKT" text,
+    "gridReferenceWKT_p" text,
+    "gridSizeInMeters" text,
+    "gridSizeInMeters_p" text,
     habitat text,
     habitat_p text,
+    "habitatTaxon_p" text,
     "higherClassification" text,
     "higherGeography" text,
     "higherGeographyID" text,
@@ -400,6 +407,7 @@ CREATE TABLE occ.occ (
     "nomenclaturalCode" text,
     "nomenclaturalCode_p" text,
     "nomenclaturalStatus" text,
+    "nomenclaturalStatus_p" text,
     northing text,
     northing_p text,
     "occurrenceAttributes" text,
@@ -462,6 +470,7 @@ CREATE TABLE occ.occ (
     "scientificName" text,
     "scientificNameAddendum" text,
     "scientificNameAuthorship" text,
+    "scientificNameAuthorship_p" text,
     "scientificNameID" text,
     "scientificNameWithoutAuthor" text,
     "scientificName_p" text,
@@ -537,6 +546,7 @@ CREATE TABLE occ.occ (
     verifier text,
     "vernacularName" text,
     "vernacularName_p" text,
+    "vitality", text,
     videos text,
     videos_p text,
     "waterBody" text,

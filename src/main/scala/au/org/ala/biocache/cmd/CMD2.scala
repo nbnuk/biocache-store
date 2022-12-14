@@ -69,6 +69,10 @@ object CMD2 {
 
   def main(args: Array[String]) {
 
+    System.out.println("Error. The uncustomised version  is running. Something went wrong with the (overlay) build");
+    System.exit(1);
+    return;
+
     if(args.contains("--version") || args.contains("-version")){
       ShowVersion.main(Array[String]())
       return

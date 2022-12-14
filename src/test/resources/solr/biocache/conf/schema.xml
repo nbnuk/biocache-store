@@ -582,11 +582,27 @@
     <field name="easting" type="int" indexed="true" stored="true" multiValued="false" />
     <field name="northing" type="int" indexed="true" stored="true" multiValued="false" />
     <field name="grid_ref_100000" type="string" indexed="true" stored="true" multiValued="false" />
+    <field name="grid_ref_50000" type="string" indexed="true" stored="true" multiValued="false" /> <!-- RR new June 2019 -->
     <field name="grid_ref_10000" type="string" indexed="true" stored="true" multiValued="false" />
     <field name="grid_ref_2000" type="string" indexed="true" stored="true" multiValued="false" />
     <field name="grid_ref_1000" type="string" indexed="true" stored="true" multiValued="false" />
     <field name="grid_ref_100" type="string" indexed="true" stored="true" multiValued="false" />
     <field name="grid_ref" type="string" indexed="true" stored="true" multiValued="false" />
+
+    <field name="establishment_means_taxon" type="string" indexed="true" stored="true" multiValued="false" />
+    <field name="vitality" type="string" indexed="true" stored="true" multiValued="false" />
+
+
+    <field name="habitats_taxon" type="string" indexed="true" stored="true" multiValued="true"/>
+    <field name="coordinate_uncertainty_category" type="string" indexed="true" stored="true" multiValued="false"/>
+    <field name="grid_size" type="tint" indexed="true" stored="true" multiValued="false"/> <!-- RR add July 2020 -->
+
+  <!-- <field name="highresolution" type="string" indexed="true" stored="true" multiValued="false" omitNorms="true" />
+  <field name="highresolution_latitude" type="tdouble" indexed="false" stored="true" multiValued="false" />
+  <field name="highresolution_longitude" type="tdouble" indexed="false" stored="true" multiValued="false" />
+  <field name="highresolution_coordinate_uncertainty" type="tdouble" indexed="true" stored="true" multiValued="false" />
+  <field name="highresolution_grid_reference" type="string" indexed="false" stored="true" multiValued="false" />
+  <field name="highresolution_locality" type="string" indexed="false" stored="true" multiValued="false" /> -->
     <!-- UK NBN fields end -->
 
 

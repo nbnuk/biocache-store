@@ -111,6 +111,13 @@ class RecordProcessor {
         }
       }
 
+      if (Config.fixNullFirstLoaded) {
+        if (raw.firstLoaded == null || "".equals(raw.firstLoaded)) {
+          processed.firstLoaded = raw.lastModifiedTime
+          logger.debug("..................Setting firstLoaded - rowKey:" + raw.rowKey + " to " + processed.firstLoaded)
+        }
+      }
+
       //mark the processed time
       processed.lastModifiedTime = processTime
       //store the occurrence

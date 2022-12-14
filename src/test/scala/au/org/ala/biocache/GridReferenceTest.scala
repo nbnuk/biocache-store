@@ -57,27 +57,27 @@ class GridReferenceTest extends FunSuite {
 
   test("Convert irish grid reference to Northing / Easting") {
     val result1 = GridUtil.processGridReference("J4967")
-    expectResult("54.52944") { result1.get.minLatitude.toString }  //bottom left of the grid
-    expectResult("-5.69914") { result1.get.minLongitude.toString }  //bottom left of the grid
+    expectResult("54.529443") { result1.get.minLatitude.toString }  //bottom left of the grid
+    expectResult("-5.699145") { result1.get.minLongitude.toString }  //bottom left of the grid
 
     val result2 = GridUtil.processGridReference("IJ4967")
-    expectResult("54.52944") { result2.get.minLatitude.toString }  //bottom left of the grid
-    expectResult("-5.69914") { result2.get.minLongitude.toString }  //bottom left of the grid
+    expectResult("54.529443") { result2.get.minLatitude.toString }  //bottom left of the grid
+    expectResult("-5.699145") { result2.get.minLongitude.toString }  //bottom left of the grid
 
     val result3 = GridUtil.processGridReference("H99")
     expectResult("390000") { result3.get.northing.toString }  //bottom left of the grid
     expectResult("290000") { result3.get.easting.toString }  //bottom left of the grid
-    expectResult("-6.5238") { result3.get.longitude.toString }  //bottom left of the grid
-    expectResult("54.79388") { result3.get.latitude.toString }  //bottom left of the grid
+    expectResult("-6.523798") { result3.get.longitude.toString }  //bottom left of the grid
+    expectResult("54.793876") { result3.get.latitude.toString }  //bottom left of the grid
   }
 
   test("Convert OS grid reference to decimal latitude/longitude in WGS84") {
     val result = GridUtil.processGridReference("NM39")
     expectResult(false) { result.isEmpty }
-    expectResult("56.97001") { result.get.latitude.toString }
-    expectResult("-6.36199") { result.get.longitude.toString }
+    expectResult("56.970009") { result.get.latitude.toString }
+    expectResult("-6.361995") { result.get.longitude.toString }
     expectResult("EPSG:4326") { result.get.datum.toString }
-    expectResult("10000") { result.get.coordinateUncertaintyInMeters.toString }
+    expectResult("7071.1") { result.get.coordinateUncertaintyInMeters.toString }
   }
 
   test("NH1234123 at different resolutions") {

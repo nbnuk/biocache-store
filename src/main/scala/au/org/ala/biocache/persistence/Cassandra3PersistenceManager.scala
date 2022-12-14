@@ -1170,6 +1170,7 @@ class Cassandra3PersistenceManager  @Inject() (
             val rows = future.getUninterruptibly()
             val row = rows.one()
             val mapBuilder = collection.mutable.Map[String, String]()
+            if (row != null) {
             if (Config.caseSensitiveCassandra) {
               fields.foreach { field =>
                 mapBuilder.put(field, row.getString(field))
@@ -1178,6 +1179,7 @@ class Cassandra3PersistenceManager  @Inject() (
               fields.foreach { field =>
                 mapBuilder.put(field, row.getString(field.toLowerCase))
               }
+            }
             }
             proc(mapBuilder.toMap)
           }
@@ -1231,7 +1233,8 @@ class Cassandra3PersistenceManager  @Inject() (
   def delete(properties: Map[String, String], entityName: String) = {
 
     val query = "DELETE FROM " + entityName + " where " +
-      properties.keySet.map { "\"" + _ + "\" = ?"}.mkString(" AND ")
+      (if (Config.caseSensitiveCassandra) properties.keySet.map { "\"" + _ + "\" = ?"}.mkString(" AND ")
+    else properties.keySet.mkString(" AND "))
 
     try {
       val deleteStmt = getPreparedStmt(query, entityName)

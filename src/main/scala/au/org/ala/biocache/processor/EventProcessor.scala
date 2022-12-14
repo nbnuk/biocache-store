@@ -1,7 +1,7 @@
 package au.org.ala.biocache.processor
 
 import java.util.{GregorianCalendar, Date}
-import au.org.ala.biocache.parser.DateParser
+import au.org.ala.biocache.parser.{DateParser, EventDate}
 import au.org.ala.biocache.model.{QualityAssertion, FullRecord}
 import au.org.ala.biocache.util.{DateUtil, StringHelper}
 import au.org.ala.biocache.vocab.{AssertionCodes, AssertionStatus, DatePrecision}
@@ -197,16 +197,42 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed) //NBN
+      } else
+      /** NBN START* */
+        if (raw.event.eventDate != null && !raw.event.eventDate.isEmpty) {
+
+          //look for an end date
+          val parsedDate = DateParser.parseDate(raw.event.eventDate)
+          //logger.info("2. date = " + raw.event.eventDate + " parsed = " + parsedDate)
+          if (!parsedDate.isEmpty) {
+            //what happens if d m y make the eventDate and eventDateEnd is parsed?
+            if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
+              processed.event.eventDateEnd = parsedDate.get.endDate
+            }
+            setProcessedEventEndDMYvalues(parsedDate, processed)
+
+            processed.event.day = parsedDate.get.startDay
+            processed.event.month = parsedDate.get.startMonth
+            processed.event.year = parsedDate.get.startYear
       }
+    }
+
+      /** NBN END* */
+
     }
 
     //process event end date if supplied separately
     if (StringUtils.isNotEmpty(raw.event.eventDateEnd)) {
       //look for an end date
       val parsedDate = DateParser.parseDate(raw.event.eventDateEnd)
-      if (parsedDate.isDefined) {
+      if (parsedDate.isDefined /*NBN*/ && parsedDate.get.singleDate /*NBN END*/) {
+        //if not single date then there is definitely a problem with the parsing, e.g. for "09/2012" being interpreted as year range
         //what happens if d m y make the eventDate and eventDateEnd is parsed?
         processed.event.eventDateEnd = parsedDate.get.startDate
+        processed.event.endYear = parsedDate.get.startYear//NBN
+        processed.event.endMonth = parsedDate.get.startMonth//NBN
+        processed.event.endDay = parsedDate.get.startDay//NBN
       }
     }
 
@@ -219,6 +245,8 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed)//NBN
+
         processed.event.day = parsedDate.get.startDay
         processed.event.month = parsedDate.get.startMonth
         processed.event.year = parsedDate.get.startYear
@@ -263,6 +291,7 @@ class EventProcessor extends Processor {
         if (!parsedDate.get.endDate.equals(parsedDate.get.startDate)) {
           processed.event.eventDateEnd = parsedDate.get.endDate
         }
+        setProcessedEventEndDMYvalues(parsedDate,processed)//NBN
       }
     }
 
@@ -304,6 +333,16 @@ class EventProcessor extends Processor {
     assertions.toArray
   }
 
+  //NBN Method set event end day+month+year values if not equal to starting day+month+year
+  def setProcessedEventEndDMYvalues(parsedDate: Option[EventDate], processed: FullRecord) = {
+    if (!parsedDate.get.endYear.equals(parsedDate.get.startYear) ||
+      !parsedDate.get.endMonth.equals(parsedDate.get.startMonth) ||
+      !parsedDate.get.endDay.equals(parsedDate.get.startDay)) {
+      processed.event.endYear = parsedDate.get.endYear
+      processed.event.endMonth = parsedDate.get.endMonth
+      processed.event.endDay = parsedDate.get.endDay
+    }
+  }
   /**
     * Validate the supplied year.
     *

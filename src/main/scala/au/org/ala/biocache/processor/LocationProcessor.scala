@@ -285,7 +285,7 @@ class LocationProcessor extends Processor {
     }
   }
 
-  private def processVerbatimDepth(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
+  protected def processVerbatimDepth(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]): Unit = {
     if (raw.location.verbatimDepth != null) {
       val parseDepthResult = DistanceRangeParser.parse(raw.location.verbatimDepth)
       if (parseDepthResult.isDefined) {
@@ -567,7 +567,7 @@ class LocationProcessor extends Processor {
     }
   }
 
-  private def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
+  protected def checkCoordinateUncertainty(raw: FullRecord, processed: FullRecord, assertions: ArrayBuffer[QualityAssertion]) {
     //validate coordinate accuracy (coordinateUncertaintyInMeters) and coordinatePrecision (precision - A. Chapman)
     var checkedPrecision = false
     if (raw.location.coordinateUncertaintyInMeters != null && raw.location.coordinateUncertaintyInMeters.length > 0) {
