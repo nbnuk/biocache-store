@@ -64,7 +64,7 @@ class Occurrence extends Cloneable with POSO {
   @BeanProperty var resourceID:String = _
   @BeanProperty var resourceRelationshipID:String = _
   @BeanProperty var rights:String = _
-  @BeanProperty var rightsholder:String = _
+  @BeanProperty var rightsHolder:String = _
   @BeanProperty var samplingProtocol:String = _
   @BeanProperty var samplingEffort:String = _
   @BeanProperty var sex:String = _
