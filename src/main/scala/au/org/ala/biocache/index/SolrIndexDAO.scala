@@ -1790,6 +1790,7 @@ class ColumnOrder {
     this.habitatTaxon = dataRow.getIndexOf("habitatTaxon")
     this.scientificNameAuthorship = dataRow.getIndexOf("scientificNameAuthorship")
     this.nomenclaturalStatus = dataRow.getIndexOf("nomenclaturalStatus")
+    this.publicResolutionInMeters = dataRow.getIndexOf("publicResolutionInMeters")
     //NBN END
 
 
@@ -1978,5 +1979,6 @@ class ColumnOrder {
   var habitatTaxon: Int = -1
   var scientificNameAuthorship: Int = -1
   var nomenclaturalStatus: Int = -1
+  var publicResolutionInMeters = -1
   //NBN END
 }
