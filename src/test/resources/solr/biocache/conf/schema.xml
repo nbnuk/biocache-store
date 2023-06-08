@@ -561,6 +561,7 @@
     <field name="longitude" type="tdouble" indexed="true" stored="true" multiValued="false" />
     <field name="sensitive_longitude" type="tdouble" indexed="false" stored="true" multiValued="false" />
     <field name="coordinate_uncertainty" type="tdouble" indexed="true" stored="true" multiValued="false" />
+    <field name="public_resolution_in_meters" type="tint" indexed="true" stored="true" multiValued="false" />
     <field name="sensitive_coordinate_uncertainty" type="tdouble" indexed="true" stored="true" multiValued="false" />
     <field name="sensitive_locality" type="string" indexed="false" stored="true" multiValued="false" />
     <field name="sensitive_event_date" type="string" indexed="false" stored="true" multiValued="false" />

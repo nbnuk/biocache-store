@@ -74,6 +74,7 @@ collector	string	recordedBy	F	F		F
 # raw_state_conservation - second value of stateConservation_p	F
 # sensitive - when dataGeneralizations_p contains "already generalised" then alreadyGeneralised when originalSensitiveValues.length >3 then generalised	F
 coordinate_uncertainty	double	coordinateUncertaintyInMeters_p	F	F		F
+public_resolution_in_meters int	publicResolutionInMeters	F	F		F
 provenance	string	provenance_p	F	F		F
 # subspecies_guid - if rankid > 7000 taxonConceptID_p	F
 # subspecies_name - if rank_id > 7 then scientificName_p	F

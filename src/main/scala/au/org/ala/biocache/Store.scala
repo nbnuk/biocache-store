@@ -518,6 +518,9 @@ object Store {
   def writeToStream(outputStream: OutputStream, fieldDelimiter: java.lang.String,
                     recordDelimiter: java.lang.String, keys: Array[String], fields: Array[java.lang.String], qaFields: Array[java.lang.String], includeSensitive: Boolean) {
     occurrenceDAO.writeToStream(outputStream, fieldDelimiter, recordDelimiter, keys, fields, qaFields, includeSensitive)
+  //hmj This method is not called anywhere in biocacheservice, ie. its not used?. It does the same as occurrenceDAO.writeToRecordWriter. We either need to add
+      //support for accesscontrols or throw unsupportedexcepion or leave and if someone complains that they're not getting
+    //supplied values (somewhere in the application) we can fix it then.
   }
 
   /**

@@ -80,7 +80,7 @@ trait IndexDAO {
 
   def shutdown
 
-  def optimise : String
+  def optimise: String
 
   def commit
 
@@ -119,7 +119,7 @@ trait IndexDAO {
     try {
       getValue(field + Config.persistenceManager.fieldDelimiter + "p", map).toInt.toString
     } catch {
-      case e:Exception => ""
+      case e: Exception => ""
     }
   }
 
@@ -132,9 +132,9 @@ trait IndexDAO {
     }
   }
 
-  def getParsedValueIfAvailable(field: String, map: scala.collection.Map[String, String], default:String): String = {
+  def getParsedValueIfAvailable(field: String, map: scala.collection.Map[String, String], default: String): String = {
     val value = getValue(field + Config.persistenceManager.fieldDelimiter + "p", map)
-    if(value == ""){
+    if (value == "") {
       getValue(field, map, default)
     } else {
       value
@@ -201,15 +201,15 @@ trait IndexDAO {
   val IGNORE = 4
 
   /**
-    * header attributes used by index-local-node-v2
-    *
-    * Cassandra column name -> (solr field name, (0=date, 4=multivalue, -1=default), (0=both, 2=raw, 3=parsed))
-    *
-    * TODO: 1. Convert non-DWC SOLR field names to DWC
-    * TODO: 2. Simplify to CassandraColumnName -> SolrFieldName. Complexity is required to reflect backward compatibility.
-    * TODO: 3. Remove all DWC fields. These should be indexed by default.
-    */
-  lazy val headerAttributes = buildHeaderAttributes(List (
+   * header attributes used by index-local-node-v2
+   *
+   * Cassandra column name -> (solr field name, (0=date, 4=multivalue, -1=default), (0=both, 2=raw, 3=parsed))
+   *
+   * TODO: 1. Convert non-DWC SOLR field names to DWC
+   * TODO: 2. Simplify to CassandraColumnName -> SolrFieldName. Complexity is required to reflect backward compatibility.
+   * TODO: 3. Remove all DWC fields. These should be indexed by default.
+   */
+  lazy val headerAttributes = buildHeaderAttributes(List(
     ("dateIdentified", "identified_date", 0, PARSED),
     ("firstLoaded", "first_loaded_date", 0, RAW),
     (FullRecordMapper.alaModifiedColumn, "last_load_date", 0, RAW),
@@ -286,6 +286,7 @@ trait IndexDAO {
     ("collectionName", "collection_name", -1, PARSED),
     ("collectionUid", "collection_uid", -1, PARSED),
     ("coordinateUncertaintyInMeters", "coordinate_uncertainty", -1, PARSED),
+    ("publicResolutionInMeters", "public_resolution_in_meters", -1, RAW),
     ("country", "country", -1, PARSED),
     ("dataHub", "data_hub", -1, PARSED),
     ("decimalLatitude", "latitude", -1, PARSED),
@@ -397,10 +398,10 @@ trait IndexDAO {
   ))
 
   /**
-    * headerAttributesFix are the unprocessed fields excluded as a result of the backwards compatible headerAttributes.
-    *
-    * These fields are not indexed by index-local-node-v2 for sensitive records.
-    */
+   * headerAttributesFix are the unprocessed fields excluded as a result of the backwards compatible headerAttributes.
+   *
+   * These fields are not indexed by index-local-node-v2 for sensitive records.
+   */
   lazy val headerAttributesFix = buildHeaderAttributesFix(List(
     ("verbatimElevation", "raw_verbatim_elevation", -1, RAW), // NEW
     ("verbatimDepth", "raw_verbatim_depth", -1, RAW), // NEW   - this is causing an error
@@ -424,9 +425,9 @@ trait IndexDAO {
     ("basisOfRecord", "raw_basis_of_record", -1, RAW), // NEW
     ("associatedOccurrences", "raw_duplicate_record", -1, RAW), // NEW
     ("establishmentMeans", "raw_establishment_means", 4, RAW), // NEW
-    ("dateIdentified", "raw_identified_date", 0, RAW),  // NEW
-    ("eventDate", "raw_occurrence_date", 0, RAW),  // NEW
-    ("eventDateEnd", "raw_occurrence_date_end_dt", 0, RAW),  // NEW
+    ("dateIdentified", "raw_identified_date", 0, RAW), // NEW
+    ("eventDate", "raw_occurrence_date", 0, RAW), // NEW
+    ("eventDateEnd", "raw_occurrence_date_end_dt", 0, RAW), // NEW
     ("modified", "raw_modified_date", 0, RAW) // NEW
   ))
 
@@ -444,7 +445,7 @@ trait IndexDAO {
     "year", "month", "basis_of_record", "raw_basis_of_record", "type_status",
     "raw_type_status", "taxonomic_kosher", "geospatial_kosher", "location_remarks",
     "occurrence_remarks", "user_assertions", "collector", "state_conservation", "raw_state_conservation", "country_conservation", "raw_country_conservation",
-    "sensitive", "coordinate_uncertainty", "user_id", "alau_user_id", "provenance", "subspecies_guid", "subspecies_name", "interaction", "last_assertion_date",
+    "sensitive", "coordinate_uncertainty", "public_resolution_in_meters", "user_id", "alau_user_id", "provenance", "subspecies_guid", "subspecies_name", "interaction", "last_assertion_date",
     "last_load_date", "last_processed_date", "modified_date", "establishment_means", "loan_number", "loan_identifier", "loan_destination",
     "loan_botanist", "loan_date", "loan_return_date", "original_name_usage", "duplicate_inst", "record_number", "first_loaded_date", "name_match_metric",
     "life_stage", "outlier_layer", "outlier_layer_count", "taxonomic_issue", "raw_identification_qualifier", "identification_qualifier", "species_habitats",
@@ -468,7 +469,7 @@ trait IndexDAO {
    * TODO Factor this out of indexing logic, and have a separate field in cassandra that stores this.
    * TODO Construction of this field can then happen as part of the processing.
    */
-  def getRawScientificName(map: scala.collection.Map[String, String]) : String = {
+  def getRawScientificName(map: scala.collection.Map[String, String]): String = {
     val scientificName: String = {
 
       val sciName = getValue("scientificName", map, "")
@@ -513,7 +514,7 @@ trait IndexDAO {
    * Access to the values are taken directly from the Map with no reflection. This
    * should result in a quicker load time.
    */
-  def getOccIndexModel(guid: String, map: scala.collection.Map[String, String]) : List[String] = {
+  def getOccIndexModel(guid: String, map: scala.collection.Map[String, String]): List[String] = {
 
     try {
       //get the lat lon values so that we can determine all the point values
@@ -614,8 +615,9 @@ trait IndexDAO {
         //get sensitive values map
         val sensitiveMap = {
           if (shouldIncludeSensitiveValue(getValue("dataResourceUid", map)) && map.contains(if (Config.caseSensitiveCassandra) "originalSensitiveValues" else "originalsensitivevalues")) { //NBN
-            try {
-              val osv = getValue("originalSensitiveValues", map, "{}")
+            try { //hmj could do in derived class
+              val supplied = getValue("suppliedAccessControlledValues+", map, "{}")
+              val osv = getValue("originalSensitiveValues", map, supplied)
               val parsed = JSON.parseFull(osv)
               parsed.get.asInstanceOf[Map[String, String]]
             } catch {
@@ -946,7 +948,7 @@ trait IndexDAO {
           getArrayValue(array_header_parsed_idx(i), array)
         } else if (h._4 == RAW) { //Raw
           getArrayValue(array_header_idx(i), array)
-        } else if ( h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
+        } else if (h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
           val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
           if (StringUtils.isEmpty(v)) {
             getArrayValue(array_header_idx(i), array)
@@ -958,7 +960,7 @@ trait IndexDAO {
         }
       }
 
-      if (h._3 == 0) {  // Date field
+      if (h._3 == 0) { // Date field
         try {
           val date = DateParser.parseStringToDate(value)
           value = DateFormatUtils.format(date.get, "yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -976,9 +978,9 @@ trait IndexDAO {
               }
             }
           } else {
-          jsonArrayLoop(value, h._2, doc)
+            jsonArrayLoop(value, h._2, doc)
           }
-        } else  { // Default
+        } else { // Default
           addField(doc, h._2, value)
         }
       }
@@ -994,7 +996,7 @@ trait IndexDAO {
             getArrayValue(array_header_parsed_idx(i), array)
           } else if (h._4 == RAW) { //Raw
             getArrayValue(array_header_idx(i), array)
-          } else if ( h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
+          } else if (h._4 == RAW_AND_PARSED) { // Raw and Parsed allowed
             val v = getArrayValue(array_header_parsed_idx(i), array) //prioritise PARSED over RAW
             if (StringUtils.isEmpty(v)) {
               getArrayValue(array_header_idx(i), array)
@@ -1006,7 +1008,7 @@ trait IndexDAO {
           }
         }
 
-        if (h._3 == 0) {  // Date field
+        if (h._3 == 0) { // Date field
           try {
             val date = DateParser.parseStringToDate(value)
             value = DateFormatUtils.format(date.get, "yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -1018,7 +1020,7 @@ trait IndexDAO {
         if (StringUtils.isNotEmpty(value)) {
           if (h._3 == 4) { // Multivalue
             jsonArrayLoop(value, h._2, doc)
-          } else  { // Default
+          } else { // Default
             addField(doc, h._2, value)
           }
         }
@@ -1126,7 +1128,7 @@ trait IndexDAO {
 
       val split = sconservation.split(",")
 
-      if(StringUtils.isNotBlank(split(0))) {
+      if (StringUtils.isNotBlank(split(0))) {
         addField(doc, "state_conservation", split(0)) // is set to IGNORE in headerAttributes
       }
 
@@ -1140,7 +1142,7 @@ trait IndexDAO {
 
       val split = cconservation.split(",")
 
-      if(StringUtils.isNotBlank(split(0))) {
+      if (StringUtils.isNotBlank(split(0))) {
         addField(doc, "country_conservation", split(0)) // is set to IGNORE in headerAttributes
       }
 
@@ -1190,34 +1192,36 @@ trait IndexDAO {
     }
 
     //sensitive values map
-    val dataResourceUid = getArrayValue(columnOrder.dataResourceUid, array)
-    if (StringUtils.isNotEmpty(dataResourceUid) && shouldIncludeSensitiveValue(dataResourceUid)) {
-      val osv = getArrayValue(columnOrder.originalSensitiveValues, array, "")
-      if (StringUtils.isNotEmpty(osv)) {
-        try {
-          val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
-          addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
-          addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
-          if (Config.sensitiveDateDay) {
-            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
-            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
-          }
-          if (parsed.getOrElse("gridReference","") != "") {
-            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
-          } else {
-            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
-            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
-          }
-        } catch {
-          case _: Exception => Map[String, String]()
-        }
-      }
-    }
+    addSuppliedSensitiveValues(doc, array)
+
+    //    val dataResourceUid = getArrayValue(columnOrder.dataResourceUid, array)
+    //    if (StringUtils.isNotEmpty(dataResourceUid) && shouldIncludeSensitiveValue(dataResourceUid)) {
+    //      val osv = getArrayValue(columnOrder.originalSensitiveValues, array, "")
+    //      if (StringUtils.isNotEmpty(osv)) {
+    //        try {
+    //          val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
+    //          addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
+    //          addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
+    //          if (Config.sensitiveDateDay) {
+    //            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
+    //            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
+    //          }
+    //          if (parsed.getOrElse("gridReference","") != "") {
+    //            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
+    //          } else {
+    //            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
+    //            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
+    //          }
+    //        } catch {
+    //          case _: Exception => Map[String, String]()
+    //        }
+    //      }
+    //    }
 
     //all other values when not sensitive
     if (StringUtils.isEmpty(dataGen)) {
@@ -1233,16 +1237,16 @@ trait IndexDAO {
     if (value != null && value != "null") {
       if (value.toString.length > 0) {
         doc.addField(field, value)
+      }
     }
-  }
   }
 
   /**
-    * Only loops over JSON arrays of strings that do not have formatted spacing
-    *
-    * @param jsonString
-    * @param proc
-    */
+   * Only loops over JSON arrays of strings that do not have formatted spacing
+   *
+   * @param jsonString
+   * @param proc
+   */
   def jsonArrayLoop(jsonString: String, proc: (String, Integer) => Unit) {
 
     if (StringUtils.isNotEmpty(jsonString)) {
@@ -1332,7 +1336,7 @@ trait IndexDAO {
   }
 
   //If/when we override IndexDAO, the following builder methods should be moved to the derived class
-  def buildHeaderAttributes(defaultHeaderAttributes: List[(String, String, Int, Int)]) ={
+  def buildHeaderAttributes(defaultHeaderAttributes: List[(String, String, Int, Int)]) = {
     var headerAttributes = defaultHeaderAttributes.map(
       tup =>
         tup._1 match {
@@ -1367,11 +1371,11 @@ trait IndexDAO {
     headerAttributes
   }
 
-  def buildHeaderAttributesFix(defaultHeaderAttributesFix: List[(String, String, Int, Int)]) ={
+  def buildHeaderAttributesFix(defaultHeaderAttributesFix: List[(String, String, Int, Int)]) = {
     defaultHeaderAttributesFix.filter(tup => tup._1 != "scientificName")
   }
 
-  def buildHeader(defaultHeader: List[(String)]) ={
+  def buildHeader(defaultHeader: List[(String)]) = {
     var header = defaultHeader.map(
       v =>
         v match {
@@ -1402,6 +1406,44 @@ trait IndexDAO {
     logger.debug("sensitiveHeader")
     logger.debug(sensitiveHeader.mkString(","))
     sensitiveHeader
+  }
+
+  def addSuppliedSensitiveValues(doc: DocBuilder, array: DataRow): Unit = {
+
+    //hmj review: there's suppliedAccessControlledValues (raw) and suppliedAccessControlledValues_p
+    //the ALA have a single originalSensitiveValues which is mixed (see below). The raw grid reference may be wrong in which case
+    //LocationProcessor corrects it. The ALA code below gives preference to the raw value
+    var osv = getArrayValue(array.getIndexOf("suppliedAccessControlledValues_p"), array, "")
+
+    val dataResourceUid = getArrayValue(columnOrder.dataResourceUid, array)
+    if (StringUtils.isNotEmpty(dataResourceUid) && shouldIncludeSensitiveValue(dataResourceUid)) {
+      osv = getArrayValue(columnOrder.originalSensitiveValues, array, osv)
+    }
+    if (StringUtils.isNotEmpty(osv)) {
+      try {
+        val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
+        addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", ""))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", ""))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters", ""))))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", ""))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
+        addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
+        if (Config.sensitiveDateDay) {
+          addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
+          addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
+        }
+        if (parsed.getOrElse("gridReference", "") != "") {
+          addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
+        } else {
+          //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
+          addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
+        }
+      } catch {
+        case _: Exception => Map[String, String]()
+      }
+    }
+
   }
   //END NBN methods
 }
