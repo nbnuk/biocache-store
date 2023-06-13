@@ -645,7 +645,7 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
       val values = getOccIndexModel(guid, map)
 
       if (values.length > 0 && values.length != header.length) {
-        logger.error("Values don't matcher header: " + values.length + ":" + header.length + ", values:header")
+        logger.error("Values don't match header. values.length: " + values.length + ",  header.length:" + header.length)
         logger.error("Headers: " + header.toString())
         logger.error("Values: " + values.toString())
         logger.error("This will be caused by changes in the list of headers not matching the number of submitted field values.")
