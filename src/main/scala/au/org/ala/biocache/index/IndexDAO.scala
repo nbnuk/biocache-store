@@ -1407,8 +1407,7 @@ trait IndexDAO {
   }
 
   def addSuppliedAndSensitiveValuesToIndexDocument(doc: DocBuilder, array: DataRow): Unit = {
-
-     val suppliedValueMap = JSON.parseFull(getArrayValue(array.getIndexOf("suppliedAccessControlledValues_p"), array, "")).get.asInstanceOf[Map[String, String]]
+    val suppliedValueMap =  JSON.parseFull(getArrayValue(array.getIndexOf("suppliedAccessControlledValues_p"), array, "{}")).get.asInstanceOf[Map[String, String]]
       try {
         addField(doc, "sensitive_latitude", String.valueOf(suppliedValueMap.getOrElse("decimalLatitude", ""))) // is set to IGNORE in headerAttributes
         addField(doc, "sensitive_longitude", String.valueOf(suppliedValueMap.getOrElse("decimalLongitude", ""))) // is set to IGNORE in headerAttributes
