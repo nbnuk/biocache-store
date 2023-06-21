@@ -1125,10 +1125,10 @@ class SolrIndexDAO @Inject()(@Named("solr.home") solrHome: String,
           if (easting != "") doc.addField("easting", java.lang.Float.parseFloat(easting).toInt) // is set to IGNORE in IndexDAO.headerAttributes
           val northing = getArrayValue(columnOrder.northingP, dataRow)
           if (northing != "") doc.addField("northing", java.lang.Float.parseFloat(northing).toInt) // is set to IGNORE in IndexDAO.headerAttributes
-          var gridRef = getArrayValue(columnOrder.gridReference, dataRow)
-          if (gridRef == "") {
-            gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
-          }
+          var gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
+//          if (gridRef == "") {
+//            gridRef = getArrayValue(columnOrder.gridReferenceP, dataRow)
+//          }
           if (gridRef != "") {
             doc.addField("grid_ref", gridRef) // is set to IGNORE in IndexDAO.headerAttributes
             val map = GridUtil.getGridRefAsResolutions(gridRef)
