@@ -102,6 +102,9 @@ object IndexMergeTool extends Tool {
       logger.info("Skipping merge...")
     }
 
+    //NBN patch
+    setCommitDataForSolr(writer)
+
     writer.close()
     val finish = System.currentTimeMillis()
     logger.info("Merge complete:  " + mergeDir + ". Time taken: " + ((finish - start) / 1000) / 60 + " minutes")
@@ -111,5 +114,25 @@ object IndexMergeTool extends Tool {
       directoriesToMerge.foreach(dir => FileUtils.forceDelete(new File(dir)))
       logger.info("Deleted source directories")
     }
+  }
+
+  /*
+  * NBN patch
+  * Method to write commit metadata to the Lucene UserData as per SolrIndexWriter
+  * This meta data is expected by solr replication in solr >= 7.1 otherwise replication clears the index
+  * */
+  def setCommitDataForSolr(writer: IndexWriter): Unit = {
+    //https://github.com/apache/solr/blob/f774922ecf44b18b78435cef8735618bb793ac30/solr/core/src/java/org/apache/solr/update/SolrIndexWriter.java#L248
+    val COMMIT_TIME_MSEC_KEY = "commitTimeMSec"
+    val COMMIT_COMMAND_VERSION = "commitCommandVer"
+    val timeStamp = System.currentTimeMillis
+    //https://github.com/apache/solr/blob/f774922ecf44b18b78435cef8735618bb793ac30/solr/core/src/java/org/apache/solr/update/VersionInfo.java#L179
+    val commitCommandVersion = timeStamp << 20
+
+    val finalCommitData: java.util.Map[String, String] = new java.util.HashMap[String, String](4)
+    finalCommitData.put(COMMIT_TIME_MSEC_KEY, String.valueOf(timeStamp))
+    finalCommitData.put(COMMIT_COMMAND_VERSION, String.valueOf(commitCommandVersion))
+
+    writer.setLiveCommitData(finalCommitData.entrySet())
   }
 }
