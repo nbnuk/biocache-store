@@ -396,12 +396,16 @@ object Config {
 
 
 //NBN BEGIN
+  //Config is actually overridden by the Config object in biocache-store-nbn. However some of the config values are required in the
+  // the customisations in the ALA layer, so for now, add the values here as well just so it can compile. A better solution can be determined later.
   val gridRefIndexingPolyEnabled = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.enabled", "false"))
   val gridRefIndexingPolyOmitGrids = configModule.properties.getProperty("gridref.indexing.poly.omit.grids.less.than", "0").toInt
   val gridRefIndexingPolyReadFromCassandra = BooleanUtils.toBoolean(configModule.properties.getProperty("gridref.indexing.poly.read.from.cassandra", "false"))
   val sensitiveDateDay = configModule.properties.getProperty("sensitive.date.day","true").toBoolean // for NBN ***
   val clearOriginalSensitiveValues = configModule.properties.getProperty("load.clearoriginalsensitivevalues","false").toBoolean // for NBN ***
   val fixNullFirstLoaded = configModule.properties.getProperty("temp.fixnullfirstloaded", "false").toBoolean
+
+  val accessControlFeatureEnabled = configModule.properties.getProperty("accesscontrols.feature.enabled", "false").toBoolean
   //NBN END
 }
 

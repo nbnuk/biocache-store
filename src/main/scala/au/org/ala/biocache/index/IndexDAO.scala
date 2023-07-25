@@ -1192,35 +1192,31 @@ trait IndexDAO {
       }
     }
 
-    //sensitive values map
-    addSuppliedAndSensitiveValuesToIndexDocument(doc, array)
 
-//    val dataResourceUid = getArrayValue(columnOrder.dataResourceUid, array)
-//    if (StringUtils.isNotEmpty(dataResourceUid) && shouldIncludeSensitiveValue(dataResourceUid)) {
-//      val osv = getArrayValue(columnOrder.originalSensitiveValues, array, "")
-//      if (StringUtils.isNotEmpty(osv)) {
-//        try {
-//          val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
-//          addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", "")))
-//          addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", "")))
-//          addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", "")))
-//          addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", "")))
-//          if (Config.sensitiveDateDay) {
-//            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", "")))
-//            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", "")))
-//          }
-//          if (parsed.getOrElse("gridReference","") != "") {
-//            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", "")))
-//          } else {
-//            //get processed, since this could be fine-scale if lat-longs provided with records but no gridref
-//            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference" + Config.persistenceManager.fieldDelimiter + "p", "")))
-//          }
-//        } catch {
-//          case _: Exception => Map[String, String]()
-//        }
-//      }
-//    }
-
+    if (Config.accessControlFeatureEnabled) {
+      addSuppliedAndSensitiveValuesToIndexDocument(doc, array)
+    }
+    else {
+      //sensitive values map
+      val dataResourceUid = getArrayValue(columnOrder.dataResourceUid, array)
+      if (StringUtils.isNotEmpty(dataResourceUid) && shouldIncludeSensitiveValue(dataResourceUid)) {
+        val osv = getArrayValue(columnOrder.originalSensitiveValues, array, "")
+        if (StringUtils.isNotEmpty(osv)) {
+          try {
+            val parsed = JSON.parseFull(osv).get.asInstanceOf[Map[String, String]]
+            addField(doc, "sensitive_latitude", String.valueOf(parsed.getOrElse("decimalLatitude", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_longitude", String.valueOf(parsed.getOrElse("decimalLongitude", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_coordinate_uncertainty", String.valueOf(parsed.getOrElse("coordinateUncertaintyInMeters" + Config.persistenceManager.fieldDelimiter + "p", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
+          } catch {
+            case _: Exception => Map[String, String]()
+          }
+        }
+      }
+    }
     //all other values when not sensitive
     if (StringUtils.isEmpty(dataGen)) {
       for (i <- 0 until columnOrder.length.toInt) {
