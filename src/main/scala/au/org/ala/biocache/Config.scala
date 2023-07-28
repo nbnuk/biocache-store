@@ -405,7 +405,7 @@ object Config {
   val clearOriginalSensitiveValues = configModule.properties.getProperty("load.clearoriginalsensitivevalues","false").toBoolean // for NBN ***
   val fixNullFirstLoaded = configModule.properties.getProperty("temp.fixnullfirstloaded", "false").toBoolean
 
-  val accessControlFeatureEnabled = configModule.properties.getProperty("accesscontrols.feature.enabled", "false").toBoolean
+  val accessControlFeatureEnabled = configModule.properties.getProperty("accesscontrol.feature.enabled", "false").toBoolean
   //NBN END
 }
 
