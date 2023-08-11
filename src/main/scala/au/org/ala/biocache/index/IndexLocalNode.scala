@@ -124,13 +124,13 @@ class IndexLocalNode {
     def additionalFieldsFile = new File(sourceConfDir + "/additionalFields.list")
 
     writeAdditionalSchemaEntries(schemaFile, sourceConfDir, additionalFieldsFile)
-    importAdditionalFieldsToSOLR(additionalFieldsFile)
-
-    // finished with additionalFields.list, rename it
-    def oldFile = new File(sourceConfDir + "/additionalFields.old")
-
-    if (oldFile.exists()) oldFile.delete()
-    FileUtils.moveFile(additionalFieldsFile, oldFile)
+//    importAdditionalFieldsToSOLR(additionalFieldsFile)
+//
+//    // finished with additionalFields.list, rename it
+//    def oldFile = new File(sourceConfDir + "/additionalFields.old")
+//
+//    if (oldFile.exists()) oldFile.delete()
+//    FileUtils.moveFile(additionalFieldsFile, oldFile)
 
     performMerge(solrHome, optimise, mergeSegments, schemaFile, dirs, mem)
 
