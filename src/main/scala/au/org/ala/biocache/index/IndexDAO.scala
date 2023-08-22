@@ -1335,7 +1335,7 @@ trait IndexDAO {
       tup =>
         tup._1 match {
           case "phenology" => ("lifeStage", "life_stage", 4, RAW)
-          case "georeferenceVerificationStatus" => ("georeferenceVerificationStatus", "georeference_verification_status", -1, RAW_AND_PARSED)
+          case "georeferenceVerificationStatus" if(tup._2 == "georeference_verification_status") => ("georeferenceVerificationStatus", "georeference_verification_status", -1, RAW_AND_PARSED)
           case "identificationVerificationStatus" => ("identificationVerificationStatus", "identification_verification_status", -1, RAW_AND_PARSED)
           case "verbatimDepth" => ("verbatimDepth", "raw_depth", -1, RAW)
           case _ => tup
