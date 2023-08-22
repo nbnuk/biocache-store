@@ -218,11 +218,11 @@ object DateParser {
   }
   
   val YEAR_TO_LOCAL_DATE = newDateFormat("uuuu", false, true, true)
-  val YEAR_MONTH_TO_LOCAL_DATE = newDateFormat("uuuu-MM", false, false, true)
-  val MONTH_TO_LOCAL_DATE = newDateFormat("MM", true, false, true)
-  val DAY_TO_LOCAL_DATE = newDateFormat("dd", true, true, false)
-  val MONTH_DAY_TO_LOCAL_DATE = newDateFormat("MM-dd", true, false, false)
-  val YEAR_MONTH = newDateFormat("uuuu-MM")
+  val YEAR_MONTH_TO_LOCAL_DATE = newDateFormat("uuuu-M", false, false, true)
+  val MONTH_TO_LOCAL_DATE = newDateFormat("M", true, false, true)
+  val DAY_TO_LOCAL_DATE = newDateFormat("d", true, true, false)
+  val MONTH_DAY_TO_LOCAL_DATE = newDateFormat("M-d", true, false, false)
+  val YEAR_MONTH = newDateFormat("uuuu-M")
   val YEAR = newDateFormat("uuuu")
   val MONTH = newDateFormat("MM")
   val DAY = newDateFormat("dd")
@@ -480,7 +480,7 @@ case class EventDate(parsedStartDate: Date, startDate: String, startDay: String,
 /** Extractor for the format uuuu-MM-dd */
 object ISOWithMonthNameDate {
 
-  def baseFormats = Array("uuuu-MMMM-dd", "uuuu-MMMM-dd'T'hh:mm:ss","uuuu-MMMM-dd'T'hh:mm:ss.SSS",  "uuuu-MMMM-dd'T'HH:mm:ss","uuuu-MMMM-dd'T'HH:mm:ss.SSS", "uuuu-MMMM-dd'T'hh:mm-ss", "uuuu-MMMM-dd'T'HH:mm-ss", "uuuu-MMMM-dd'T'hh:mm'Z'", "uuuu-MMMM-dd'T'HH:mm'Z'")
+  def baseFormats = Array("uuuu-MMMM-d", "uuuu-MMMM-d'T'hh:mm:ss","uuuu-MMMM-d'T'hh:mm:ss.SSS",  "uuuu-MMMM-d'T'HH:mm:ss","uuuu-MMMM-d'T'HH:mm:ss.SSS", "uuuu-MMMM-d'T'hh:mm-ss", "uuuu-MMMM-d'T'HH:mm-ss", "uuuu-MMMM-d'T'hh:mm'Z'", "uuuu-MMMM-d'T'HH:mm'Z'")
 
   def baseParseOffsets = false
   
@@ -560,7 +560,7 @@ object ISOSingleYear {
 /** Extractor for the format uuuu-MM-dd */
 class SingleDate {
 
-  def baseFormats = Array("uuuu-MM-dd","uuuu/MM/dd")
+  def baseFormats = Array("uuuu-M-d","uuuu/M/d")
 
 //  2001-03-14T00:00:00+11:00
   def formats = baseFormats.map(f => Array(f, f + "'Z'", f + "'T'hh:mm'Z'",f + "'T'HH:mm'Z'", f + "'T'hh:mm:ss",f + "'T'HH:mm:ss", f + "'T'hh:mm:ss'Z'", f + "'T'HH:mm:ss'Z'",f + " hh:mm:ss",f + " HH:mm:ss")).flatten
@@ -598,15 +598,15 @@ class SingleDate {
 }
 
 trait NonISOSingleDate extends SingleDate {
-  override def baseFormats = Array("dd-MM-uuuu","dd/MM/uuuu","dd-MMM-uuuu","dd/MMM/uuuu","dd MMM uuuu")
+  override def baseFormats = Array("d-M-uuuu","d/M/uuuu","d-MMM-uuuu","d/MMM/uuuu","d MMM uuuu")
 }
 
 trait NonISODateRange extends DateRange {
-  override def baseFormats = Array("dd-MM-uuuu","dd/MM/uuuu","dd-MMM-uuuu","dd/MMM/uuuu","dd MMM uuuu")
+  override def baseFormats = Array("d-M-uuuu","d/M/uuuu","d-MMM-uuuu","d/MMM/uuuu","d MMM uuuu")
 }
 
 object NonISOTruncatedYearDate {
-  def baseFormats = Array(("dd-MM-", ""), ("dd/MM/", ""))
+  def baseFormats = Array(("d-M-", ""), ("d/M/", ""))
 
 //  2001-03-14T00:00:00+11:00
   def formats = baseFormats.map(f => Array(f, (f._1, f._2 + "'Z'"), (f._1, f._2 + "'T'hh:mm'Z'"), (f._1, f._2 + "'T'HH:mm'Z'"), (f._1, f._2 + "'T'hh:mm:ss"), (f._1, f._2 + "'T'HH:mm:ss"), (f._1, f._2 + "'T'hh:mm:ss'Z'"), (f._1, f._2 + "'T'HH:mm:ss'Z'"), (f._1, f._2 + " hh:mm:ss"), (f._1, f._2 + " HH:mm:ss"))).flatten
@@ -652,7 +652,7 @@ object NonISODateRange extends NonISODateRange
 /** Extractor for the format uuuu-MM */
 object ISOMonthDate {
 
-  def baseFormats = Array("uuuu-MM", "uuuu-MM-", "MM uuuu", "MMM-uuuu", "uuuu-MM-00")
+  def baseFormats = Array("uuuu-M", "uuuu-M-", "M uuuu", "MMM-uuuu", "uuuu-MM-00")
   
   def formats = baseFormats
   
@@ -692,7 +692,7 @@ object ISODateRange extends DateRange
 /** Extractor for the format uuuu-MM-dd/uuuu-MM-dd */
 class DateRange {
 
-  def baseFormats = Array("uuuu-MM-dd", "uuuu-M-d", "uuuu-MM-dd'T'hh:mm-ss", "uuuu-MM-dd'T'HH:mm-ss", "uuuu-MM-dd'T'hh:mm'Z'", "uuuu-MM-dd'T'HH:mm'Z'")
+  def baseFormats = Array("uuuu-M-d", "uuuu-M-d", "uuuu-M-d'T'hh:mm-ss", "uuuu-M-d'T'HH:mm-ss", "uuuu-M-d'T'hh:mm'Z'", "uuuu-M-d'T'HH:mm'Z'")
 
   def formats = baseFormats
 
@@ -871,7 +871,7 @@ object ISODateTimeRange {
 /** Extractor for the format Fri Aug 12 15:19:20 EST 2011 */
 object ISOVerboseDateTime {
 
-  def baseFormats = Array("EEE MMM dd hh:mm:ss zzz uuuu","EEE MMM dd HH:mm:ss zzz uuuu")
+  def baseFormats = Array("EEE MMM d hh:mm:ss zzz uuuu","EEE MMM d HH:mm:ss zzz uuuu")
   
   def formats = baseFormats
   
@@ -907,7 +907,7 @@ object ISOVerboseDateTime {
 /** Extractor for the format Mon Apr 23 00:00:00 EST 1984/Sun Apr 29 00:00:00 EST 1984 */
 object ISOVerboseDateTimeRange {
 
-  def baseFormats = Array("EEE MMM dd hh:mm:ss zzz uuuu","EEE MMM dd HH:mm:ss zzz uuuu")
+  def baseFormats = Array("EEE MMM d hh:mm:ss zzz uuuu","EEE MMM d HH:mm:ss zzz uuuu")
 
   def formats = baseFormats
   
@@ -956,7 +956,7 @@ object ISOVerboseDateTimeRange {
 
 /** Extractor for the format uuuu-MM-dd/MM-dd */
 object ISODayMonthRange {
-  def baseFormats = Array("uuuu-MM-dd", "uuuu-M-d")
+  def baseFormats = Array("uuuu-MM-d", "uuuu-M-d")
 
   def formats = baseFormats
   
@@ -1007,7 +1007,7 @@ object ISODayMonthRange {
 
 /** Extractor for the format uuuu-MM-dd/dd */
 object ISODayDateRange {
-  def baseFormats = Array("uuuu-MM-dd")
+  def baseFormats = Array("uuuu-M-d")
 
   def formats = baseFormats
   
