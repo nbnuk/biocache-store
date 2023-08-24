@@ -25,6 +25,16 @@ import java.time.ZonedDateTime
 import java.time.Month
 import java.time.Year
 
+
+/**
+ * NBN NOTE:
+ * See RSUBI-53
+ * This class is customised, but we also override it completely in biocache-store-nbn. We reverted to the old DateParser
+ * because this new implementation adds a day and month value (01) to strings that have a missing day or month. This is
+ * so that the strings can be parsed to Date objects however making up days is no good for NBN, so we have added the old
+ * DateParser (and DateUtils) to the NBN layer (hence overriding the new DateParser).
+ */
+
 /**
  * Date parser that uses scala extractors to handle the different formats.
  */
