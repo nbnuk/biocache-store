@@ -7,6 +7,7 @@ branches:
   - master
   - develop
   - master-nbn
+  - access-controls
 
 cache:
   directories:
