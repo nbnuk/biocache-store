@@ -30,6 +30,7 @@ class BasisOfRecordProcessor extends Processor {
       val term = BasisOfRecord.matchTerm(raw.occurrence.basisOfRecord)
       if (term.isEmpty) {
         //add a quality assertion
+        System.out.println("HMJ [QualityAssertion] " + guid + ", unrecognised BoR: " + guid + ", BoR:" + raw.occurrence.basisOfRecord)
         logger.debug("[QualityAssertion] " + guid + ", unrecognised BoR: " + guid + ", BoR:" + raw.occurrence.basisOfRecord)
         Array(QualityAssertion(BADLY_FORMED_BASIS_OF_RECORD, "Unrecognised basis of record"), QualityAssertion(MISSING_BASIS_OF_RECORD, PASSED))
       } else {
