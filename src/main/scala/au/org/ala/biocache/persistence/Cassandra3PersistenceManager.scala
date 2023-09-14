@@ -936,7 +936,7 @@ class Cassandra3PersistenceManager  @Inject() (
                       try {
                         continuePaging.set(procArray(rowkey, new CassandraRow(row)))
                       } catch {
-                        case e: Exception => logger.error("Exception throw during paging: " + e.getMessage, e)
+                        case e: Exception => logger.error("Exception throw during paging. rowkey: "+rowkey+" message: " + e.getMessage, e)
                       }
                     } else if (proc != null) {
                       val map = new util.HashMap[String, String]()
@@ -952,7 +952,7 @@ class Cassandra3PersistenceManager  @Inject() (
                         continuePaging.set(proc(rowkey, map.toMap, tokenRangeIdx.toString))
 
                       } catch {
-                        case e: Exception => logger.error("Exception throw during paging: " + e.getMessage, e)
+                        case e: Exception => logger.error("Exception throw during paging. rowkey: "+rowkey+" message: " + e.getMessage, e)
                       }
                     }
 
