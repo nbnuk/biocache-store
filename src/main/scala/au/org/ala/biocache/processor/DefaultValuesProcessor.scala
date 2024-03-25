@@ -1,12 +1,15 @@
 package au.org.ala.biocache.processor
 
+
+import au.org.ala.biocache.Config
 import au.org.ala.biocache.caches.AttributionDAO
 import au.org.ala.biocache.parser.DateParser
-import au.org.ala.biocache.model.{QualityAssertion, FullRecord}
+import au.org.ala.biocache.model.{FullRecord, QualityAssertion}
 import au.org.ala.biocache.load.FullRecordMapper
 import au.org.ala.biocache.model.{FullRecord, QualityAssertion}
 import au.org.ala.biocache.parser.DateParser
-
+import org.apache.commons.lang.StringUtils
+import org.slf4j.LoggerFactory
 /**
  * Maps the default values from the data resource configuration in the
  * collectory to the processed record when no raw value exists. This enables basisOfRecord, for example, to be set for
@@ -20,7 +23,11 @@ import au.org.ala.biocache.parser.DateParser
  */
 class DefaultValuesProcessor extends Processor {
 
+  val logger = LoggerFactory.getLogger("DefaultValuesProcessor")
+
   def process(guid: String, raw: FullRecord, processed: FullRecord, lastProcessed: Option[FullRecord] = None): Array[QualityAssertion] = {
+
+    var rawPropertiesToUpdate = Map[String, String]()
 
     //add the default dwc fields if their is no raw value for them.
     val dr = AttributionDAO.getDataResourceByUid(raw.attribution.dataResourceUid)
@@ -31,7 +38,7 @@ class DefaultValuesProcessor extends Processor {
             if (raw.getProperty(key).isEmpty) {
               //set the processed value to the default value
               processed.setProperty(key, value)
-              raw.setProperty(key, value)
+              rawPropertiesToUpdate = rawPropertiesToUpdate + (key -> value)
               if (!processed.getDefaultValuesUsed && !processed.getProperty(key).isEmpty){
                 processed.setDefaultValuesUsed(true)
               }
@@ -54,6 +61,20 @@ class DefaultValuesProcessor extends Processor {
     if (raw.occurrence.originalSensitiveValues != null && (lastLoadedDate.isEmpty || lastProcessedDate.isEmpty || lastLoadedDate.get.before(lastProcessedDate.get))) {
       FullRecordMapper.mapPropertiesToObject(raw, raw.occurrence.originalSensitiveValues)
     }
+
+    if (!rawPropertiesToUpdate.isEmpty) {
+      //update the raw object for downstream processing
+      rawPropertiesToUpdate.foreach { case (key, value) => raw.setProperty(key, value) }
+
+      //update the raw record, removing properties where necessary
+      if (StringUtils.isNotBlank(raw.rowKey)) {
+        Config.persistenceManager.put(raw.rowKey, "occ", rawPropertiesToUpdate.toMap, false, false)
+      }
+      else {
+        logger.error("Error storing default values " + raw.rowKey)
+      }
+    }
+
 
     Array()
   }
