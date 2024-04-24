@@ -42,6 +42,7 @@ class FullRecord(
                   @BeanProperty var lastModifiedTime: String = "",
                   @BeanProperty var dateDeleted: String = "",
                   @BeanProperty var lastUserAssertionDate: String = "",
+                  @BeanProperty var publicResolutionInMeters: String = "",
                   @JsonIgnoreProperties var rawFields: scala.collection.Map[String, String] = Map(),
                   @JsonIgnoreProperties var qualityAssertions: scala.collection.Map[Int, QualityAssertion] = null)
   extends Cloneable with CompositePOSO {
