@@ -124,10 +124,6 @@ class Occurrence extends Cloneable with POSO {
 
   @BeanProperty var locationId:String =_
 
-  //Access-Control
-  @BeanProperty var publicResolutionInMeters:String = _
-
-
   //Store the original values before the public resolution blurring is applied
   var suppliedAccessControlledValues:Map[String,String] = _
 
@@ -140,19 +136,6 @@ class Occurrence extends Cloneable with POSO {
   @JsonIgnore
   def getSuppliedAccessControlledValues():Map[String,String] = suppliedAccessControlledValues
   def setSuppliedAccessControlledValues(suppliedAccessControlledValues:Map[String,String]) = this.suppliedAccessControlledValues = suppliedAccessControlledValues
-
-  //Store the loaded values before they are cleared prior to record upsert
-  var loadedAccessControlledValues:Map[String,String] = _
-
-  @JsonIgnore
-  def getLoadedAccessControlledValues():Map[String,String] = loadedAccessControlledValues
-  def setLoadedAccessControlledValues(loadedAccessControlledValues:Map[String,String]) = this.loadedAccessControlledValues = loadedAccessControlledValues
-
-  var publicResolutionToBeAppliedInMeters:String = _
-
-  @JsonIgnore
-  def getPublicResolutionToBeAppliedInMeters():String = publicResolutionToBeAppliedInMeters
-  def setPublicResolutionToBeAppliedInMeters(publicResolutionToBeAppliedInMeters:String) = this.publicResolutionToBeAppliedInMeters = publicResolutionToBeAppliedInMeters
 
 
 }

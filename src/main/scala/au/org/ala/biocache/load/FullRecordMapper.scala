@@ -40,6 +40,9 @@ object FullRecordMapper {
   val queryAssertionColumn = "queryAssertions" + Config.persistenceManager.fieldDelimiter + "p"
 
   val gridreferenceWktColumn = "gridReferenceWKT" // NBN ***
+  val publicResolutionInMeters = "publicResolutionInMeters"
+  val publicResolutionToBeAppliedInMeters = "publicResolutionToBeAppliedInMeters"
+  val loadedAccessControlledValues = "loadedAccessControlledValues"
 
   val qaFields = Processors.processorMap.values.map(processor => markAsQualityAssertion(processor.asInstanceOf[Processor].getName))
 
@@ -87,6 +90,18 @@ object FullRecordMapper {
 
     if (fullRecord.lastModifiedTime != "") {
       properties.put(FullRecordMapper.markNameBasedOnVersion(FullRecordMapper.alaModifiedColumn, version), fullRecord.lastModifiedTime)
+    }
+
+    if (fullRecord.publicResolutionInMeters !=null){
+      properties.put(publicResolutionInMeters, fullRecord.publicResolutionInMeters)
+    }
+
+    if (fullRecord.publicResolutionToBeAppliedInMeters !=null){
+      properties.put(publicResolutionToBeAppliedInMeters, fullRecord.publicResolutionToBeAppliedInMeters)
+    }
+
+    if (fullRecord.loadedAccessControlledValues !=null){
+      properties.put(loadedAccessControlledValues, Json.toJSON(fullRecord.loadedAccessControlledValues))
     }
 
     if (logger.isTraceEnabled()) {

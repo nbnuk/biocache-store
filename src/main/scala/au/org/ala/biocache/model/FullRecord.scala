@@ -43,6 +43,8 @@ class FullRecord(
                   @BeanProperty var dateDeleted: String = "",
                   @BeanProperty var lastUserAssertionDate: String = "",
                   @BeanProperty var publicResolutionInMeters: String = "",
+                  @BeanProperty var publicResolutionToBeAppliedInMeters: String = "",
+                  @JsonIgnoreProperties var loadedAccessControlledValues:Map[String,String] = null,
                   @JsonIgnoreProperties var rawFields: scala.collection.Map[String, String] = Map(),
                   @JsonIgnoreProperties var qualityAssertions: scala.collection.Map[Int, QualityAssertion] = null)
   extends Cloneable with CompositePOSO {
@@ -128,4 +130,10 @@ class FullRecord(
     }, v)
     }
   }
+
+
+  @JsonIgnore
+  def getLoadedAccessControlledValues(): Map[String, String] = loadedAccessControlledValues
+
+  def setLoadedAccessControlledValues(map: Map[String, String]) = loadedAccessControlledValues = map
 }
