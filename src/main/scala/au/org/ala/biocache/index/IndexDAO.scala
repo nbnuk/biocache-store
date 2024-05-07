@@ -1193,7 +1193,7 @@ trait IndexDAO {
     }
 
 
-    if (Config.accessControlFeatureEnabled) {
+    if (Config.accessControlFeatureEnabled && getArrayValue(array.getIndexOf("suppliedAccessControlledValues_p"), array, null) !=null) {
       addSuppliedAndSensitiveValuesToIndexDocument(doc, array)
     }
     else {
@@ -1210,7 +1210,7 @@ trait IndexDAO {
             addField(doc, "sensitive_locality", String.valueOf(parsed.getOrElse("locality", ""))) // is set to IGNORE in headerAttributes
             addField(doc, "sensitive_event_date", String.valueOf(parsed.getOrElse("eventDate", ""))) // is set to IGNORE in headerAttributes
             addField(doc, "sensitive_event_date_end", String.valueOf(parsed.getOrElse("eventDateEnd", ""))) // is set to IGNORE in headerAttributes
-            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference", ""))) // is set to IGNORE in headerAttributes
+            addField(doc, "sensitive_grid_reference", String.valueOf(parsed.getOrElse("gridReference"+ Config.persistenceManager.fieldDelimiter + "p", ""))) // is set to IGNORE in headerAttributes
           } catch {
             case _: Exception => Map[String, String]()
           }
