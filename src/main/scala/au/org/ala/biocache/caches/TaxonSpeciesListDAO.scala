@@ -72,10 +72,25 @@ object TaxonSpeciesListDAO {
   }
 
   /**
-    * Get the list details for the supplied guid
-    * @param conceptLsid
-    * @return
-    */
+   * Gets the column values from authoritative species lists for a given taxon concept ID.
+   *
+   * This method returns a Map containing column name/value pairs from all authoritative species lists
+   * that contain the given taxon. The column names are prefixed with the data resource ID of the list
+   * to avoid conflicts between lists.
+   *
+   * For example, if a taxon appears in two lists (dr1234 and dr5678), the returned map might contain:
+   * {
+   *   "dr1234_scientificName" -> "Macropus rufus",
+   *   "dr1234_commonName" -> "Red Kangaroo",
+   *   "dr5678_status" -> "Least Concern"
+   * }
+   *
+   * The method uses lazy initialization with double-checked locking to load the species list data
+   * only once when first accessed.
+   *
+   * @param conceptLsid The taxon concept ID to look up
+   * @return Map of column name/value pairs from all species lists containing this taxon
+   */
   def getCachedColumnsForTaxon(conceptLsid:String) : Map[String, String] = {
 
     if( StringUtils.isEmpty(Config.listToolUrl) ){
@@ -156,12 +171,28 @@ object TaxonSpeciesListDAO {
     }
   }
 
-
   /**
-    * Build a map of taxonID -> (list UID + header -> value).
-    *
-    * @return
-    */
+   * Build a map of taxonID -> (list UID + header -> value).
+   *
+   * For each authoritative species list, downloads the CSV data and maps the columns
+   * to values for each taxon ID (guid).
+   *
+   * The column names are prefixed with the data resource ID to avoid conflicts between lists.
+   *
+   * Example return value:
+   * {
+   *   "urn:lsid:biodiversity.org.au:afd.taxon:2ef88269-a0b4-4321-a7d9-7bf1cd845bec" -> {
+   *     "dr1234_scientificName" -> "Macropus rufus",
+   *     "dr1234_commonName" -> "Red Kangaroo",
+   *     "dr1234_status" -> "Least Concern",
+   *     "dr5678_scientificName" -> "Macropus rufus",
+   *     "dr5678_habitat" -> "Arid and semi-arid grasslands"
+   *     "dr2111_Designation" -> "Protected"
+   *   }
+   * }
+   *
+   * @return Map of taxon ID to column name/value pairs from all species lists
+   */
   def buildTaxonListColumnsMap : Map[String, Map[String, String]] = {
 
     try {
